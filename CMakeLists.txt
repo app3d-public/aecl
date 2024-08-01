@@ -4,7 +4,7 @@ project(app3d-ecl
     LANGUAGES CXX C
     DESCRIPTION "App3d Extended Content Loader")
 
-add_files(${PROJECT_NAME} "${CMAKE_CURRENT_SOURCE_DIR}/src")
+add_files(${PROJECT_NAME} RECURSE "${CMAKE_CURRENT_SOURCE_DIR}/src")
 
 add_library(${PROJECT_NAME} SHARED ${SOURCE_FILES})
 set_target_properties(${PROJECT_NAME} PROPERTIES CXX_VISIBILITY_PRESET hidden)

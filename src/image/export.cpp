@@ -1,6 +1,9 @@
 #include <assets/utils.hpp>
 #include <core/log.hpp>
 #include <ecl/image/export.hpp>
+#include <memory>
+#include "assets/asset.hpp"
+#include "assets/image.hpp"
 
 namespace ecl
 {
@@ -441,6 +444,24 @@ namespace ecl
                 return false;
             }
             return out->close();
+        }
+
+        bool AssetExporter::save(size_t dstBit)
+        {
+            auto &currentImage = _images.front();
+            if (currentImage.bytesPerChannel != dstBit)
+            {
+                std::shared_ptr<void> copy =
+                    copySrcBuffer(currentImage.pixels, currentImage.imageSize(), currentImage.imageFormat);
+                currentImage.pixels = copy.get();
+                assets::utils::convertImage(currentImage, currentImage.imageFormat, dstBit);
+            }
+            auto image2D = std::make_shared<assets::Image2D>(currentImage);
+            assets::InfoHeader header;
+            header.type = assets::Type::Image;
+            header.compressed = _compression > 0;
+            assets::Image image{header, _flags, image2D, _checksum};
+            return image.save(_path, _compression);
         }
     } // namespace image
 } // namespace ecl

@@ -1,8 +1,6 @@
 #pragma once
 
 #include <assets/image.hpp>
-#include <memory>
-#include <vulkan/vulkan.hpp>
 #include "format.hpp"
 
 namespace ecl
@@ -32,8 +30,8 @@ namespace ecl
         class IExporter
         {
         public:
-            IExporter(const std::filesystem::path &path, const DArray<assets::ImageInfo> &images, Format format)
-                : _path(path), _images(images), _format(format)
+            IExporter(const std::filesystem::path &path, const DArray<assets::ImageInfo> &images)
+                : _path(path), _images(images)
             {
             }
 
@@ -60,6 +58,21 @@ namespace ecl
              */
             DArray<assets::ImageInfo> images() const { return _images; }
 
+            virtual bool save(size_t dstBit) = 0;
+
+        protected:
+            std::filesystem::path _path;
+            DArray<assets::ImageInfo> _images;
+        };
+
+        class OIIOExporter : public IExporter
+        {
+        public:
+            OIIOExporter(const std::filesystem::path &path, const DArray<assets::ImageInfo> &images, Format format)
+                : IExporter(path, images), _format(format)
+            {
+            }
+
             /**
              * @brief Get output image info
              *
@@ -67,32 +80,31 @@ namespace ecl
              */
             Format format() { return _format; }
 
-            virtual bool save(size_t dstBit, DArray<std::shared_ptr<void>> &pixels) = 0;
-
-            bool save(size_t dstBit)
+            virtual bool save(size_t dstBit) override
             {
                 DArray<std::shared_ptr<void>> pixels;
                 return save(dstBit, pixels);
-            };
+            }
+
+            virtual bool save(size_t dstBit, DArray<std::shared_ptr<void>> &pixels) = 0;
 
         protected:
-            std::filesystem::path _path;
-            DArray<assets::ImageInfo> _images;
             Format _format;
         };
 
         /**
          * @brief A class for exporting images in BMP format
          *
-         * This class inherits from IExporter and provides an implementation for saving images in BMP
+         * This class inherits from OIIOExporter and provides an implementation for saving images in BMP
          * format.
          */
-        class BMPExporter : public IExporter
+        class BMPExporter final : public OIIOExporter
         {
         public:
             BMPExporter(const std::filesystem::path &path, const assets::ImageInfo &image, f32 dpi = 72.0f,
                         bool dither = false)
-                : IExporter(path, {image}, {FormatFlagBits::bit8 | FormatFlagBits::alpha, vk::Format::eR8G8B8A8Srgb}),
+                : OIIOExporter(path, {image},
+                               {FormatFlagBits::bit8 | FormatFlagBits::alpha, vk::Format::eR8G8B8A8Srgb}),
                   _dpi(dpi),
                   _dither(dither)
             {
@@ -136,7 +148,7 @@ namespace ecl
              */
             bool dither() const { return _dither; }
 
-            using IExporter::save;
+            using OIIOExporter::save;
             bool save(size_t dstBit, DArray<std::shared_ptr<void>> &pixels) override;
 
         private:
@@ -147,16 +159,16 @@ namespace ecl
         /**
          * @brief A class for exporting images in GIF format
          *
-         * This class inherits from IExporter and provides an implementation for saving images in GIF
+         * This class inherits from OIIOExporter and provides an implementation for saving images in GIF
          * format.
          */
-        class GIFExporter : public IExporter
+        class GIFExporter final : public OIIOExporter
         {
         public:
             GIFExporter(const std::filesystem::path &path, const DArray<assets::ImageInfo> &images,
                         bool interlacing = false, int loops = 0, int fps = 0)
-                : IExporter(path, images,
-                            {FormatFlagBits::bit8 | FormatFlagBits::multilayer, vk::Format::eR8G8B8A8Srgb}),
+                : OIIOExporter(path, images,
+                               {FormatFlagBits::bit8 | FormatFlagBits::multilayer, vk::Format::eR8G8B8A8Srgb}),
                   _interlacing(interlacing),
                   _loops(loops),
                   _fps(fps)
@@ -205,7 +217,7 @@ namespace ecl
              */
             int fps() const { return _fps; }
 
-            using IExporter::save;
+            using OIIOExporter::save;
             bool save(size_t dstBit, DArray<std::shared_ptr<void>> &pixels) override;
 
         private:
@@ -217,36 +229,36 @@ namespace ecl
         /**
          * @brief A class for exporting images in HDR (RGBE) format
          *
-         * This class inherits from IExporter and provides an implementation for saving images in HDR
+         * This class inherits from OIIOExporter and provides an implementation for saving images in HDR
          * format.
          */
-        class HDRExporter : public IExporter
+        class HDRExporter final : public OIIOExporter
         {
         public:
             HDRExporter(const std::filesystem::path &path, const assets::ImageInfo &image)
-                : IExporter(path, {image},
-                            {FormatFlagBits::bit16 | FormatFlagBits::bit32, vk::Format::eUndefined,
-                             vk::Format::eR16G16B16A16Sfloat, vk::Format::eR32G32B32A32Sfloat})
+                : OIIOExporter(path, {image},
+                               {FormatFlagBits::bit16 | FormatFlagBits::bit32, vk::Format::eUndefined,
+                                vk::Format::eR16G16B16A16Sfloat, vk::Format::eR32G32B32A32Sfloat})
             {
             }
 
-            using IExporter::save;
+            using OIIOExporter::save;
             bool save(size_t dstBit, DArray<std::shared_ptr<void>> &pixels) override;
         };
 
         /**
          * @brief A class for exporting images in HEIF format
          *
-         * This class inherits from IExporter and provides an implementation for saving images in HEIF
+         * This class inherits from OIIOExporter and provides an implementation for saving images in HEIF
          * format.
          */
-        class HEIFExporter : public IExporter
+        class HEIFExporter final : public OIIOExporter
         {
         public:
             HEIFExporter(const std::filesystem::path &path, const assets::ImageInfo &image, int compression = 100)
-                : IExporter(path, {image},
-                            {FormatFlagBits::bit8 | FormatFlagBits::alpha | FormatFlagBits::multilayer,
-                             vk::Format::eR8G8B8A8Srgb}),
+                : OIIOExporter(path, {image},
+                               {FormatFlagBits::bit8 | FormatFlagBits::alpha | FormatFlagBits::multilayer,
+                                vk::Format::eR8G8B8A8Srgb}),
                   _compression(compression)
             {
             }
@@ -264,7 +276,7 @@ namespace ecl
             // Get the compression level
             int compression() const { return _compression; }
 
-            using IExporter::save;
+            using OIIOExporter::save;
             bool save(size_t dstBit, DArray<std::shared_ptr<void>> &pixels) override;
 
         private:
@@ -274,13 +286,13 @@ namespace ecl
         /**
          * @brief A class that exports an image in JPEG format.
          */
-        class JPEGExporter : public IExporter
+        class JPEGExporter final : public OIIOExporter
         {
         public:
             JPEGExporter(const std::filesystem::path &path, const assets::ImageInfo &image, f32 dpi = 72.0f,
                          bool dither = false, bool progressive = false, int compression = 100,
                          const std::string &appName = "")
-                : IExporter(path, {image}, {FormatFlagBits::bit8, vk::Format::eR8G8B8A8Srgb}),
+                : OIIOExporter(path, {image}, {FormatFlagBits::bit8, vk::Format::eR8G8B8A8Srgb}),
                   _dpi(dpi),
                   _dither(dither),
                   _progressive(progressive),
@@ -289,7 +301,7 @@ namespace ecl
             {
             }
 
-            using IExporter::save;
+            using OIIOExporter::save;
             bool save(size_t dstBit, DArray<std::shared_ptr<void>> &pixels) override;
 
             /**
@@ -385,7 +397,7 @@ namespace ecl
         /**
          * @brief A class that exports an image in JPEG2000 format.
          */
-        class JPEG2000Exporter : public IExporter
+        class JPEG2000Exporter final : public OIIOExporter
         {
         public:
             /**
@@ -397,9 +409,9 @@ namespace ecl
              */
             JPEG2000Exporter(const std::filesystem::path &path, const assets::ImageInfo &image,
                              bool unassociatedAlpha = false, bool dither = false)
-                : IExporter(path, {image},
-                            {FormatFlagBits::bit8 | FormatFlagBits::bit16 | FormatFlagBits::alpha,
-                             vk::Format::eR8G8B8A8Srgb, vk::Format::eR16G16B16A16Uint}),
+                : OIIOExporter(path, {image},
+                               {FormatFlagBits::bit8 | FormatFlagBits::bit16 | FormatFlagBits::alpha,
+                                vk::Format::eR8G8B8A8Srgb, vk::Format::eR16G16B16A16Uint}),
                   _unassociatedAlpha(unassociatedAlpha),
                   _dither(dither)
             {
@@ -438,7 +450,7 @@ namespace ecl
              */
             bool dither() const { return _dither; }
 
-            using IExporter::save;
+            using OIIOExporter::save;
             bool save(size_t dstBit, DArray<std::shared_ptr<void>> &pixels) override;
 
         private:
@@ -446,7 +458,7 @@ namespace ecl
             bool _dither;
         };
 
-        class JPEGXLExporter : public IExporter
+        class JPEGXLExporter final : public OIIOExporter
         {
         public:
             /**
@@ -455,20 +467,20 @@ namespace ecl
              * @param image An object representing the subimage to be exported.
              */
             JPEGXLExporter(const std::filesystem::path &path, const assets::ImageInfo &image)
-                : IExporter(path, {image},
-                            {FormatFlagBits::bit8 | FormatFlagBits::bit16, vk::Format::eR8G8B8A8Srgb,
-                             vk::Format::eR16G16B16A16Uint})
+                : OIIOExporter(path, {image},
+                               {FormatFlagBits::bit8 | FormatFlagBits::bit16, vk::Format::eR8G8B8A8Srgb,
+                                vk::Format::eR16G16B16A16Uint})
             {
             }
 
-            using IExporter::save;
+            using OIIOExporter::save;
             bool save(size_t dstBit, DArray<std::shared_ptr<void>> &pixels) override;
         };
 
         /**
          * @brief A class that exports an image in OpenEXR format.
          */
-        class OpenEXRExporter : public IExporter
+        class OpenEXRExporter final : public OIIOExporter
         {
         public:
             /**
@@ -487,10 +499,11 @@ namespace ecl
              */
             OpenEXRExporter(const std::filesystem::path &path, const DArray<assets::ImageInfo> &images,
                             const std::string &compression = "none")
-                : IExporter(path, images,
-                            {FormatFlagBits::bit16 | FormatFlagBits::bit32 | FormatFlagBits::alpha |
-                                 FormatFlagBits::multilayer,
-                             vk::Format::eUndefined, vk::Format::eR16G16B16A16Sfloat, vk::Format::eR32G32B32A32Sfloat}),
+                : OIIOExporter(path, images,
+                               {FormatFlagBits::bit16 | FormatFlagBits::bit32 | FormatFlagBits::alpha |
+                                    FormatFlagBits::multilayer,
+                                vk::Format::eUndefined, vk::Format::eR16G16B16A16Sfloat,
+                                vk::Format::eR32G32B32A32Sfloat}),
                   _compression(compression)
             {
             }
@@ -512,7 +525,7 @@ namespace ecl
              */
             std::string compression() const { return _compression; }
 
-            using IExporter::save;
+            using OIIOExporter::save;
             bool save(size_t dstBit, DArray<std::shared_ptr<void>> &pixels) override;
 
         private:
@@ -522,7 +535,7 @@ namespace ecl
         /**
          * @brief A class that exports an image in PNG format.
          */
-        class PNGExporter : public IExporter
+        class PNGExporter final : public OIIOExporter
         {
         public:
             /**
@@ -542,9 +555,9 @@ namespace ecl
              */
             PNGExporter(const std::string &path, const assets::ImageInfo &image, f32 dpi = 72.0f, bool dither = false,
                         int compression = 6, int filter = 0, bool unassociatedAlpha = false)
-                : IExporter(path, {image},
-                            {FormatFlagBits::bit8 | FormatFlagBits::bit16 | FormatFlagBits::alpha,
-                             vk::Format::eR8G8B8A8Srgb, vk::Format::eR16G16B16A16Uint}),
+                : OIIOExporter(path, {image},
+                               {FormatFlagBits::bit8 | FormatFlagBits::bit16 | FormatFlagBits::alpha,
+                                vk::Format::eR8G8B8A8Srgb, vk::Format::eR16G16B16A16Uint}),
                   _dpi(dpi),
                   _dither(dither),
                   _compression(compression),
@@ -636,7 +649,7 @@ namespace ecl
              */
             bool unassociatedAlpha() const { return _unassociatedAlpha; }
 
-            using IExporter::save;
+            using OIIOExporter::save;
             bool save(size_t dstBit, DArray<std::shared_ptr<void>> &pixels) override;
 
         private:
@@ -650,7 +663,7 @@ namespace ecl
         /**
          * @brief A class that exports an image in PNM/PBM format.
          */
-        class PNMExporter : public IExporter
+        class PNMExporter final : public OIIOExporter
         {
         public:
             /**
@@ -662,7 +675,7 @@ namespace ecl
              */
             PNMExporter(const std::filesystem::path &path, const assets::ImageInfo &image, bool binary = false,
                         bool dither = false)
-                : IExporter(path, {image}, {FormatFlagBits::bit8, vk::Format::eR8G8B8A8Srgb}),
+                : OIIOExporter(path, {image}, {FormatFlagBits::bit8, vk::Format::eR8G8B8A8Srgb}),
                   _binary(binary),
                   _dither(dither)
             {
@@ -700,7 +713,7 @@ namespace ecl
                 return *this;
             }
 
-            using IExporter::save;
+            using OIIOExporter::save;
             bool save(size_t dstBit, DArray<std::shared_ptr<void>> &pixels) override;
 
         private:
@@ -711,7 +724,7 @@ namespace ecl
         /**
          * @brief A class that exports an image in Targa format.
          */
-        class TargaExporter : public IExporter
+        class TargaExporter final : public OIIOExporter
         {
         public:
             /**
@@ -725,7 +738,7 @@ namespace ecl
              */
             TargaExporter(const std::filesystem::path &path, const assets::ImageInfo &image, bool dither = false,
                           const std::string &compression = "rle", const std::string &appName = "")
-                : IExporter(
+                : OIIOExporter(
                       path, {image},
                       {FormatFlagBits::bit8 | FormatFlagBits::bit16 | FormatFlagBits::alpha | FormatFlagBits::readOnly,
                        vk::Format::eR8G8B8A8Srgb, vk::Format::eR16G16B16A16Uint}),
@@ -783,7 +796,7 @@ namespace ecl
              **/
             bool dither() const { return _dither; }
 
-            using IExporter::save;
+            using OIIOExporter::save;
             bool save(size_t dstBit, DArray<std::shared_ptr<void>> &pixels) override;
 
         private:
@@ -795,7 +808,7 @@ namespace ecl
         /**
          * @brief A class that exports an image in TIFF format.
          */
-        class TIFFExporter : public IExporter
+        class TIFFExporter final : public OIIOExporter
         {
         public:
             /**
@@ -822,11 +835,11 @@ namespace ecl
                          bool unassociatedAlpha = false, bool dither = false, int zipquality = 6,
                          bool forceBigTIFF = false, const std::string &appName = "", f32 dpi = 72.0f,
                          const std::string &compression = "none")
-                : IExporter(path, images,
-                            {FormatFlagBits::bit8 | FormatFlagBits::bit16 | FormatFlagBits::bit32 |
-                                 FormatFlagBits::alpha | FormatFlagBits::multilayer,
-                             vk::Format::eR8G8B8A8Srgb, vk::Format::eR16G16B16A16Uint,
-                             vk::Format::eR32G32B32A32Sfloat}),
+                : OIIOExporter(path, images,
+                               {FormatFlagBits::bit8 | FormatFlagBits::bit16 | FormatFlagBits::bit32 |
+                                    FormatFlagBits::alpha | FormatFlagBits::multilayer,
+                                vk::Format::eR8G8B8A8Srgb, vk::Format::eR16G16B16A16Uint,
+                                vk::Format::eR32G32B32A32Sfloat}),
                   _unassociatedAlpha(unassociatedAlpha),
                   _dither(dither),
                   _zipquality(zipquality),
@@ -952,7 +965,7 @@ namespace ecl
              */
             f32 dpi() const { return _dpi; }
 
-            using IExporter::save;
+            using OIIOExporter::save;
             bool save(size_t dstBit, DArray<std::shared_ptr<void>> &pixels) override;
 
         private:
@@ -968,7 +981,7 @@ namespace ecl
         /**
          * @brief A class that exports an image in WebP format.
          */
-        class WebPExporter : public IExporter
+        class WebPExporter final : public OIIOExporter
         {
         public:
             /**
@@ -978,7 +991,8 @@ namespace ecl
              * @param dither A boolean representing whether to use dithering in the exported image.
              */
             WebPExporter(const std::string &path, const assets::ImageInfo &image, bool dither = false)
-                : IExporter(path, {image}, {FormatFlagBits::bit8 | FormatFlagBits::alpha, vk::Format::eR8G8B8A8Srgb}),
+                : OIIOExporter(path, {image},
+                               {FormatFlagBits::bit8 | FormatFlagBits::alpha, vk::Format::eR8G8B8A8Srgb}),
                   _dither(dither)
             {
             }
@@ -999,11 +1013,82 @@ namespace ecl
              **/
             bool dither() const { return _dither; }
 
-            using IExporter::save;
+            using OIIOExporter::save;
             bool save(size_t dstBit, DArray<std::shared_ptr<void>> &pixels) override;
 
         private:
             bool _dither;
+        };
+
+        class AssetExporter final : public IExporter
+        {
+        public:
+            AssetExporter(const std::string &path, const assets::ImageInfo &image, int compression = 5,
+                          u32 checksum = 0, assets::ImageTypeFlags flags = assets::ImageTypeFlagBits::tUndefined)
+                : IExporter(path, {image})
+            {
+            }
+
+            /**
+             * @brief Sets the compression level for the exported image.
+             * @param compression An integer representing the compression level for the exported image.
+             * If the compression level is not set, the default compression level is 5.
+             * If the compression equals 0, the image will not be compressed.
+             * You can use ZSTD compression levels to adjust the compression ratio and speed according to your
+             * requirements. The ZSTD library supports compression levels from 1 to 22.
+             */
+            AssetExporter &compression(int compression)
+            {
+                _compression = compression;
+                return *this;
+            }
+
+            /**
+             * @brief Returns the compression level for the exported image.
+             * @return An integer representing the compression level for the exported image.
+             */
+            int compression() const { return _compression; }
+
+            /**
+             * @brief Sets the checksum for the exported image.
+             * @param checksum An u32 value representing the checksum for the exported image.
+             * If the checksum is not set, the checksum will not be set in the image.
+             */
+            AssetExporter &checksum(u32 checksum)
+            {
+                _checksum = checksum;
+                return *this;
+            }
+
+            /**
+             * @brief Returns the checksum for the exported image.
+             * @return An u32 value representing the checksum for the exported image.
+             */
+            u32 checksum() const { return _checksum; }
+
+            /**
+             * @brief Sets the image type flags for the exported image.
+             * @param flags An assets::ImageTypeFlags value representing the image type flags for the exported image.
+             * If the image type flags are not set, the default image type flags will be used.
+             */
+            AssetExporter &flags(assets::ImageTypeFlags flags)
+            {
+                _flags = flags;
+                return *this;
+            }
+
+            /**
+             * @brief Returns the image type flags for the exported image.
+             * @return An assets::ImageTypeFlags value representing the image type flags for the exported image.
+             */
+            assets::ImageTypeFlags flags() const { return _flags; }
+
+            virtual bool save(size_t dstBit) override;
+
+        private:
+            int _compression;
+            u32 _checksum;
+            assets::ImageTypeFlags _flags;
         };
 
         inline bool isImageEquals(const assets::ImageInfo &image, Format srcFormat, vk::Format dstFormat)
