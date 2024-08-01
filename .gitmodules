@@ -1,0 +1,6 @@
+[submodule "emhash"]
+	path = modules/3rd-party/emhash
+	url = https://github.com/ktprime/emhash.git
+[submodule "earcut"]
+	path = modules/3rd-party/earcut
+	url = https://github.com/mapbox/earcut.hpp.git
