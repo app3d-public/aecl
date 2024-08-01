@@ -13,24 +13,25 @@
 
 ### Изображения
 
-- `.a3d`
-- `.bmp`
-- `.gif`
-- `.hdr`
-- `.heif`, `.heic`, `.avif`
-- `.jpg`, `.jpe`, `.jpeg`, `.jif`, `.jfif`, `.jfi`
-- `.jp2`, `.j2k`
-- `.exr`
-- `.png`
-- `.pbm`, `.pgm`, `.ppm`
-- `.ari`, `.dpx`, `.arw`, `.srf`, `.sr2`, `.bay`, `.crw`, `.cr2`, `.cr3`, `.dng`, `.dcr`, `.kdc`, `.erf`, `.3fr`, `.mef`, `.mrw`, `.nef`, `.nrw`, `.orf`, `.ptx`, `.pef`, `.raf`, `.raw`, `.rwl`, `.rw2`, `.r3d`, `.srw`, `.x3f` (RAW форматы)
-- `.tga`, `.tpic`
-- `.tif`, `.tiff`
-- `.webp`
+- Asset
+- BMP
+- GIF
+- HDR
+- HEIF/AVIF
+- JPEG
+- JPEG-2000
+- JPEG-XL
+- OpenEXR
+- PNG
+- PBM
+- RAW
+- Targa
+- TIFF
+- WebP
 
 ### 3D объекты
 
-- `.obj`
+- Wavefront OBJ
 
 ## Требования
 
