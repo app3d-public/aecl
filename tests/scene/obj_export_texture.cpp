@@ -6,13 +6,24 @@ namespace tests
     bool runTest(const std::filesystem::path &dataDir, const std::filesystem::path &outputDir)
     {
         using namespace ecl::scene;
-        MeshExportFlags meshFlags = MeshExportFlagBits::export_normals | MeshExportFlagBits::export_triangulated;
-        MaterialExportFlags materialFlags = MaterialExportFlagBits::texture_none;
+        MeshExportFlags meshFlags =
+            MeshExportFlagBits::export_normals | MeshExportFlagBits::export_uv | MeshExportFlagBits::transform_reverseY;
+        MaterialExportFlags materialFlags = MaterialExportFlagBits::texture_copyToLocal;
         obj::ObjExportFlags objFlags = obj::ObjExportFlagBits::mgp_groups | obj::ObjExportFlagBits::mat_PBR;
         obj::Exporter exporter(outputDir / "export_origin.obj", meshFlags, materialFlags, objFlags);
+
         DArray<MeshNode> meshes;
-        createMeshes(meshes);
+        createMeshes(meshes, 0);
         exporter.meshes(meshes);
+
+        DArray<MaterialNode> materials;
+        createMaterials(materials);
+        exporter.materials(materials);
+
+        DArray<TextureNode> textures(1);
+        createDefaultTexture(textures.front(), dataDir);
+        exporter.textures(textures);
+
         auto state = exporter.save();
         exporter.clear();
         return state;

@@ -1,10 +1,11 @@
+#include <algorithm>
 #include <core/io/file.hpp>
 #include <core/log.hpp>
 #include <core/std/string.hpp>
 #include <ecl/image/export.hpp>
 #include <ecl/scene/obj/export.hpp>
+#include <filesystem>
 #include <oneapi/tbb/parallel_for.h>
-#include <string>
 
 namespace ecl
 {
@@ -12,7 +13,7 @@ namespace ecl
     {
         namespace obj
         {
-            void transformVertexPos(glm::vec3 &pos, MeshExportFlags flags)
+            void transformVertex(glm::vec3 &pos, MeshExportFlags flags)
             {
                 if (flags & MeshExportFlagBits::transform_reverseX) pos.x = -pos.x;
                 if (flags & MeshExportFlagBits::transform_reverseY) pos.y = -pos.y;
@@ -22,77 +23,77 @@ namespace ecl
                 if (flags & MeshExportFlagBits::transform_swapYZ) std::swap(pos.y, pos.z);
             }
 
-            void Exporter::writeVertices(const assets::mesh::Model &model, std::stringstream &ss)
+            void Exporter::writeVertices(assets::mesh::Model &model, std::stringstream &ss)
             {
                 // v
                 for (auto &group : model.vertexGroups)
                 {
                     auto &vID = group.vertices.front();
-                    auto pos = model.vertices[vID].pos;
-                    transformVertexPos(pos, _meshFlags);
+                    glm::vec3 &pos = model.vertices[vID].pos;
+                    transformVertex(pos, _meshFlags);
                     ss << "v " << pos.x << " " << pos.y << " " << pos.z << "\n";
                 }
 
                 // vt and vn
-                _vtMap.clear();
-                _vnMap.clear();
+                for (auto &vertex : model.vertices)
                 {
-                    for (auto &vertex : model.vertices)
+                    if (_meshFlags & MeshExportFlagBits::export_uv)
                     {
-                        if (_meshFlags & MeshExportFlagBits::export_uv)
-                        {
-                            auto [it, inserted] = _vtMap.emplace(vertex.uv, _vtMap.size());
-                            if (inserted) ss << "vt " << vertex.uv.x << " " << vertex.uv.y << "\n";
-                        }
-                        if (_meshFlags & MeshExportFlagBits::export_normals)
-                        {
-                            auto [it, inserted] = _vnMap.emplace(vertex.normal, _vnMap.size());
-                            if (inserted)
-                                ss << "vn " << vertex.normal.x << " " << vertex.normal.y << " " << vertex.normal.z
-                                   << "\n";
-                        }
+                        auto [it, inserted] = _vtMap.emplace(vertex.uv, _vtMap.size());
+                        if (inserted) ss << "vt " << vertex.uv.x << " " << vertex.uv.y << "\n";
+                    }
+                    if (_meshFlags & MeshExportFlagBits::export_normals)
+                    {
+                        auto &normal = vertex.normal;
+                        transformVertex(normal, _meshFlags);
+                        auto [it, inserted] = _vnMap.emplace(normal, _vnMap.size());
+                        if (inserted) ss << "vn " << normal.x << " " << normal.y << " " << normal.z << "\n";
                     }
                 }
+
+                if ((_meshFlags & MeshExportFlagBits::transform_reverseX) ||
+                    (_meshFlags & MeshExportFlagBits::transform_reverseY) ||
+                    (_meshFlags & MeshExportFlagBits::transform_reverseZ))
+                    for (auto &face : model.faces) std::reverse(face.vertices.begin(), face.vertices.end());
             }
 
             void Exporter::writeTriangles(assets::mesh::MeshBlock *meta, std::ostream &os)
             {
                 const auto &indices = meta->model.indices;
                 const auto &vertices = meta->model.vertices;
+                auto &groups = meta->model.vertexGroups;
+                DArray<u32> positions(vertices.size());
+                for (int g = 0; g < groups.size(); g++)
+                    for (auto id : groups[g].vertices) positions[id] = g;
+
                 size_t threadCount = oneapi::tbb::this_task_arena::max_concurrency();
                 DArray<std::stringstream> blocks(threadCount);
-                oneapi::tbb::parallel_for(oneapi::tbb::blocked_range<size_t>(0, meta->model.faces.size()),
-                                          [&](const tbb::blocked_range<size_t> &range) {
-                                              size_t threadId = oneapi::tbb::this_task_arena::current_thread_index();
-                                              for (size_t r = range.begin(); r != range.end(); ++r)
-                                              {
-                                                  auto &face = meta->model.faces[r];
-                                                  for (u32 iter = 0, currentID = face.startID;
-                                                       iter < face.indexCount / 3; ++iter)
-                                                  {
-                                                      blocks[threadId] << "f ";
-                                                      for (size_t vertexIndex = 0; vertexIndex < 3; ++vertexIndex)
-                                                      {
-                                                          auto id = indices[currentID + vertexIndex];
-                                                          auto vID = _positions[id];
-                                                          blocks[threadId] << vID + 1 << "/";
-                                                          if (_meshFlags & MeshExportFlagBits::export_uv)
-                                                          {
-                                                              auto vtID = _vtMap[vertices[id].uv];
-                                                              blocks[threadId] << vtID + 1;
-                                                          }
-                                                          if (_meshFlags & MeshExportFlagBits::export_normals)
-                                                          {
-                                                              auto vnID = _vnMap[vertices[id].normal];
-                                                              blocks[threadId] << "/" << vnID + 1;
-                                                          }
-                                                          blocks[threadId] << " ";
-                                                      }
-                                                      blocks[threadId] << "\n";
-                                                      currentID += 3;
-                                                  }
-                                              }
-                                          });
+                oneapi::tbb::parallel_for(
+                    oneapi::tbb::blocked_range<size_t>(0, meta->model.faces.size()),
+                    [&](const tbb::blocked_range<size_t> &range) {
+                        size_t threadId = oneapi::tbb::this_task_arena::current_thread_index();
+                        for (size_t r = range.begin(); r != range.end(); ++r)
+                        {
+                            auto &face = meta->model.faces[r];
+                            for (u32 iter = 0, currentID = face.startID; iter < face.indexCount / 3; ++iter)
+                            {
+                                blocks[threadId] << "f ";
+                                for (size_t vertexIndex = 0; vertexIndex < 3; ++vertexIndex)
+                                {
+                                    auto id = indices[currentID + vertexIndex];
+                                    auto vID = positions[id];
+                                    blocks[threadId] << vID + 1 << "/";
+                                    if (_meshFlags & MeshExportFlagBits::export_uv)
+                                        blocks[threadId] << _vtMap[vertices[id].uv] + 1;
+                                    if (_meshFlags & MeshExportFlagBits::export_normals)
+                                        blocks[threadId] << "/" << _vnMap[vertices[id].normal] + 1;
+                                    blocks[threadId] << " ";
+                                }
+                                blocks[threadId] << "\n";
+                                currentID += 3;
+                            }
+                        }
+                    });
                 for (const auto &block : blocks) os << block.str();
             }
 
@@ -107,31 +108,16 @@ namespace ecl
                                               for (size_t i = range.begin(); i != range.end(); ++i)
                                               {
                                                   blocks[threadId] << "f ";
-                                                  auto &face = faces[i];
-                                                  //   for (const auto &edge : face.edges)
-                                                  //   {
-                                                  //       auto orderedEdge = face.getOrderedEdge(model->edges(), edge);
-                                                  //       auto &vertex = model->vertices()[orderedEdge.first];
-                                                  //       auto vIt = _vMap.find(vertex.pos);
-                                                  //       if (vIt != _vMap.end())
-                                                  //           _faceTokenCallback.v(blocks[threadId], vIt->second);
-                                                  //       if (_builder.isUVEnabled())
-                                                  //       {
-                                                  //           auto vtIt = _vtMap.find(vertex.uv);
-                                                  //           if (vtIt != _vtMap.end())
-                                                  //               _faceTokenCallback.vt(blocks[threadId],
-                                                  //               vtIt->second);
-                                                  //       }
-                                                  //       if (_builder.isNormalsEnable())
-                                                  //       {
-                                                  //           auto vnIt = _vnMap.find(vertex.normal);
-                                                  //           if (vnIt != _vnMap.end())
-                                                  //               _faceTokenCallback.vn(blocks[threadId],
-                                                  //               vnIt->second);
-                                                  //       }
-                                                  //       blocks[threadId] << " ";
-                                                  //   }
-
+                                                  for (auto &ref : faces[i].vertices)
+                                                  {
+                                                      blocks[threadId] << ref.vertexGroup + 1 << "/";
+                                                      auto &vertex = meta->model.vertices[ref.vertex];
+                                                      if (_meshFlags & MeshExportFlagBits::export_uv)
+                                                          blocks[threadId] << _vtMap[vertex.uv] + 1;
+                                                      if (_meshFlags & MeshExportFlagBits::export_normals)
+                                                          blocks[threadId] << "/" << _vnMap[vertex.normal] + 1;
+                                                      blocks[threadId] << " ";
+                                                  }
                                                   blocks[threadId] << "\n";
                                               }
                                           });
@@ -161,27 +147,26 @@ namespace ecl
             {
                 if (tex.flags & assets::ImageTypeFlagBits::tGenerated)
                 {
-                    std::string name = "generated:" + std::to_string(_genID++);
-                    std::filesystem::path path = std::filesystem::path("./tex") / name / ".png";
-                    std::filesystem::path absolute = std::filesystem::path(_texFolder) / name / ".png";
-                    if (!std::filesystem::exists(absolute)) std::filesystem::create_directories(_texFolder);
-                    logInfo("Converting generated texture to image: %ls", absolute.c_str());
-                    ecl::image::PNGExporter exporter(absolute, tex.image);
+                    std::string filename = f("generated_%d.png", _genID++);
+                    std::filesystem::path parent = _path.parent_path();
+                    std::filesystem::path texFolder = parent / "tex";
+                    std::filesystem::path path = texFolder / filename;
+                    if (!std::filesystem::exists(path)) std::filesystem::create_directories(texFolder);
+                    logInfo("Converting generated texture to image: %ls", path.c_str());
+                    ecl::image::PNGExporter exporter(path, tex.image);
                     if (!exporter.compression(6).dpi(72.0f).save(tex.image.bytesPerChannel))
                         logWarn("Failed to save generated texture");
                     else
-                        os << token << path.string() << "\n";
+                        os << token << " ./tex/" << filename << "\n";
                 }
-                else
+                else if (_materialFlags & MaterialExportFlagBits::texture_origin)
+                    os << token << " " << tex.path.string() << "\n";
+                else if (_materialFlags & MaterialExportFlagBits::texture_copyToLocal)
                 {
-                    if (_materialFlags & MaterialExportFlagBits::texture_origin)
-                        os << token << " " << tex.path.string() << "\n";
-                    else if (_materialFlags & MaterialExportFlagBits::texture_copyToLocal)
-                    {
-                        std::filesystem::path path = _texFolder / tex.path.filename();
-                        io::file::copyFile(tex.path, path, std::filesystem::copy_options::overwrite_existing);
-                        os << token << " ./" << path.string() << "\n";
-                    }
+                    std::filesystem::path parent = _path.parent_path();
+                    std::filesystem::path path = parent / "tex" / tex.path.filename();
+                    if (io::file::copyFile(tex.path, path, std::filesystem::copy_options::overwrite_existing))
+                        os << token << " ./tex/" << path.filename().string() << "\n";
                 }
             }
 
@@ -265,11 +250,6 @@ namespace ecl
                         else
                             mtlName = _materials[mesh.matID].name;
                         ss << "usemtl " << mtlName << "\n";
-                        // Prepate vertex to pos map
-                        _positions.clear();
-                        _positions.resize(model.vertices.size());
-                        for (int g = 0; g < model.vertexGroups.size(); g++)
-                            for (auto id : model.vertexGroups[g].vertices) _positions[id] = g;
 
                         if (_meshFlags & MeshExportFlagBits::export_triangulated)
                             writeTriangles(mesh.meta, ss);

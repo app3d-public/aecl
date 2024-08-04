@@ -37,9 +37,8 @@ namespace ecl
                  * @param texFolder The path to the texture folder. (Used if textures are exported as copies)
                  */
                 Exporter(const std::filesystem::path &path, MeshExportFlags meshFlags,
-                         MaterialExportFlags materialFlags, ObjExportFlags objFlags,
-                         const std::filesystem::path &texFolder = "")
-                    : IExporter(path, meshFlags, materialFlags), _objFlags(objFlags), _texFolder(texFolder)
+                         MaterialExportFlags materialFlags, ObjExportFlags objFlags)
+                    : IExporter(path, meshFlags, materialFlags), _objFlags(objFlags)
                 {
                 }
 
@@ -52,13 +51,11 @@ namespace ecl
 
             private:
                 ObjExportFlags _objFlags;
-                DArray<u32> _positions;
                 emhash5::HashMap<glm::vec2, u32> _vtMap;
                 emhash5::HashMap<glm::vec3, u32> _vnMap;
                 int _genID = 0;
-                std::filesystem::path _texFolder;
 
-                void writeVertices(const assets::mesh::Model &model, std::stringstream &ss);
+                void writeVertices(assets::mesh::Model &model, std::stringstream &ss);
                 void writeFaces(assets::mesh::MeshBlock *meta, std::ostream &os);
                 void writeTriangles(assets::mesh::MeshBlock *meta, std::ostream &os);
                 void writeTexture2D(std::ostream &os, const std::string &token, const TextureNode &tex);

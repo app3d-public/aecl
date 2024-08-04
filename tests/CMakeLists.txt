@@ -26,11 +26,40 @@ add_test_files(
     "${ECL_TEST_LIBRARIES}"
     "${ENV_VAR}")
 
-set(ECL_OBJ_EXPORT_TRIANGLES_SRC main.cpp "scene/obj_export_triangles.cpp")
+set(ECL_OBJ_EXPORT_TRIANGLES_SRC
+    main.cpp
+    "scene/common.cpp"
+    "scene/obj_export_triangles.cpp")
 add_test_files(
     "ecl"
     "obj_export_triangles"
     "${ECL_OBJ_EXPORT_TRIANGLES_SRC}"
+    "${ECL_TEST_INCLUDES}"
+    "${ECL_TEST_LIBRARIES}"
+    "${ENV_VAR}"
+)
+
+set(ECL_OBJ_EXPORT_TEXTURE_SRC
+    main.cpp
+    "scene/common.cpp"
+    "scene/obj_export_texture.cpp")
+add_test_files(
+    "ecl"
+    "obj_export_texture"
+    "${ECL_OBJ_EXPORT_TEXTURE_SRC}"
+    "${ECL_TEST_INCLUDES}"
+    "${ECL_TEST_LIBRARIES}"
+    "${ENV_VAR}"
+)
+
+set(ECL_OBJ_EXPORT_TEXGEN_SRC
+    main.cpp
+    "scene/common.cpp"
+    "scene/obj_export_texgen.cpp")
+add_test_files(
+    "ecl"
+    "obj_export_texgen"
+    "${ECL_OBJ_EXPORT_TEXGEN_SRC}"
     "${ECL_TEST_INCLUDES}"
     "${ECL_TEST_LIBRARIES}"
     "${ENV_VAR}"
