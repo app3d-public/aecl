@@ -1,11 +1,10 @@
-#include <core/hash.hpp>
 #include <core/io/file.hpp>
 #include <core/log.hpp>
 #include <core/std/string.hpp>
+#include <ecl/image/export.hpp>
 #include <ecl/scene/obj/export.hpp>
 #include <oneapi/tbb/parallel_for.h>
 #include <string>
-
 
 namespace ecl
 {
@@ -23,82 +22,36 @@ namespace ecl
                 if (flags & MeshExportFlagBits::transform_swapYZ) std::swap(pos.y, pos.z);
             }
 
-            void Exporter::writeVertices(const DArray<assets::mesh::Vertex> &vertices, std::stringstream &ss)
+            void Exporter::writeVertices(const assets::mesh::Model &model, std::stringstream &ss)
             {
-                oneapi::tbb::parallel_for(oneapi::tbb::blocked_range<size_t>(0, vertices.size()),
-                                          [&](const tbb::blocked_range<size_t> &range) {
-                                              for (size_t i = range.begin(); i != range.end(); ++i)
-                                              {
-                                                  auto vertex = vertices[i];
-                                                  auto [vIt, vInserted] = _vSet.insert(vertex.pos);
-                                                  if (vInserted)
-                                                  {
-                                                      transformVertexPos(vertex.pos, _meshFlags);
-                                                      _vSet.emplace(vertex.pos);
-                                                  }
-                                                  if (_meshFlags & MeshExportFlagBits::export_uv)
-                                                      _vtSet.emplace(vertex.uv);
-                                                  if (_meshFlags & MeshExportFlagBits::export_normals)
-                                                      _vnSet.emplace(vertex.normal);
-                                              }
-                                          });
+                // v
+                for (auto &group : model.vertexGroups)
                 {
-                    const size_t bufSize = _vSet.size() * 50;
-                    char *buf = new char[bufSize];
-                    int currentBufPos = 0;
-                    for (const auto &item : _vSet)
-                    {
-                        const glm::vec3 &pos = item;
-                        buf[currentBufPos + 0] = 'v';
-                        buf[currentBufPos + 1] = ' ';
-                        int vec3Written = vec3ToStr(pos, buf + 2 + currentBufPos, 50, 0);
-                        if (vec3Written == 0) continue;
-                        buf[2 + vec3Written + currentBufPos] = '\n';
-                        currentBufPos += 3 + vec3Written;
-                        _vMap.insert({pos, _vMap.size() + 1});
-                    }
-                    ss.write(buf, currentBufPos);
-                    delete[] buf;
+                    auto &vID = group.vertices.front();
+                    auto pos = model.vertices[vID].pos;
+                    transformVertexPos(pos, _meshFlags);
+                    ss << "v " << pos.x << " " << pos.y << " " << pos.z << "\n";
                 }
-                if (_meshFlags & MeshExportFlagBits::export_uv)
+
+                // vt and vn
+                _vtMap.clear();
+                _vnMap.clear();
                 {
-                    const size_t bufSize = _vtSet.size() * 35;
-                    char *buf = new char[bufSize];
-                    int currentBufPos = 0;
-                    for (const auto &item : _vtSet)
+                    for (auto &vertex : model.vertices)
                     {
-                        const glm::vec2 &uv = item;
-                        buf[currentBufPos + 0] = 'v';
-                        buf[currentBufPos + 1] = 't';
-                        buf[currentBufPos + 2] = ' ';
-                        int vec2Written = vec2ToStr(uv, buf + 3 + currentBufPos, 35, 0);
-                        if (vec2Written == 0) continue;
-                        buf[3 + vec2Written + currentBufPos] = '\n';
-                        currentBufPos += 4 + vec2Written;
-                        _vtMap.insert({uv, _vtMap.size() + 1});
+                        if (_meshFlags & MeshExportFlagBits::export_uv)
+                        {
+                            auto [it, inserted] = _vtMap.emplace(vertex.uv, _vtMap.size());
+                            if (inserted) ss << "vt " << vertex.uv.x << " " << vertex.uv.y << "\n";
+                        }
+                        if (_meshFlags & MeshExportFlagBits::export_normals)
+                        {
+                            auto [it, inserted] = _vnMap.emplace(vertex.normal, _vnMap.size());
+                            if (inserted)
+                                ss << "vn " << vertex.normal.x << " " << vertex.normal.y << " " << vertex.normal.z
+                                   << "\n";
+                        }
                     }
-                    ss.write(buf, currentBufPos);
-                    delete[] buf;
-                }
-                if (_meshFlags & MeshExportFlagBits::export_normals)
-                {
-                    const size_t bufSize = _vnSet.size() * 50;
-                    char *buf = new char[bufSize];
-                    int currentBufPos = 0;
-                    for (const auto &item : _vnSet)
-                    {
-                        const glm::vec3 &normal = item;
-                        buf[currentBufPos + 0] = 'v';
-                        buf[currentBufPos + 1] = 'n';
-                        buf[currentBufPos + 2] = ' ';
-                        int vec3Written = vec3ToStr(normal, buf + 3 + currentBufPos, 35, 0);
-                        if (vec3Written == 0) continue;
-                        buf[3 + vec3Written + currentBufPos] = '\n';
-                        currentBufPos += 4 + vec3Written;
-                        _vnMap.insert({normal, _vnMap.size() + 1});
-                    }
-                    ss.write(buf, currentBufPos);
-                    delete[] buf;
                 }
             }
 
@@ -108,34 +61,36 @@ namespace ecl
                 const auto &vertices = meta->model.vertices;
                 size_t threadCount = oneapi::tbb::this_task_arena::max_concurrency();
                 DArray<std::stringstream> blocks(threadCount);
-                oneapi::tbb::parallel_for(oneapi::tbb::blocked_range<size_t>(0, indices.size() / 3),
+                oneapi::tbb::parallel_for(oneapi::tbb::blocked_range<size_t>(0, meta->model.faces.size()),
                                           [&](const tbb::blocked_range<size_t> &range) {
                                               size_t threadId = oneapi::tbb::this_task_arena::current_thread_index();
-                                              for (size_t i = range.begin(); i != range.end(); ++i)
+                                              for (size_t r = range.begin(); r != range.end(); ++r)
                                               {
-                                                  size_t triangleIndex = i * 3;
-                                                  blocks[threadId] << "f ";
-
-                                                  for (size_t vertexIndex = 0; vertexIndex < 3; ++vertexIndex)
+                                                  auto &face = meta->model.faces[r];
+                                                  for (u32 iter = 0, currentID = face.startID;
+                                                       iter < face.indexCount / 3; ++iter)
                                                   {
-                                                      const size_t index = indices[triangleIndex + vertexIndex];
-                                                      auto &vertex = vertices[index];
-                                                      auto vIt = _vMap.find(vertex.pos);
-                                                      if (vIt != _vMap.end()) blocks[threadId] << vIt->second << "/";
-                                                      if (_meshFlags & MeshExportFlagBits::export_uv)
+                                                      blocks[threadId] << "f ";
+                                                      for (size_t vertexIndex = 0; vertexIndex < 3; ++vertexIndex)
                                                       {
-                                                          auto vtIt = _vtMap.find(vertex.uv);
-                                                          if (vtIt != _vtMap.end())
-                                                              blocks[threadId] << vtIt->second << "/";
+                                                          auto id = indices[currentID + vertexIndex];
+                                                          auto vID = _positions[id];
+                                                          blocks[threadId] << vID + 1 << "/";
+                                                          if (_meshFlags & MeshExportFlagBits::export_uv)
+                                                          {
+                                                              auto vtID = _vtMap[vertices[id].uv];
+                                                              blocks[threadId] << vtID + 1;
+                                                          }
+                                                          if (_meshFlags & MeshExportFlagBits::export_normals)
+                                                          {
+                                                              auto vnID = _vnMap[vertices[id].normal];
+                                                              blocks[threadId] << "/" << vnID + 1;
+                                                          }
+                                                          blocks[threadId] << " ";
                                                       }
-                                                      if (_meshFlags & MeshExportFlagBits::export_normals)
-                                                      {
-                                                          auto vnIt = _vnMap.find(vertex.normal);
-                                                          if (vnIt != _vnMap.end()) blocks[threadId] << vnIt->second;
-                                                      }
-                                                      blocks[threadId] << " ";
+                                                      blocks[threadId] << "\n";
+                                                      currentID += 3;
                                                   }
-                                                  blocks[threadId] << "\n";
                                               }
                                           });
                 for (const auto &block : blocks) os << block.str();
@@ -189,21 +144,84 @@ namespace ecl
                 os << token << " " << vec.x << " " << vec.y << " " << vec.z << "\n";
             }
 
+            /**
+             * Writes a number to the output stream with a given token.
+             *
+             * @param os The output stream to write to.
+             * @param token The token to write before the number.
+             * @param value The number to write.
+             */
+            template <typename T>
+            inline void writeNumber(std::ostream &os, const std::string &token, const T &value)
+            {
+                os << token << " " << value << "\n";
+            }
+
+            void Exporter::writeTexture2D(std::ostream &os, const std::string &token, const TextureNode &tex)
+            {
+                if (tex.flags & assets::ImageTypeFlagBits::tGenerated)
+                {
+                    std::string name = "generated:" + std::to_string(_genID++);
+                    std::filesystem::path path = std::filesystem::path("./tex") / name / ".png";
+                    std::filesystem::path absolute = std::filesystem::path(_texFolder) / name / ".png";
+                    if (!std::filesystem::exists(absolute)) std::filesystem::create_directories(_texFolder);
+                    logInfo("Converting generated texture to image: %ls", absolute.c_str());
+                    ecl::image::PNGExporter exporter(absolute, tex.image);
+                    if (!exporter.compression(6).dpi(72.0f).save(tex.image.bytesPerChannel))
+                        logWarn("Failed to save generated texture");
+                    else
+                        os << token << path.string() << "\n";
+                }
+                else
+                {
+                    if (_materialFlags & MaterialExportFlagBits::texture_origin)
+                        os << token << " " << tex.path.string() << "\n";
+                    else if (_materialFlags & MaterialExportFlagBits::texture_copyToLocal)
+                    {
+                        std::filesystem::path path = _texFolder / tex.path.filename();
+                        io::file::copyFile(tex.path, path, std::filesystem::copy_options::overwrite_existing);
+                        os << token << " ./" << path.string() << "\n";
+                    }
+                }
+            }
+
             void writeDefaultMaterial(std::ostream &os, bool usePBR)
             {
                 std::stringstream matBlock;
                 matBlock << "newmtl default\n";
                 writeVec3sRGB(matBlock, "Ka", {1, 1, 1});
-                //                     writeVec3sRGB(matBlock, "Kd", {1, 1, 1});
-                //                     writeVec3sRGB(matBlock, "Ks", {1, 1, 1});
-                //                     writeNumber(matBlock, "Ns", 80);
-                //                     if (usePBR)
-                //                     {
-                //                         writeNumber(matBlock, "Pr", 0.33);
-                //                         writeNumber(matBlock, "Pm", 1);
-                //                     }
-                //                     writeNumber(matBlock, "illum", 7);
-                //                     os << "\n" << matBlock.str();
+                writeVec3sRGB(matBlock, "Kd", {1, 1, 1});
+                writeVec3sRGB(matBlock, "Ks", {1, 1, 1});
+                writeNumber(matBlock, "Ns", 80);
+                if (usePBR)
+                {
+                    writeNumber(matBlock, "Pr", 0.33);
+                    writeNumber(matBlock, "Pm", 1);
+                }
+                writeNumber(matBlock, "illum", 7);
+                os << "\n" << matBlock.str();
+            }
+
+            void Exporter::writeMaterial(const MaterialNode &mat, std::ostream &os)
+            {
+                std::stringstream matBlock;
+                matBlock << "newmtl " << mat.name << "\n";
+                writeVec3sRGB(matBlock, "Ka", {1, 1, 1});
+                writeVec3sRGB(matBlock, "Kd", mat.info.albedo.rgb);
+                if (mat.info.albedo.textured)
+                {
+                    auto &tex = _textures[mat.info.albedo.textureID];
+                    writeTexture2D(matBlock, "map_Kd", tex);
+                }
+                writeVec3sRGB(matBlock, "Ks", {1, 1, 1});
+                writeNumber(matBlock, "Ns", 80);
+                if (_objFlags & ObjExportFlagBits::mat_PBR)
+                {
+                    writeNumber(matBlock, "Pr", 0.33);
+                    writeNumber(matBlock, "Pm", 1);
+                }
+                writeNumber(matBlock, "illum", 7);
+                os << "\n" << matBlock.str();
             }
 
             bool Exporter::save()
@@ -212,7 +230,7 @@ namespace ecl
                 try
                 {
                     std::stringstream ss;
-                    ss << "# App3D OBJ Exporter\n";
+                    ss << "# App3D ECL OBJ Exporter\n";
                     std::ofstream mtllibFileStream;
                     if (_materialFlags != MaterialExportFlagBits::none)
                     {
@@ -225,13 +243,9 @@ namespace ecl
                         {
                             mtllibPath = mtllibPath.filename();
                             ss << "mtllib ./" << mtllibPath.string() << "\n";
-                            mtllibFileStream << "# App3D MTL Exporter\n";
+                            mtllibFileStream << "# App3D ECL MTL Exporter\n";
                         }
                     }
-                    _vSet.clear();
-                    _vtSet.clear();
-                    _vMap.clear();
-                    _vtMap.clear();
 
                     bool allMaterialsExists = true;
                     for (const auto &mesh : _meshes)
@@ -240,7 +254,8 @@ namespace ecl
                             ss << "g " << mesh.name << "\n";
                         else if (_objFlags & ObjExportFlagBits::mgp_objects)
                             ss << "o " << mesh.name << "\n";
-                        writeVertices(mesh.meta->model.vertices, ss);
+                        auto &model = mesh.meta->model;
+                        writeVertices(model, ss);
                         std::string mtlName;
                         if (mesh.matID == -1)
                         {
@@ -250,6 +265,12 @@ namespace ecl
                         else
                             mtlName = _materials[mesh.matID].name;
                         ss << "usemtl " << mtlName << "\n";
+                        // Prepate vertex to pos map
+                        _positions.clear();
+                        _positions.resize(model.vertices.size());
+                        for (int g = 0; g < model.vertexGroups.size(); g++)
+                            for (auto id : model.vertexGroups[g].vertices) _positions[id] = g;
+
                         if (_meshFlags & MeshExportFlagBits::export_triangulated)
                             writeTriangles(mesh.meta, ss);
                         else
@@ -258,18 +279,16 @@ namespace ecl
                     std::string error;
                     if (!io::file::writeFileByBlock(_path.string(), ss.str().c_str(), 1024 * 1024, error))
                     {
-                        logError("Failed to write OBJ file: %s", error.c_str());
+                        logError("OBJ export failed: %s", error.c_str());
                         return false;
                     }
                     if (mtllibFileStream)
                     {
                         std::filesystem::path texFolder = _path;
                         texFolder.replace_filename("tex");
-                        // if (!allMaterialsExists)
-                        //     writeDefaultMaterial(mtllibFileStream, _objFlags & ObjExportFlagBits::mat_PBR);
-                        // for (const auto &mat : _materials)
-                        //     writeMaterial(mtllibFileStream, mat, _objFlags & ObjExportFlagBits::mat_PBR);
-
+                        if (!allMaterialsExists)
+                            writeDefaultMaterial(mtllibFileStream, _objFlags & ObjExportFlagBits::mat_PBR);
+                        for (const auto &mat : _materials) writeMaterial(mat, mtllibFileStream);
                         mtllibFileStream.close();
                     }
                     return true;

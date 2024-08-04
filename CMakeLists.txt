@@ -28,6 +28,11 @@ if(USE_ASAN)
     target_link_options(${PROJECT_NAME} PUBLIC -fsanitize=address -fno-omit-frame-pointer)
 endif(USE_ASAN)
 
+if(BUILD_TESTS)
+    enable_testing()
+    add_subdirectory(tests)
+endif()
+
 set_target_properties(${PROJECT_NAME}
     PROPERTIES
     CXX_STANDARD 23

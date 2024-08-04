@@ -34,11 +34,24 @@ namespace ecl
 
         using MaterialExportFlags = Flags<MaterialExportFlagBits>;
 
-        struct MeshExportInfo
+        struct MeshNode
         {
             assets::mesh::MeshBlock *meta;
             std::string name;
             int matID = -1;
+        };
+
+        struct MaterialNode
+        {
+            std::string name;
+            assets::MaterialInfo info;
+        };
+
+        struct TextureNode
+        {
+            assets::ImageInfo image;
+            assets::ImageTypeFlags flags;
+            std::filesystem::path path;
         };
 
         class IExporter
@@ -60,14 +73,36 @@ namespace ecl
             // Get the filename path
             const std::filesystem::path path() const { return _path.string(); }
 
-            // Get the list of imported meshes
-            DArray<MeshExportInfo> &meshes() { return _meshes; }
+            // Set the list of exported meshes
+            IExporter &meshes(const DArray<MeshNode> &meshes)
+            {
+                _meshes = meshes;
+                return *this;
+            }
 
-            // Get the list of imported materials
-            DArray<assets::Scene::MaterialNode> &materials() { return _materials; }
+            // Get the list of exported meshes
+            DArray<MeshNode> &meshes() { return _meshes; }
 
+            // Set the list of exported materials
+            IExporter &materials(const DArray<MaterialNode> &materials)
+            {
+                _materials = materials;
+                return *this;
+            }
+
+            // Get the list of exported materials
+            DArray<MaterialNode> &materials() { return _materials; }
+
+
+            // Set the list of exported textures
+            IExporter &textures(const DArray<TextureNode> &textures)
+            {
+                _textures = textures;
+                return *this;
+            }
+            
             // Get the list of imported textures
-            DArray<assets::Image2D> &textures() { return _textures; }
+            DArray<TextureNode> &textures() { return _textures; }
 
             inline void clear()
             {
@@ -81,9 +116,9 @@ namespace ecl
             std::filesystem::path _path;
             MeshExportFlags _meshFlags;
             MaterialExportFlags _materialFlags;
-            DArray<MeshExportInfo> _meshes;
-            DArray<assets::Scene::MaterialNode> _materials;
-            DArray<assets::Image2D> _textures;
+            DArray<MeshNode> _meshes;
+            DArray<MaterialNode> _materials;
+            DArray<TextureNode> _textures;
         };
     } // namespace scene
 } // namespace ecl

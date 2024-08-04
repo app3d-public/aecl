@@ -1,5 +1,6 @@
 #pragma once
 
+#include <core/hash.hpp>
 #include <emhash/hash_table5.hpp>
 #include <oneapi/tbb/concurrent_unordered_set.h>
 #include "../export.hpp"
@@ -23,17 +24,22 @@ namespace ecl
             using ObjExportFlags = Flags<ObjExportFlagBits>;
 
             // OBJ file exporter
-            class Exporter final : public IExporter
+            class APPLIB_API Exporter final : public IExporter
             {
             public:
                 /**
                  * Constructs an Exporter object with the given parameters.
                  *
                  * @param path The path to the output file.
+                 * @param meshFlags Mesh export flags.
+                 * @param materialFlags Material export flags.
+                 * @param objFlags Wavefront OBJ specific export flags.
+                 * @param texFolder The path to the texture folder. (Used if textures are exported as copies)
                  */
                 Exporter(const std::filesystem::path &path, MeshExportFlags meshFlags,
-                         MaterialExportFlags materialFlags, ObjExportFlags objFlags)
-                    : IExporter(path, meshFlags, materialFlags), _objFlags(objFlags)
+                         MaterialExportFlags materialFlags, ObjExportFlags objFlags,
+                         const std::filesystem::path &texFolder = "")
+                    : IExporter(path, meshFlags, materialFlags), _objFlags(objFlags), _texFolder(texFolder)
                 {
                 }
 
@@ -46,19 +52,17 @@ namespace ecl
 
             private:
                 ObjExportFlags _objFlags;
-                oneapi::tbb::concurrent_unordered_set<glm::vec3> _vSet;
-                oneapi::tbb::concurrent_unordered_set<glm::vec2> _vtSet;
-                oneapi::tbb::concurrent_unordered_set<glm::vec3> _vnSet;
-                emhash5::HashMap<glm::vec3, int> _vMap;
-                emhash5::HashMap<glm::vec2, int> _vtMap;
-                emhash5::HashMap<glm::vec3, int> _vnMap;
+                DArray<u32> _positions;
+                emhash5::HashMap<glm::vec2, u32> _vtMap;
+                emhash5::HashMap<glm::vec3, u32> _vnMap;
+                int _genID = 0;
+                std::filesystem::path _texFolder;
 
-                void writeVertices(const DArray<assets::mesh::Vertex> &vertices, std::stringstream &ss);
+                void writeVertices(const assets::mesh::Model &model, std::stringstream &ss);
                 void writeFaces(assets::mesh::MeshBlock *meta, std::ostream &os);
                 void writeTriangles(assets::mesh::MeshBlock *meta, std::ostream &os);
-
-                // void transformVertexPos(glm::vec3 &pos);
-                // std::string getGroupByStrategy(const std::string &name) const;
+                void writeTexture2D(std::ostream &os, const std::string &token, const TextureNode &tex);
+                void writeMaterial(const MaterialNode &mat, std::ostream &os);
             };
         } // namespace obj
     } // namespace scene

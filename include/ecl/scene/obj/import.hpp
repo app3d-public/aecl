@@ -377,7 +377,7 @@ namespace ecl
              * @brief Load the scene
              * @return Read state result
              **/
-            class Importer : public ILoader
+            class APPLIB_API Importer : public ILoader
             {
             public:
                 Importer(const std::filesystem::path &filename) : ILoader(filename) {};

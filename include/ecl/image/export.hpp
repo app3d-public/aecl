@@ -86,10 +86,10 @@ namespace ecl
                 return save(dstBit, pixels);
             }
 
-            virtual bool save(size_t dstBit, DArray<std::shared_ptr<void>> &pixels) = 0;
-
         protected:
             Format _format;
+
+            virtual bool save(size_t dstBit, DArray<std::shared_ptr<void>> &pixels) = 0;
         };
 
         /**
@@ -553,8 +553,8 @@ namespace ecl
              * 16 (PNG_FILTER_SUB), 32 (PNG_FILTER_UP), 64 (PNG_FILTER_AVG), or 128 (PNG_FILTER_PAETH).
              * @param unassociatedAlpha Whether to use unassociated alpha in the exported image.
              */
-            PNGExporter(const std::string &path, const assets::ImageInfo &image, f32 dpi = 72.0f, bool dither = false,
-                        int compression = 6, int filter = 0, bool unassociatedAlpha = false)
+            PNGExporter(const std::filesystem::path &path, const assets::ImageInfo &image, f32 dpi = 72.0f,
+                        bool dither = false, int compression = 6, int filter = 0, bool unassociatedAlpha = false)
                 : OIIOExporter(path, {image},
                                {FormatFlagBits::bit8 | FormatFlagBits::bit16 | FormatFlagBits::alpha,
                                 vk::Format::eR8G8B8A8Srgb, vk::Format::eR16G16B16A16Uint}),
@@ -990,7 +990,7 @@ namespace ecl
              * @param subimage An object of class SubImageInfo representing the subimage to be exported.
              * @param dither A boolean representing whether to use dithering in the exported image.
              */
-            WebPExporter(const std::string &path, const assets::ImageInfo &image, bool dither = false)
+            WebPExporter(const std::filesystem::path &path, const assets::ImageInfo &image, bool dither = false)
                 : OIIOExporter(path, {image},
                                {FormatFlagBits::bit8 | FormatFlagBits::alpha, vk::Format::eR8G8B8A8Srgb}),
                   _dither(dither)
@@ -1023,7 +1023,7 @@ namespace ecl
         class AssetExporter final : public IExporter
         {
         public:
-            AssetExporter(const std::string &path, const assets::ImageInfo &image, int compression = 5,
+            AssetExporter(const std::filesystem::path &path, const assets::ImageInfo &image, int compression = 5,
                           u32 checksum = 0, assets::ImageTypeFlags flags = assets::ImageTypeFlagBits::tUndefined)
                 : IExporter(path, {image})
             {

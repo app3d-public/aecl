@@ -117,7 +117,7 @@ namespace ecl
                 int startIndex;
                 int rangeEnd;
                 std::string name;
-                assets::mesh::Model model;
+                assets::mesh::MeshBlock *mesh;
             };
 
             glm::vec3 getInnerEdge(size_t pos, f32 v1, f32 v2)
@@ -170,7 +170,7 @@ namespace ecl
                 auto [vIt, vInserted] = vtnMap.emplace(vtn, vtnMap.size());
                 if (vInserted)
                 {
-                    vgv.emplace_back(current);
+                    vgv.emplace_back(m.vertices.size());
                     face.vertices.emplace_back(current, m.vertices.size());
                     m.vertices.emplace_back(ps.v[current].value);
                     auto &vertex = m.vertices.back();
@@ -196,7 +196,7 @@ namespace ecl
                                        [&m, &vertex](u32 index) { return m.vertices[index] == vertex; });
                 if (it == vgv.end())
                 {
-                    vgv.push_back(m.vertices.size());
+                    vgv.emplace_back(m.vertices.size());
                     face.vertices.emplace_back(current, m.vertices.size());
                     m.vertices.emplace_back(vertex);
                     m.aabb.min = glm::min(m.aabb.min, vertex.pos);
@@ -210,12 +210,11 @@ namespace ecl
             {
                 emhash5::HashMap<glm::ivec3, u32> vtnMap;
                 if (ps.vnsize > 0) vtnMap.reserve(ps.vsize);
-                emhash5::HashMap<u32, u32> posMap;
-                group.model.faces.resize(faceCount);
+                group.mesh->model.faces.resize(faceCount);
                 for (size_t f = 0; f < faceCount; ++f)
                 {
                     auto &inFace = ps.f[group.startIndex + f].value;
-                    auto &m = group.model;
+                    auto &m = group.mesh->model;
                     auto &face = m.faces[f];
                     face.normal = calculateNormal(ps, *inFace);
                     for (int v = 0; v < inFace->size(); ++v)
@@ -223,14 +222,12 @@ namespace ecl
                         auto &vtn = (*inFace)[v];
                         const int current = vtn.x - 1;
                         if (ps.vsize < vtn.x) continue;
-                        auto [pIt, pInserted] = posMap.emplace(current, m.vertexGroups.size());
-                        if (pInserted) m.vertexGroups.emplace_back();
-                        auto &vertexGroup = m.vertexGroups[pIt->second].vertices;
+                        auto &vertexGroup = m.vertexGroups[current];
                         if (ps.vnsize == 0)
-                            addVertexToFace(ps, vertexGroup, current, vtn, m, face);
+                            addVertexToFace(ps, vertexGroup.vertices, current, vtn, m, face);
                         else
-                            addVertexToFace(ps, vertexGroup, current, vtnMap, vtn, m, face);
-                        m.vertexGroups[pIt->second].faces.push_back(f);
+                            addVertexToFace(ps, vertexGroup.vertices, current, vtnMap, vtn, m, face);
+                        vertexGroup.faces.push_back(f);
                     }
                 }
             }
@@ -293,11 +290,12 @@ namespace ecl
                 {
                     logInfo("Indexing group data: '%s'", group.name.c_str());
                     const size_t faceCount = group.rangeEnd - group.startIndex;
+                    group.mesh = new assets::mesh::MeshBlock();
+                    group.mesh->model.vertexGroups.resize(ps.vsize);
                     indexMesh(faceCount, ps, group);
-                    logInfo("Imported vertices: %zu", group.model.vertices.size());
-                    logInfo("Imported faces: %zu", group.model.faces.size());
-                    auto &vertices = group.model.vertices;
-                    auto &faces = group.model.faces;
+                    auto &m = group.mesh->model;
+                    logInfo("Imported vertices: %zu", m.vertices.size());
+                    logInfo("Imported faces: %zu", m.faces.size());
                     logInfo("Triangulating mesh group");
                     DArray<DArray<u32>> ires(faceCount);
                     DArray<DArray<assets::mesh::bary::Vertex>> bres(faceCount);
@@ -305,21 +303,22 @@ namespace ecl
                                               [&](const oneapi::tbb::blocked_range<size_t> &range) {
                                                   for (size_t i = range.begin(); i < range.end(); ++i)
                                                   {
-                                                      ires[i] = utils::triangulate(faces[i], vertices);
-                                                      utils::buildBarycentric(bres[i], faces[i], vertices, ires[i]);
+                                                      ires[i] = utils::triangulate(m.faces[i], m.vertices);
+                                                      m.faces[i].indexCount = ires[i].size();
+                                                      utils::buildBarycentric(bres[i], m.faces[i], m.vertices, ires[i]);
                                                   }
                                               });
-                    DArray<assets::mesh::bary::Vertex> barycentrics;
+                    auto &barycentrics = group.mesh->barycentricVertices;
+                    u32 currentID = 0;
                     for (int i = 0; i < faceCount; ++i)
                     {
-                        group.model.indices.insert(group.model.indices.end(), ires[i].begin(), ires[i].end());
+                        m.faces[i].startID = currentID;
+                        m.indices.insert(m.indices.end(), ires[i].begin(), ires[i].end());
                         barycentrics.insert(barycentrics.end(), bres[i].begin(), bres[i].end());
+                        currentID += ires[i].size();
                     }
-                    logDebug("Indices: %zu", group.model.indices.size());
-                    meshes.push_back(new assets::mesh::MeshBlock);
-                    auto &mesh = meshes.back();
-                    mesh->model = std::move(group.model);
-                    mesh->barycentricVertices = std::move(barycentrics);
+                    logDebug("Indices: %zu", m.indices.size());
+                    meshes.push_back(group.mesh);
                 }
                 // Free temporary resources
                 scalable_free(ps.v);
