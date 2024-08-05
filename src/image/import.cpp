@@ -69,7 +69,6 @@ namespace ecl
                     };
                 }
                 info.imageFormat = imageFormat;
-                info.mipLevels = assets::utils::calcMipmapLevels(info.width, info.height);
                 loadImage(inp, subimage, loadHandler, info);
                 images.push_back(info);
             }

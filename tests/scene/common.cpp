@@ -143,7 +143,6 @@ namespace tests
         tex.image.bytesPerChannel = 1;
         tex.image.width = 4;
         tex.image.height = 4;
-        tex.image.mipLevels = 1;
         tex.image.channelCount = 4;
         tex.image.channelNames = {"red", "green", "blue", "alpha"};
         char *pixels = (char *)scalable_malloc(64);
