@@ -55,9 +55,9 @@ namespace ecl
                 emhash5::HashMap<glm::vec3, u32> _vnMap;
                 int _genID = 0;
 
-                void writeVertices(assets::mesh::Model &model, std::stringstream &ss);
-                void writeFaces(assets::mesh::MeshBlock *meta, std::ostream &os);
-                void writeTriangles(assets::mesh::MeshBlock *meta, std::ostream &os);
+                void writeVertices(assets::meta::mesh::Model &model, std::stringstream &ss);
+                void writeFaces(assets::meta::mesh::MeshBlock *meta, std::ostream &os);
+                void writeTriangles(assets::meta::mesh::MeshBlock *meta, std::ostream &os);
                 void writeTexture2D(std::ostream &os, const std::string &token, const TextureNode &tex);
                 void writeMaterial(const MaterialNode &mat, std::ostream &os);
             };

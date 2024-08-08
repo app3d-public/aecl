@@ -5,11 +5,11 @@
 
 namespace tests
 {
-    void createCubeVerticles(DArray<assets::mesh::Vertex> &vertices);
+    void createCubeVerticles(DArray<assets::meta::mesh::Vertex> &vertices);
 
-    void createCubeVGroups(DArray<assets::mesh::VertexGroup> &vertexGroups);
+    void createCubeVGroups(DArray<assets::meta::mesh::VertexGroup> &vertexGroups);
 
-    void createCubeFaces(DArray<assets::mesh::Face> &faces);
+    void createCubeFaces(DArray<assets::meta::mesh::Face> &faces);
 
     void createMeshes(DArray<ecl::scene::MeshNode> &meshes, int matID = -1);
 

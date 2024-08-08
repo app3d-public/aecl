@@ -23,7 +23,7 @@ namespace ecl
                 if (flags & MeshExportFlagBits::transform_swapYZ) std::swap(pos.y, pos.z);
             }
 
-            void Exporter::writeVertices(assets::mesh::Model &model, std::stringstream &ss)
+            void Exporter::writeVertices(assets::meta::mesh::Model &model, std::stringstream &ss)
             {
                 // v
                 for (auto &group : model.vertexGroups)
@@ -57,7 +57,7 @@ namespace ecl
                     for (auto &face : model.faces) std::reverse(face.vertices.begin(), face.vertices.end());
             }
 
-            void Exporter::writeTriangles(assets::mesh::MeshBlock *meta, std::ostream &os)
+            void Exporter::writeTriangles(assets::meta::mesh::MeshBlock *meta, std::ostream &os)
             {
                 const auto &indices = meta->model.indices;
                 const auto &vertices = meta->model.vertices;
@@ -97,7 +97,7 @@ namespace ecl
                 for (const auto &block : blocks) os << block.str();
             }
 
-            void Exporter::writeFaces(assets::mesh::MeshBlock *meta, std::ostream &os)
+            void Exporter::writeFaces(assets::meta::mesh::MeshBlock *meta, std::ostream &os)
             {
                 size_t threadCount = oneapi::tbb::this_task_arena::max_concurrency();
                 DArray<std::stringstream> blocks(threadCount);
@@ -110,7 +110,7 @@ namespace ecl
                                                   blocks[threadId] << "f ";
                                                   for (auto &ref : faces[i].vertices)
                                                   {
-                                                      blocks[threadId] << ref.vertexGroup + 1 << "/";
+                                                      blocks[threadId] << ref.group + 1 << "/";
                                                       auto &vertex = meta->model.vertices[ref.vertex];
                                                       if (_meshFlags & MeshExportFlagBits::export_uv)
                                                           blocks[threadId] << _vtMap[vertex.uv] + 1;

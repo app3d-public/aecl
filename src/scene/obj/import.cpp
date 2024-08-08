@@ -112,12 +112,14 @@ namespace ecl
                 return parsed.f.size();
             }
 
+            using namespace assets::meta::mesh;
+
             struct GroupRange
             {
                 int startIndex;
                 int rangeEnd;
                 std::string name;
-                assets::mesh::MeshBlock *mesh;
+                MeshBlock *mesh;
             };
 
             glm::vec3 getInnerEdge(size_t pos, f32 v1, f32 v2)
@@ -164,8 +166,7 @@ namespace ecl
             }
 
             void addVertexToFace(const ParseSingleThread &__restrict ps, DArray<u32> &vgv, u32 current,
-                                 emhash5::HashMap<glm::ivec3, u32> &vtnMap, const glm::ivec3 &vtn,
-                                 assets::mesh::Model &m, assets::mesh::Face &face)
+                                 emhash5::HashMap<glm::ivec3, u32> &vtnMap, const glm::ivec3 &vtn, Model &m, Face &face)
             {
                 auto [vIt, vInserted] = vtnMap.emplace(vtn, vtnMap.size());
                 if (vInserted)
@@ -184,9 +185,9 @@ namespace ecl
             }
 
             void addVertexToFace(const ParseSingleThread &__restrict ps, DArray<u32> &vgv, u32 current,
-                                 const glm::ivec3 &vtn, assets::mesh::Model &m, assets::mesh::Face &face)
+                                 const glm::ivec3 &vtn, Model &m, Face &face)
             {
-                assets::mesh::Vertex vertex{ps.v[current].value};
+                Vertex vertex{ps.v[current].value};
                 if (vtn.y != 0 && ps.vtsize > vtn.y) vertex.uv = ps.vt[vtn.y - 1].value;
                 if (vtn.z != 0 && ps.vnsize > vtn.z)
                     vertex.normal = ps.vn[vtn.z - 1].value;
@@ -232,7 +233,7 @@ namespace ecl
                 }
             }
 
-            DArray<assets::mesh::MeshBlock *> serializeToGroups(ParseIndexed &parsed)
+            DArray<MeshBlock *> serializeToGroups(ParseIndexed &parsed)
             {
                 oneapi::tbb::parallel_sort(parsed.v.begin(), parsed.v.end());
                 oneapi::tbb::parallel_sort(parsed.vn.begin(), parsed.vn.end());
@@ -264,7 +265,7 @@ namespace ecl
                 for (size_t i = 0; i < parsed.useMtl.size(); ++i)
                     new (&ps.useMtl[i]) Line<std::string>(parsed.useMtl[i]);
 
-                DArray<assets::mesh::MeshBlock *> meshes;
+                DArray<MeshBlock *> meshes;
                 DArray<GroupRange> groups;
                 groups.reserve(ps.gsize + 1);
 
@@ -290,7 +291,7 @@ namespace ecl
                 {
                     logInfo("Indexing group data: '%s'", group.name.c_str());
                     const size_t faceCount = group.rangeEnd - group.startIndex;
-                    group.mesh = new assets::mesh::MeshBlock();
+                    group.mesh = new MeshBlock();
                     group.mesh->model.vertexGroups.resize(ps.vsize);
                     indexMesh(faceCount, ps, group);
                     auto &m = group.mesh->model;
@@ -298,7 +299,7 @@ namespace ecl
                     logInfo("Imported faces: %zu", m.faces.size());
                     logInfo("Triangulating mesh group");
                     DArray<DArray<u32>> ires(faceCount);
-                    DArray<DArray<assets::mesh::bary::Vertex>> bres(faceCount);
+                    DArray<DArray<bary::Vertex>> bres(faceCount);
                     oneapi::tbb::parallel_for(oneapi::tbb::blocked_range<size_t>(0, faceCount),
                                               [&](const oneapi::tbb::blocked_range<size_t> &range) {
                                                   for (size_t i = range.begin(); i < range.end(); ++i)
@@ -308,7 +309,7 @@ namespace ecl
                                                       utils::buildBarycentric(bres[i], m.faces[i], m.vertices, ires[i]);
                                                   }
                                               });
-                    auto &barycentrics = group.mesh->barycentricVertices;
+                    auto &barycentrics = group.mesh->baryVertices;
                     u32 currentID = 0;
                     for (int i = 0; i < faceCount; ++i)
                     {

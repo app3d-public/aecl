@@ -18,8 +18,9 @@ namespace ecl
             return sum > 0;
         }
 
-        DArray<Vertex2D> projectToVertex2D(const assets::mesh::Face &face, const DArray<assets::mesh::Vertex> &vertices,
-                                           DArray<u32> &vertexIndices)
+        using namespace assets::meta::mesh;
+
+        DArray<Vertex2D> projectToVertex2D(const Face &face, const DArray<Vertex> &vertices, DArray<u32> &vertexIndices)
         {
             glm::vec3 refPoint = vertices[face.vertices[0].vertex].pos;
             glm::vec3 xAxis, yAxis;
@@ -55,7 +56,7 @@ namespace ecl
             return projectedPolygon;
         }
 
-        DArray<u32> triangulate(const assets::mesh::Face &face, const DArray<assets::mesh::Vertex> &vertices)
+        DArray<u32> triangulate(const Face &face, const DArray<Vertex> &vertices)
         {
             DArray<u32> resultIndices;
             DArray<u32> vertexIndices;
@@ -95,8 +96,8 @@ namespace ecl
             }
         };
 
-        void buildBarycentric(DArray<assets::mesh::bary::Vertex> &barycentric, const assets::mesh::Face &face,
-                              const DArray<assets::mesh::Vertex> &vertices, const DArray<u32> &indices)
+        void buildBarycentric(DArray<bary::Vertex> &barycentric, const Face &face, const DArray<Vertex> &vertices,
+                              const DArray<u32> &indices)
         {
             static constexpr glm::vec3 barycentric_defaults[3] = {
                 {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f, 0.0f}};

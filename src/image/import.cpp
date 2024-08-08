@@ -29,7 +29,7 @@ namespace ecl
             std::function<bool(const std::unique_ptr<OIIO::ImageInput> &inp, int, int, void *, vk::DeviceSize)>
                 loadHandler{nullptr};
             vk::Format imageFormat;
-            for (int subimage{0}, mipmap{0}; inp->seek_subimage(subimage, mipmap); subimage++)
+            for (int subimage{0}; inp->seek_subimage(subimage, 0); subimage++)
             {
                 const OIIO::ImageSpec &spec = inp->spec();
                 DArray<std::string> channelNames(spec.channelnames.size());

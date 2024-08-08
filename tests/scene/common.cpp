@@ -4,7 +4,7 @@
 
 namespace tests
 {
-    void createCubeVerticles(DArray<assets::mesh::Vertex> &vertices)
+    void createCubeVerticles(DArray<assets::meta::mesh::Vertex> &vertices)
     {
         vertices.resize(24);
         vertices[0] = {{100, -100, 100}, {0, 0}, {0, 0, 1}};
@@ -33,7 +33,7 @@ namespace tests
         vertices[23] = {{-100, -100, -100}, {0, 0}, {0, -1, 0}};
     }
 
-    void createCubeVGroups(DArray<assets::mesh::VertexGroup> &vertexGroups)
+    void createCubeVGroups(DArray<assets::meta::mesh::VertexGroup> &vertexGroups)
     {
         vertexGroups.resize(8);
         vertexGroups[0] = {{3, 12, 22}, {0, 3, 5}};
@@ -46,7 +46,7 @@ namespace tests
         vertexGroups[7] = {{9, 14, 18}, {2, 3, 4}};
     }
 
-    void createCubeFaces(DArray<assets::mesh::Face> &faces)
+    void createCubeFaces(DArray<assets::meta::mesh::Face> &faces)
     {
         faces.resize(6);
         faces[0] = {{
@@ -108,7 +108,7 @@ namespace tests
     void createMeshes(DArray<ecl::scene::MeshNode> &meshes, int matID)
     {
         ecl::scene::MeshNode node;
-        node.meta = new assets::mesh::MeshBlock();
+        node.meta = new assets::meta::mesh::MeshBlock();
         node.name = "cube";
         node.matID = matID;
         auto &model = node.meta->model;

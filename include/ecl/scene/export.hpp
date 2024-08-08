@@ -36,7 +36,7 @@ namespace ecl
 
         struct MeshNode
         {
-            assets::mesh::MeshBlock *meta;
+            assets::meta::mesh::MeshBlock *meta;
             std::string name;
             int matID = -1;
         };
