@@ -1024,7 +1024,7 @@ namespace ecl
         {
         public:
             AssetExporter(const std::filesystem::path &path, const assets::ImageInfo &image, int compression = 5,
-                          u32 checksum = 0, assets::ImageTypeFlags flags = assets::ImageTypeFlagBits::tUndefined)
+                          u32 checksum = 0, assets::ImageTypeFlags flags = assets::ImageTypeFlagBits::undefined)
                 : IExporter(path, {image})
             {
             }

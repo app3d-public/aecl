@@ -145,7 +145,7 @@ namespace ecl
 
             void Exporter::writeTexture2D(std::ostream &os, const std::string &token, const TextureNode &tex)
             {
-                if (tex.flags & assets::ImageTypeFlagBits::tGenerated)
+                if (!(tex.flags & assets::ImageTypeFlagBits::external))
                 {
                     std::string filename = f("generated_%d.png", _genID++);
                     std::filesystem::path parent = _path.parent_path();

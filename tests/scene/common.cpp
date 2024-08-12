@@ -133,12 +133,12 @@ namespace tests
     void createDefaultTexture(ecl::scene::TextureNode &tex, const std::filesystem::path &dataDir)
     {
         tex.path = dataDir / "devCheck.jpg";
-        tex.flags = assets::ImageTypeFlagBits::t2D;
+        tex.flags = assets::ImageTypeFlagBits::image2D | assets::ImageTypeFlagBits::external;
     }
 
     void createGeneratedTexture(ecl::scene::TextureNode &tex)
     {
-        tex.flags = assets::ImageTypeFlagBits::t2D | assets::ImageTypeFlagBits::tGenerated;
+        tex.flags = assets::ImageTypeFlagBits::image2D;
         tex.image.imageFormat = vk::Format::eR8G8B8A8Srgb;
         tex.image.bytesPerChannel = 1;
         tex.image.width = 4;
