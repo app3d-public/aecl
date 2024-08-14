@@ -28,13 +28,6 @@ namespace ecl
              * @return True if the image is successfully loaded, false otherwise.
              */
             virtual io::file::ReadState load(const std::filesystem::path &path, DArray<assets::ImageInfo> &images) = 0;
-
-            /**
-             * @brief Returns the checksum of the loaded image(s).
-             *
-             * @return The checksum of the loaded image.
-             */
-            virtual u32 checksum(const DArray<assets::ImageInfo> &images) const = 0;
         };
 
         class OIIOLoader : public ILoader
@@ -50,13 +43,6 @@ namespace ecl
              * @return True if the image is successfully loaded, false otherwise.
              */
             virtual io::file::ReadState load(const std::filesystem::path &path, DArray<assets::ImageInfo> &images) override;
-
-            /**
-             * @brief Returns the checksum of the loaded image(s).
-             *
-             * @return The checksum of the loaded image.
-             */
-            virtual u32 checksum(const DArray<assets::ImageInfo> &images) const override;
 
         protected:
             Format _format;
@@ -201,13 +187,6 @@ namespace ecl
              * @return True if the image is successfully loaded, false otherwise.
              */
             virtual io::file::ReadState load(const std::filesystem::path &path, DArray<assets::ImageInfo> &images) override;
-
-            /**
-             * @brief Returns the checksum of the loaded image(s).
-             *
-             * @return The checksum of the loaded image.
-             */
-            virtual u32 checksum(const DArray<assets::ImageInfo> &images) const override { return _checksum; }
 
         private:
             u32 _checksum = 0;

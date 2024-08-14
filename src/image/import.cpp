@@ -76,14 +76,6 @@ namespace ecl
             return images.empty() ? io::file::ReadState::Error : io::file::ReadState::Success;
         }
 
-        u32 OIIOLoader::checksum(const DArray<assets::ImageInfo> &images) const
-        {
-            u32 checksum = 0;
-            for (auto &image : images)
-                checksum = crc32(checksum, reinterpret_cast<char *>(image.pixels), image.imageSize());
-            return checksum;
-        }
-
         io::file::ReadState AssetLoader::load(const std::filesystem::path &path, DArray<assets::ImageInfo> &images)
         {
             auto asset = assets::Image::readFromFile(path);
