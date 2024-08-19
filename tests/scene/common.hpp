@@ -11,11 +11,11 @@ namespace tests
 
     void createCubeFaces(DArray<assets::meta::mesh::Face> &faces);
 
-    void createMeshes(DArray<ecl::scene::MeshNode> &meshes, int matID = -1);
+    void createObjects(DArray<std::shared_ptr<assets::Object>> &objects);
 
-    void createMaterials(DArray<ecl::scene::MaterialNode> &materials);
+    void createMaterials(DArray<std::shared_ptr<assets::Material>> &materials);
 
-    void createDefaultTexture(ecl::scene::TextureNode& tex, const std::filesystem::path& dataDir);
+    void createDefaultTexture(ecl::scene::TextureNode &tex, const std::filesystem::path &dataDir);
 
     void createGeneratedTexture(ecl::scene::TextureNode &tex);
 } // namespace tests

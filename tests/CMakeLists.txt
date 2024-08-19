@@ -64,3 +64,16 @@ add_test_files(
     "${ECL_TEST_LIBRARIES}"
     "${ENV_VAR}"
 )
+
+set(ECL_OBJ_EXPORT_MULTIMAT_SRC
+    main.cpp
+    "scene/common.cpp"
+    "scene/obj_export_multimat.cpp")
+add_test_files(
+    "ecl"
+    "obj_export_multimat"
+    "${ECL_OBJ_EXPORT_MULTIMAT_SRC}"
+    "${ECL_TEST_INCLUDES}"
+    "${ECL_TEST_LIBRARIES}"
+    "${ENV_VAR}"
+)

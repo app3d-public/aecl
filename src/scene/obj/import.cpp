@@ -4,7 +4,6 @@
 #include <core/log.hpp>
 #include <core/std/string.hpp>
 #include <core/task.hpp>
-#include <ecl/image/import.hpp>
 #include <ecl/scene/obj/import.hpp>
 #include <ecl/scene/utils.hpp>
 #include <emhash/hash_table5.hpp>
@@ -53,7 +52,7 @@ namespace ecl
                 else if (token[0] == 'g' || token[0] == 'o')
                 {
                     token += 2;
-                    std::string str = trimEnd({token});
+                    std::string str = trimEnd(token);
                     if (str != "off" && !str.empty()) buffer.g.emplace_back(lineIndex, str);
                 }
                 else if (token[0] == 'f')
@@ -105,36 +104,6 @@ namespace ecl
                 }
             }
 
-            int getGroupRangeEnd(int startIndex, int rangeEnd, ParseIndexed &parsed)
-            {
-                for (int i = startIndex; i < parsed.f.size(); ++i)
-                    if (parsed.f[i].index >= rangeEnd) return i;
-                return parsed.f.size();
-            }
-
-            using namespace assets::meta::mesh;
-
-            struct GroupRange
-            {
-                int startIndex;
-                int rangeEnd;
-                std::string name;
-                MeshBlock *mesh;
-            };
-
-            glm::vec3 getInnerEdge(size_t pos, f32 v1, f32 v2)
-            {
-                switch (pos)
-                {
-                    case 0:
-                        return glm::vec3(v1, v2, 1.0f);
-                    case 1:
-                        return glm::vec3(v1, 1.0f, v2);
-                    default:
-                        return glm::vec3(1.0f, v1, v2);
-                }
-            };
-
             struct ParseSingleThread
             {
                 Line<glm::vec3> *__restrict v;
@@ -151,6 +120,36 @@ namespace ecl
                 size_t useMtlsize;
             };
 
+            int getGroupRangeEnd(int startIndex, int rangeEnd, ParseSingleThread &ps)
+            {
+                for (int i = startIndex; i < ps.fsize; ++i)
+                    if (ps.f[i].index >= rangeEnd) return i;
+                return ps.fsize;
+            }
+
+            using namespace assets::meta::mesh;
+
+            struct GroupRange
+            {
+                int startIndex;
+                int rangeEnd;
+                std::string name;
+                std::shared_ptr<MeshBlock> mesh;
+            };
+
+            glm::vec3 getInnerEdge(size_t pos, f32 v1, f32 v2)
+            {
+                switch (pos)
+                {
+                    case 0:
+                        return glm::vec3(v1, v2, 1.0f);
+                    case 1:
+                        return glm::vec3(v1, 1.0f, v2);
+                    default:
+                        return glm::vec3(1.0f, v1, v2);
+                }
+            };
+
             glm::vec3 calculateNormal(const ParseSingleThread &ps, const DArray<glm::ivec3> &__restrict inFace)
             {
                 glm::vec3 normal{0.0f};
@@ -165,14 +164,14 @@ namespace ecl
                 return glm::normalize(normal);
             }
 
-            void addVertexToFace(const ParseSingleThread &__restrict ps, DArray<u32> &vgv, u32 current,
+            void addVertexToFace(const ParseSingleThread &__restrict ps, u32 vgi, u32 current,
                                  emhash5::HashMap<glm::ivec3, u32> &vtnMap, const glm::ivec3 &vtn, Model &m, Face &face)
             {
                 auto [vIt, vInserted] = vtnMap.emplace(vtn, vtnMap.size());
                 if (vInserted)
                 {
-                    vgv.emplace_back(m.vertices.size());
-                    face.vertices.emplace_back(current, m.vertices.size());
+                    m.groups[vgi].vertices.emplace_back(m.vertices.size());
+                    face.vertices.emplace_back(vgi, m.vertices.size());
                     m.vertices.emplace_back(ps.v[current].value);
                     auto &vertex = m.vertices.back();
                     if (vtn.y != 0 && ps.vtsize > vtn.y) vertex.uv = ps.vt[vtn.y - 1].value;
@@ -184,8 +183,8 @@ namespace ecl
                     face.vertices.emplace_back(current, vIt->second);
             }
 
-            void addVertexToFace(const ParseSingleThread &__restrict ps, DArray<u32> &vgv, u32 current,
-                                 const glm::ivec3 &vtn, Model &m, Face &face)
+            void addVertexToFace(const ParseSingleThread &__restrict ps, u32 vgi, u32 current, const glm::ivec3 &vtn,
+                                 Model &m, Face &face)
             {
                 Vertex vertex{ps.v[current].value};
                 if (vtn.y != 0 && ps.vtsize > vtn.y) vertex.uv = ps.vt[vtn.y - 1].value;
@@ -193,29 +192,31 @@ namespace ecl
                     vertex.normal = ps.vn[vtn.z - 1].value;
                 else
                     vertex.normal = face.normal;
+                auto &vgv = m.groups[vgi].vertices;
                 auto it = std::find_if(vgv.begin(), vgv.end(),
                                        [&m, &vertex](u32 index) { return m.vertices[index] == vertex; });
                 if (it == vgv.end())
                 {
                     vgv.emplace_back(m.vertices.size());
-                    face.vertices.emplace_back(current, m.vertices.size());
+                    face.vertices.emplace_back(vgi, m.vertices.size());
                     m.vertices.emplace_back(vertex);
                     m.aabb.min = glm::min(m.aabb.min, vertex.pos);
                     m.aabb.max = glm::max(m.aabb.max, vertex.pos);
                 }
                 else
-                    face.vertices.emplace_back(current, *it);
+                    face.vertices.emplace_back(vgi, *it);
             }
 
             void indexMesh(size_t faceCount, const ParseSingleThread &ps, GroupRange &group)
             {
                 emhash5::HashMap<glm::ivec3, u32> vtnMap;
                 if (ps.vnsize > 0) vtnMap.reserve(ps.vsize);
-                group.mesh->model.faces.resize(faceCount);
+                auto &m = group.mesh->model;
+                m.faces.resize(faceCount);
+                DArray<int> posMap(ps.vsize, -1);
                 for (size_t f = 0; f < faceCount; ++f)
                 {
                     auto &inFace = ps.f[group.startIndex + f].value;
-                    auto &m = group.mesh->model;
                     auto &face = m.faces[f];
                     face.normal = calculateNormal(ps, *inFace);
                     for (int v = 0; v < inFace->size(); ++v)
@@ -223,78 +224,40 @@ namespace ecl
                         auto &vtn = (*inFace)[v];
                         const int current = vtn.x - 1;
                         if (ps.vsize < vtn.x) continue;
-                        auto &vertexGroup = m.vertexGroups[current];
-                        if (ps.vnsize == 0)
-                            addVertexToFace(ps, vertexGroup.vertices, current, vtn, m, face);
+                        VertexGroup *vgroup;
+                        u32 vgroupIndex = 0;
+                        if (posMap[current] == -1)
+                        {
+                            m.groups.emplace_back();
+                            vgroup = &m.groups.back();
+                            vgroupIndex = m.groups.size() - 1;
+                            posMap[current] = m.groups.size() - 1;
+                        }
                         else
-                            addVertexToFace(ps, vertexGroup.vertices, current, vtnMap, vtn, m, face);
-                        vertexGroup.faces.push_back(f);
+                        {
+                            vgroupIndex = posMap[current];
+                            vgroup = &m.groups[posMap[current]];
+                        }
+                        if (ps.vnsize == 0)
+                            addVertexToFace(ps, vgroupIndex, current, vtn, m, face);
+                        else
+                            addVertexToFace(ps, vgroupIndex, current, vtnMap, vtn, m, face);
+                        vgroup->faces.push_back(f);
                     }
                 }
             }
 
-            DArray<MeshBlock *> serializeToGroups(ParseIndexed &parsed)
+            void indexGroups(ParseSingleThread &ps, DArray<std::shared_ptr<assets::Object>> &objects,
+                             DArray<GroupRange> &groups)
             {
-                oneapi::tbb::parallel_sort(parsed.v.begin(), parsed.v.end());
-                oneapi::tbb::parallel_sort(parsed.vn.begin(), parsed.vn.end());
-                oneapi::tbb::parallel_sort(parsed.vt.begin(), parsed.vt.end());
-                oneapi::tbb::parallel_sort(parsed.g.begin(), parsed.g.end());
-                oneapi::tbb::parallel_sort(parsed.f.begin(), parsed.f.end());
-
-                ParseSingleThread ps;
-                ps.vsize = parsed.v.size();
-                ps.vtsize = parsed.vt.size();
-                ps.vnsize = parsed.vn.size();
-                ps.fsize = parsed.f.size();
-                ps.gsize = parsed.g.size();
-                ps.useMtlsize = parsed.useMtl.size();
-
-                ps.v = (Line<glm::vec3> *)scalable_malloc(ps.vsize * sizeof(Line<glm::vec3>));
-                ps.vt = (Line<glm::vec2> *)scalable_malloc(ps.vtsize * sizeof(Line<glm::vec2>));
-                ps.vn = (Line<glm::vec3> *)scalable_malloc(ps.vnsize * sizeof(Line<glm::vec3>));
-                ps.f = (Line<DArray<glm::ivec3> *> *)scalable_malloc(ps.fsize * sizeof(Line<DArray<glm::ivec3> *>));
-                ps.g = (Line<std::string> *)scalable_malloc(ps.gsize * sizeof(Line<std::string>));
-                ps.useMtl = (Line<std::string> *)scalable_malloc(ps.useMtlsize * sizeof(Line<std::string>));
-
-                // Construct
-                for (size_t i = 0; i < parsed.v.size(); ++i) new (&ps.v[i]) Line<glm::vec3>(parsed.v[i]);
-                for (size_t i = 0; i < parsed.vt.size(); ++i) new (&ps.vt[i]) Line<glm::vec2>(parsed.vt[i]);
-                for (size_t i = 0; i < parsed.vn.size(); ++i) new (&ps.vn[i]) Line<glm::vec3>(parsed.vn[i]);
-                for (size_t i = 0; i < parsed.f.size(); ++i) new (&ps.f[i]) Line<DArray<glm::ivec3> *>(parsed.f[i]);
-                for (size_t i = 0; i < parsed.g.size(); ++i) new (&ps.g[i]) Line<std::string>(parsed.g[i]);
-                for (size_t i = 0; i < parsed.useMtl.size(); ++i)
-                    new (&ps.useMtl[i]) Line<std::string>(parsed.useMtl[i]);
-
-                DArray<MeshBlock *> meshes;
-                DArray<GroupRange> groups;
-                groups.reserve(ps.gsize + 1);
-
-                if (ps.fsize == 0) return meshes;
-
-                int lfi = 0;
-                if (ps.gsize == 0 || ps.f->index < ps.g->index)
-                {
-                    int rangeEnd = parsed.g.empty() ? ps.f[ps.fsize - 1].index + 1 : ps.g->index;
-                    lfi = getGroupRangeEnd(0, rangeEnd, parsed);
-                    groups.emplace_back(0, lfi, "default");
-                }
-
-                for (int g = 0; g < ps.gsize; ++g)
-                {
-                    int rangeEnd = (g < parsed.g.size() - 1) ? ps.g[g + 1].index : ps.f[ps.fsize - 1].index + 1;
-                    int temp = getGroupRangeEnd(lfi, rangeEnd, parsed);
-                    groups.emplace_back(lfi, temp, ps.g[g].value);
-                    lfi = temp;
-                }
-
                 for (auto &group : groups)
                 {
                     logInfo("Indexing group data: '%s'", group.name.c_str());
                     const size_t faceCount = group.rangeEnd - group.startIndex;
-                    group.mesh = new MeshBlock();
-                    group.mesh->model.vertexGroups.resize(ps.vsize);
-                    indexMesh(faceCount, ps, group);
+                    group.mesh = std::make_shared<MeshBlock>();
                     auto &m = group.mesh->model;
+                    m.groups.reserve(faceCount * 3);
+                    indexMesh(faceCount, ps, group);
                     logInfo("Imported vertices: %zu", m.vertices.size());
                     logInfo("Imported faces: %zu", m.faces.size());
                     logInfo("Triangulating mesh group");
@@ -319,23 +282,9 @@ namespace ecl
                         currentID += ires[i].size();
                     }
                     logDebug("Indices: %zu", m.indices.size());
-                    meshes.push_back(group.mesh);
+                    objects.push_back(std::make_shared<assets::Object>(group.name));
+                    objects.back()->meta.push_front(group.mesh);
                 }
-                // Free temporary resources
-                scalable_free(ps.v);
-                scalable_free(ps.vt);
-                scalable_free(ps.vn);
-                for (size_t i = 0; i < ps.fsize; ++i)
-                {
-                    delete ps.f[i].value;
-                    ps.f[i].~Line();
-                }
-                scalable_free(ps.f);
-                for (size_t i = 0; i < ps.gsize; ++i) ps.g[i].~Line();
-                scalable_free(ps.g);
-                for (size_t i = 0; i < ps.useMtlsize; ++i) ps.useMtl[i].~Line();
-                scalable_free(ps.useMtl);
-                return meshes;
             }
 
             void parseMTL(const std::filesystem::path &basePath, const ParseIndexed &parsed,
@@ -346,7 +295,7 @@ namespace ecl
 
                 std::filesystem::path filename = basePath;
                 filename.replace_filename(parsedPath);
-                std::ifstream fileStream(filename, std::ios::binary | std::ios::ate);
+                std::ifstream fileStream(filename);
                 if (!fileStream.is_open())
                 {
                     logError("Could not open file: %s", filename.string().c_str());
@@ -359,12 +308,13 @@ namespace ecl
                 std::string fileContent = oss.str();
                 fileStream.close();
                 StringPool<char> stringPool(fileContent.size());
-                io::file::fillLineBuffer(oss.str().c_str(), fileContent.size(), stringPool);
+                io::file::fillLineBuffer(fileContent.c_str(), fileContent.size(), stringPool);
 
                 // Process each line from the buffer
                 int materialIndex = -1;
                 int lineIndex = 1;
                 for (const auto &line : stringPool) parseMTLline(line, materials, materialIndex, lineIndex++);
+                logInfo("Loaded %zu materials", materials.size());
             }
 
             bool processMTLColorOption(const char *&token, ColorOption &dst)
@@ -507,7 +457,6 @@ namespace ecl
                 {
                     if (line.empty() || line[0] == '\0' || line[0] == '#') return;
                     const char *token = line.data();
-                    assert(token);
                     if (strncmp(token, "newmtl", 6) == 0)
                     {
                         token += 7;
@@ -771,13 +720,19 @@ namespace ecl
             }
 
             void convertToMaterials(std::filesystem::path basePath, const DArray<Material> &mtlMatList,
-                                    DArray<assets::MaterialInfo> &materials, DArray<assets::Image2D> &textures)
+                                    emhash5::HashMap<std::string, int> &matMap,
+                                    DArray<std::shared_ptr<assets::Material>> &materials,
+                                    DArray<std::shared_ptr<assets::Target>> &textures)
             {
                 emhash5::HashMap<std::string, size_t> texMap;
-                for (auto &mtl : mtlMatList)
+                matMap.reserve(mtlMatList.size());
+                materials.resize(mtlMatList.size());
+                for (int i = 0; i < mtlMatList.size(); ++i)
                 {
-                    materials.emplace_back();
-                    auto &mat = materials.back();
+                    auto &mtl = mtlMatList[i];
+                    auto [mIt, mInserted] = matMap.emplace(mtl.name, i);
+                    materials[i] = std::make_shared<assets::Material>();
+                    auto &mat = materials[i]->info;
                     if (mtl.map_Kd.path.empty())
                         mat.albedo.rgb = mtl.Kd.value;
                     else
@@ -788,20 +743,163 @@ namespace ecl
                         auto [it, inserted] = texMap.insert({parsedPath.string(), textures.size()});
                         if (inserted)
                         {
-                            auto importer = ecl::image::getImporterByPath(basePath);
-                            DArray<assets::ImageInfo> images;
-                            if (importer && importer->load(basePath, images) != io::file::ReadState::Success)
-                            {
-                                logError("Failed to load texture '%ls'", basePath.c_str());
-                                continue;
-                            }
-                            textures.emplace_back(std::move(images.front()));
+                            assets::TargetMetaData metaData;
+                            metaData.type = assets::Type::Image;
+                            metaData.checksum = 0;
+                            metaData.compressed = false;
+                            assets::TargetAddr addr{assets::TargetProto::File, basePath.string()};
+                            textures.emplace_back(std::make_shared<assets::Target>(addr, metaData));
                         }
                         mat.albedo.textured = true;
                         mat.albedo.textureID = it->second;
                     }
+                    materials[i]->meta.push_front(std::make_shared<assets::meta::MaterialBlock>(mIt->first));
                 }
             }
+
+            void allocatePS(ParseIndexed &pmt, ParseSingleThread &pst)
+            {
+                oneapi::tbb::parallel_sort(pmt.v.begin(), pmt.v.end());
+                oneapi::tbb::parallel_sort(pmt.vn.begin(), pmt.vn.end());
+                oneapi::tbb::parallel_sort(pmt.vt.begin(), pmt.vt.end());
+                oneapi::tbb::parallel_sort(pmt.g.begin(), pmt.g.end());
+                oneapi::tbb::parallel_sort(pmt.f.begin(), pmt.f.end());
+
+                pst.vsize = pmt.v.size();
+                pst.vtsize = pmt.vt.size();
+                pst.vnsize = pmt.vn.size();
+                pst.fsize = pmt.f.size();
+                pst.gsize = pmt.g.size();
+                pst.useMtlsize = pmt.useMtl.size();
+
+                pst.v = (Line<glm::vec3> *)scalable_malloc(pst.vsize * sizeof(Line<glm::vec3>));
+                pst.vt = (Line<glm::vec2> *)scalable_malloc(pst.vtsize * sizeof(Line<glm::vec2>));
+                pst.vn = (Line<glm::vec3> *)scalable_malloc(pst.vnsize * sizeof(Line<glm::vec3>));
+                pst.f = (Line<DArray<glm::ivec3> *> *)scalable_malloc(pst.fsize * sizeof(Line<DArray<glm::ivec3> *>));
+                pst.g = (Line<std::string> *)scalable_malloc(pst.gsize * sizeof(Line<std::string>));
+                pst.useMtl = (Line<std::string> *)scalable_malloc(pst.useMtlsize * sizeof(Line<std::string>));
+
+                // Construct
+                for (size_t i = 0; i < pmt.v.size(); ++i) new (&pst.v[i]) Line<glm::vec3>(pmt.v[i]);
+                for (size_t i = 0; i < pmt.vt.size(); ++i) new (&pst.vt[i]) Line<glm::vec2>(pmt.vt[i]);
+                for (size_t i = 0; i < pmt.vn.size(); ++i) new (&pst.vn[i]) Line<glm::vec3>(pmt.vn[i]);
+                for (size_t i = 0; i < pmt.f.size(); ++i) new (&pst.f[i]) Line<DArray<glm::ivec3> *>(pmt.f[i]);
+                for (size_t i = 0; i < pmt.g.size(); ++i) new (&pst.g[i]) Line<std::string>(pmt.g[i]);
+                for (size_t i = 0; i < pmt.useMtl.size(); ++i) new (&pst.useMtl[i]) Line<std::string>(pmt.useMtl[i]);
+            }
+
+            void freePS(ParseSingleThread &ps)
+            {
+                scalable_free(ps.v);
+                scalable_free(ps.vt);
+                scalable_free(ps.vn);
+                for (size_t i = 0; i < ps.fsize; ++i)
+                {
+                    delete ps.f[i].value;
+                    ps.f[i].~Line();
+                }
+                scalable_free(ps.f);
+                for (size_t i = 0; i < ps.gsize; ++i) ps.g[i].~Line();
+                scalable_free(ps.g);
+                for (size_t i = 0; i < ps.useMtlsize; ++i) ps.useMtl[i].~Line();
+                scalable_free(ps.useMtl);
+            }
+
+            void createGroupRanges(ParseSingleThread &ps, DArray<GroupRange> &groups)
+            {
+                groups.reserve(ps.gsize + 1);
+
+                if (ps.fsize == 0) return;
+
+                int lfi = 0;
+                if (ps.gsize == 0 || ps.f->index < ps.g->index)
+                {
+                    int rangeEnd = ps.gsize == 0 ? ps.f[ps.fsize - 1].index + 1 : ps.g->index;
+                    lfi = getGroupRangeEnd(0, rangeEnd, ps);
+                    groups.emplace_back(0, lfi, "default");
+                }
+
+                for (int g = 0; g < ps.gsize; ++g)
+                {
+                    int rangeEnd = (g < ps.gsize - 1) ? ps.g[g + 1].index : ps.f[ps.fsize - 1].index + 1;
+                    int temp = getGroupRangeEnd(lfi, rangeEnd, ps);
+                    groups.emplace_back(lfi, temp, ps.g[g].value);
+                    lfi = temp;
+                }
+            }
+
+            void assignMaterialsToGroups(ParseSingleThread &ps, const DArray<GroupRange> &groups,
+                                         const emhash5::HashMap<std::string, int> &matMap,
+                                         DArray<std::shared_ptr<assets::Material>> &materials,
+                                         DArray<DArray<u32>> &ranges)
+            {
+                if (ps.useMtlsize == 0) return;
+                int umID = 0;
+                ranges.resize(groups.size());
+                for (int g = 0; g < groups.size(); ++g)
+                {
+                    auto &group = groups[g];
+                    const auto first = ps.f[group.startIndex].index;
+                    const auto last = ps.f[group.rangeEnd - 1].index;
+                    if (ps.useMtl[umID].index < first)
+                    {
+                        while (umID < ps.useMtlsize && ps.useMtl[umID].index <= first) ++umID;
+                        for (--umID; umID < ps.useMtlsize && ps.useMtl[umID].index <= last; ++umID)
+                        {
+                            ranges[g].emplace_back(umID);
+                            auto it = matMap.find(ps.useMtl[umID].value);
+                            if (it == matMap.end())
+                                logWarn("Can't find mtl in library: %s", ps.useMtl[umID].value.c_str());
+                            else
+                            {
+                                auto meta = std::dynamic_pointer_cast<assets::meta::MaterialBlock>(
+                                    materials[it->second]->meta.front());
+                                if (!meta)
+                                {
+                                    logError("Can't cast material to meta block");
+                                    continue;
+                                }
+                                if (std::find(meta->assignments.begin(), meta->assignments.end(), g) ==
+                                    meta->assignments.end())
+                                    meta->assignments.push_back(g);
+                            }
+                        }
+                    }
+                }
+            }
+
+            void assignRangesToObjects(ParseSingleThread &ps, const DArray<DArray<u32>> &ranges,
+                                       emhash5::HashMap<std::string, int> &matMap, const DArray<GroupRange> &groups,
+                                       DArray<std::shared_ptr<assets::Object>> &objects)
+            {
+                for (int gr = 0; gr < ranges.size(); ++gr)
+                {
+                    auto &groupRange = ranges[gr];
+                    if (groupRange.size() > 1)
+                    {
+                        auto &group = groups[gr];
+                        int f = group.startIndex;
+                        for (int i = 0; i < groupRange.size(); ++i)
+                        {
+                            int m_next = (i == groupRange.size() - 1) ? ps.f[group.rangeEnd - 1].index + 1
+                                                                      : ps.useMtl[groupRange[i + 1]].index;
+
+                            auto it = matMap.find(ps.useMtl[groupRange[i]].value);
+                            if (it == matMap.end())
+                                for (; f < ps.fsize && ps.f[f].index < m_next; ++f);
+                            else
+                            {
+                                auto meta = std::make_shared<assets::meta::MatRangeAssignAtrr>();
+                                meta->matID = it->second;
+                                for (; f < ps.fsize && ps.f[f].index < m_next; ++f)
+                                    meta->faces.push_back(f - group.startIndex);
+                                objects[gr]->meta.push_front(meta);
+                            }
+                        }
+                    }
+                }
+            }
+
             io::file::ReadState Importer::load()
             {
                 auto start = std::chrono::high_resolution_clock::now();
@@ -815,17 +913,26 @@ namespace ecl
                 events::mng.dispatch<TaskUpdateEvent>("task:update", (void *)this, header, _("Task:File:Serialize"),
                                                       0.2f);
                 logInfo("Serializing parse result");
-                _meshes = serializeToGroups(parsed);
+                ParseSingleThread ps;
+                allocatePS(parsed, ps);
+                DArray<GroupRange> groups;
+                createGroupRanges(ps, groups);
+                indexGroups(ps, _objects, groups);
                 events::mng.dispatch<TaskUpdateEvent>("task:update", (void *)this, header, _("Task:File:Load:Mat"),
                                                       0.8f);
                 if (!parsed.mtllib.empty())
                 {
                     DArray<Material> mtlMaterials;
                     parseMTL(_path, parsed, mtlMaterials);
-                    convertToMaterials(_path, mtlMaterials, _materials, _textures);
+                    emhash5::HashMap<std::string, int> matMap;
+                    DArray<DArray<u32>> faceMatRanges;
+                    convertToMaterials(_path, mtlMaterials, matMap, _materials, _textures);
+                    assignMaterialsToGroups(ps, groups, matMap, _materials, faceMatRanges);
+                    assignRangesToObjects(ps, faceMatRanges, matMap, groups, _objects);
                 }
+                freePS(ps);
                 auto end = std::chrono::high_resolution_clock::now();
-                logInfo("Loaded in %.5f ms", std::chrono::duration<double, std::milli>(end - start).count());
+                logInfo("Loaded in %.5f ms", std::chrono::duration<f64, std::milli>(end - start).count());
 
                 return io::file::ReadState::Success;
             }

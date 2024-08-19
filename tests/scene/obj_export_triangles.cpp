@@ -7,12 +7,12 @@ namespace tests
     {
         using namespace ecl::scene;
         MeshExportFlags meshFlags = MeshExportFlagBits::export_normals | MeshExportFlagBits::export_triangulated;
-        MaterialExportFlags materialFlags = MaterialExportFlagBits::texture_none;
+        MaterialExportFlags materialFlags = MaterialExportFlagBits::none;
         obj::ObjExportFlags objFlags = obj::ObjExportFlagBits::mgp_groups | obj::ObjExportFlagBits::mat_PBR;
         obj::Exporter exporter(outputDir / "export_origin.obj", meshFlags, materialFlags, objFlags);
-        DArray<MeshNode> meshes;
-        createMeshes(meshes);
-        exporter.meshes(meshes);
+        DArray<std::shared_ptr<assets::Object>> objects;
+        createObjects(objects);
+        exporter.objects(objects);
         auto state = exporter.save();
         exporter.clear();
         return state;

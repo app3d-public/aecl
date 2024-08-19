@@ -7,29 +7,35 @@ namespace tests
     void createCubeVerticles(DArray<assets::meta::mesh::Vertex> &vertices)
     {
         vertices.resize(24);
-        vertices[0] = {{100, -100, 100}, {0, 0}, {0, 0, 1}};
-        vertices[1] = {{100, 100, 100}, {1, 1}, {0, 0, 1}};
-        vertices[2] = {{-100, 100, 100}, {0, 1}, {0, 0, 1}};
+        // Front face
+        vertices[0] = {{100, -100, 100}, {1, 0}, {0, 0, 1}};
+        vertices[1] = {{100, 100, 100}, {1, -1}, {0, 0, 1}};
+        vertices[2] = {{-100, 100, 100}, {0, -1}, {0, 0, 1}};
         vertices[3] = {{-100, -100, 100}, {0, 0}, {0, 0, 1}};
-        vertices[4] = {{100, -100, -100}, {0, 0}, {1, 0, 0}};
-        vertices[5] = {{100, 100, -100}, {1, 1}, {1, 0, 0}};
-        vertices[6] = {{100, 100, 100}, {0, 1}, {1, 0, 0}};
+        // Right face
+        vertices[4] = {{100, -100, -100}, {1, 0}, {1, 0, 0}};
+        vertices[5] = {{100, 100, -100}, {1, -1}, {1, 0, 0}};
+        vertices[6] = {{100, 100, 100}, {0, -1}, {1, 0, 0}};
         vertices[7] = {{100, -100, 100}, {0, 0}, {1, 0, 0}};
-        vertices[8] = {{-100, -100, -100}, {0, 0}, {0, 0, -1}};
-        vertices[9] = {{-100, 100, -100}, {1, 1}, {0, 0, -1}};
-        vertices[10] = {{100, 100, -100}, {0, 1}, {0, 0, -1}};
+        // Back face
+        vertices[8] = {{-100, -100, -100}, {1, 0}, {0, 0, -1}};
+        vertices[9] = {{-100, 100, -100}, {1, -1}, {0, 0, -1}};
+        vertices[10] = {{100, 100, -100}, {0, -1}, {0, 0, -1}};
         vertices[11] = {{100, -100, -100}, {0, 0}, {0, 0, -1}};
-        vertices[12] = {{-100, -100, 100}, {0, 0}, {-1, 0, 0}};
-        vertices[13] = {{-100, 100, 100}, {1, 1}, {-1, 0, 0}};
-        vertices[14] = {{-100, 100, -100}, {0, 1}, {-1, 0, 0}};
+        // Left face
+        vertices[12] = {{-100, -100, 100}, {1, 0}, {-1, 0, 0}};
+        vertices[13] = {{-100, 100, 100}, {1, -1}, {-1, 0, 0}};
+        vertices[14] = {{-100, 100, -100}, {0, -1}, {-1, 0, 0}};
         vertices[15] = {{-100, -100, -100}, {0, 0}, {-1, 0, 0}};
-        vertices[16] = {{100, 100, 100}, {0, 0}, {0, 1, 0}};
-        vertices[17] = {{100, 100, -100}, {1, 1}, {0, 1, 0}};
-        vertices[18] = {{-100, 100, -100}, {0, 1}, {0, 1, 0}};
+        // Top face
+        vertices[16] = {{100, 100, 100}, {1, 0}, {0, 1, 0}};
+        vertices[17] = {{100, 100, -100}, {1, -1}, {0, 1, 0}};
+        vertices[18] = {{-100, 100, -100}, {0, -1}, {0, 1, 0}};
         vertices[19] = {{-100, 100, 100}, {0, 0}, {0, 1, 0}};
-        vertices[20] = {{100, -100, -100}, {0, 0}, {0, -1, 0}};
-        vertices[21] = {{100, -100, 100}, {1, 1}, {0, -1, 0}};
-        vertices[22] = {{-100, -100, 100}, {0, 1}, {0, -1, 0}};
+        // Bottom face
+        vertices[20] = {{100, -100, -100}, {1, 0}, {0, -1, 0}};
+        vertices[21] = {{100, -100, 100}, {1, -1}, {0, -1, 0}};
+        vertices[22] = {{-100, -100, 100}, {0, -1}, {0, -1, 0}};
         vertices[23] = {{-100, -100, -100}, {0, 0}, {0, -1, 0}};
     }
 
@@ -105,29 +111,32 @@ namespace tests
                     6};
     }
 
-    void createMeshes(DArray<ecl::scene::MeshNode> &meshes, int matID)
+    void createObjects(DArray<std::shared_ptr<assets::Object>> &objects)
     {
-        ecl::scene::MeshNode node;
-        node.meta = new assets::meta::mesh::MeshBlock();
-        node.name = "cube";
-        node.matID = matID;
-        auto &model = node.meta->model;
+        objects.push_back(std::make_shared<assets::Object>());
+        auto cube = objects.front();
+        cube->name = "cube";
+        auto meshBlock = std::make_shared<assets::meta::mesh::MeshBlock>();
+        auto &model = meshBlock->model;
         createCubeVerticles(model.vertices);
         model.indices = {2,  3,  0,  0,  1,  2,  6,  7,  4,  4,  5,  6,  10, 11, 8,  8,  9,  10,
                          14, 15, 12, 12, 13, 14, 18, 19, 16, 16, 17, 18, 22, 23, 20, 20, 21, 22};
-        createCubeVGroups(model.vertexGroups);
+        createCubeVGroups(model.groups);
         createCubeFaces(model.faces);
         model.aabb = {{-100, -100, -100}, {100, 100, 100}};
-        meshes.push_back(node);
+        cube->meta.push_front(meshBlock);
     }
 
-    void createMaterials(DArray<ecl::scene::MaterialNode> &materials)
+    void createMaterials(DArray<std::shared_ptr<assets::Material>> &materials)
     {
-        materials.resize(1);
-        auto &mat = materials.front();
-        mat.name = "ecl:test:mat_e";
-        mat.info.albedo.textured = true;
-        mat.info.albedo.textureID = 0;
+        auto mat = std::make_shared<assets::Material>();
+        mat->info.albedo.textured = true;
+        mat->info.albedo.textureID = 0;
+        auto meta = std::make_shared<assets::meta::MaterialBlock>();
+        meta->name = "ecl:test:mat_e";
+        meta->assignments.push_back(0);
+        mat->meta.push_front(meta);
+        materials.push_back(mat);
     }
 
     void createDefaultTexture(ecl::scene::TextureNode &tex, const std::filesystem::path &dataDir)

@@ -54,12 +54,17 @@ namespace ecl
                 emhash5::HashMap<glm::vec2, u32> _vtMap;
                 emhash5::HashMap<glm::vec3, u32> _vnMap;
                 int _genID = 0;
+                bool _allMaterialsExist = true;
 
                 void writeVertices(assets::meta::mesh::Model &model, std::stringstream &ss);
-                void writeFaces(assets::meta::mesh::MeshBlock *meta, std::ostream &os);
-                void writeTriangles(assets::meta::mesh::MeshBlock *meta, std::ostream &os);
+                void writeFaces(assets::meta::mesh::MeshBlock *meta, std::ostream &os, const DArray<u32> &faces);
+                void writeTriangles(assets::meta::mesh::MeshBlock *meta, std::ostream &os, const DArray<u32> &faces);
                 void writeTexture2D(std::ostream &os, const std::string &token, const TextureNode &tex);
-                void writeMaterial(const MaterialNode &mat, std::ostream &os);
+                void writeMaterial(const std::shared_ptr<assets::Material> &mat, std::ostream &os);
+                void writeMtlLibInfo(std::ofstream &mtlStream, std::stringstream &objStream,
+                                     DArray<std::shared_ptr<assets::meta::MaterialBlock>> &metaInfo);
+                void writeMtl(std::ofstream &stream);
+                void writeObject(const std::shared_ptr<assets::Object>& object, const DArray<std::shared_ptr<assets::meta::MaterialBlock>>& matMeta, std::stringstream &objStream);
             };
         } // namespace obj
     } // namespace scene

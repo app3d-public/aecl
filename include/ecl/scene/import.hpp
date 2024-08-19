@@ -3,6 +3,7 @@
 #include <assets/image.hpp>
 #include <assets/material.hpp>
 #include <assets/scene.hpp>
+#include <assets/library.hpp>
 #include <core/io/file.hpp>
 #include <exception>
 #include <string>
@@ -48,27 +49,26 @@ namespace ecl
             const std::filesystem::path path() const { return _path.string(); }
 
             // Get the list of imported meshes
-            DArray<assets::meta::mesh::MeshBlock *> &meshes() { return _meshes; }
+            DArray<std::shared_ptr<assets::Object>> &objects() { return _objects; }
 
             // Get the list of imported materials
-            DArray<assets::MaterialInfo> &materials() { return _materials; }
+            DArray<std::shared_ptr<assets::Material>> &materials() { return _materials; }
 
             // Get the list of imported textures
-            DArray<assets::Image2D> &textures() { return _textures; }
+            DArray<std::shared_ptr<assets::Target>> &textures() { return _textures; }
 
             inline void clear()
             {
-                for (auto &mesh : _meshes) delete mesh;
-                _meshes.clear();
+                _objects.clear();
                 _materials.clear();
                 _textures.clear();
             }
 
         protected:
             std::filesystem::path _path;
-            DArray<assets::meta::mesh::MeshBlock *> _meshes;
-            DArray<assets::MaterialInfo> _materials;
-            DArray<assets::Image2D> _textures;
+            DArray<std::shared_ptr<assets::Object>> _objects;
+            DArray<std::shared_ptr<assets::Material>> _materials;
+            DArray<std::shared_ptr<assets::Target>> _textures;
         };
     } // namespace scene
 } // namespace ecl

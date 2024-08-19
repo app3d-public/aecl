@@ -12,11 +12,14 @@ namespace tests
         obj::ObjExportFlags objFlags = obj::ObjExportFlagBits::mgp_groups | obj::ObjExportFlagBits::mat_PBR;
         obj::Exporter exporter(outputDir / "export_origin.obj", meshFlags, materialFlags, objFlags);
 
-        DArray<MeshNode> meshes;
-        createMeshes(meshes, 0);
-        exporter.meshes(meshes);
+        DArray<std::shared_ptr<assets::Object>> objects;
+        createObjects(objects);
+        auto mat = std::make_shared<assets::meta::MatRangeAssignAtrr>();
+        mat->matID = 0;
+        objects.front()->meta.push_front(mat);
+        exporter.objects(objects);
 
-        DArray<MaterialNode> materials;
+        DArray<std::shared_ptr<assets::Material>> materials;
         createMaterials(materials);
         exporter.materials(materials);
 

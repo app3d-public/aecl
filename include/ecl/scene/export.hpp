@@ -34,19 +34,6 @@ namespace ecl
 
         using MaterialExportFlags = Flags<MaterialExportFlagBits>;
 
-        struct MeshNode
-        {
-            assets::meta::mesh::MeshBlock *meta;
-            std::string name;
-            int matID = -1;
-        };
-
-        struct MaterialNode
-        {
-            std::string name;
-            assets::MaterialInfo info;
-        };
-
         struct TextureNode
         {
             assets::ImageInfo image;
@@ -74,24 +61,24 @@ namespace ecl
             const std::filesystem::path path() const { return _path.string(); }
 
             // Set the list of exported meshes
-            IExporter &meshes(const DArray<MeshNode> &meshes)
+            IExporter &objects(const DArray<std::shared_ptr<assets::Object>> &objects)
             {
-                _meshes = meshes;
+                _objects = objects;
                 return *this;
             }
 
             // Get the list of exported meshes
-            DArray<MeshNode> &meshes() { return _meshes; }
+            DArray<std::shared_ptr<assets::Object>> &object() { return _objects; }
 
             // Set the list of exported materials
-            IExporter &materials(const DArray<MaterialNode> &materials)
+            IExporter &materials(const DArray<std::shared_ptr<assets::Material>> &materials)
             {
                 _materials = materials;
                 return *this;
             }
 
             // Get the list of exported materials
-            DArray<MaterialNode> &materials() { return _materials; }
+            DArray<std::shared_ptr<assets::Material>> &materials() { return _materials; }
 
 
             // Set the list of exported textures
@@ -106,8 +93,7 @@ namespace ecl
 
             inline void clear()
             {
-                for (auto &mesh : _meshes) delete mesh.meta;
-                _meshes.clear();
+                _objects.clear();
                 _materials.clear();
                 _textures.clear();
             }
@@ -116,8 +102,8 @@ namespace ecl
             std::filesystem::path _path;
             MeshExportFlags _meshFlags;
             MaterialExportFlags _materialFlags;
-            DArray<MeshNode> _meshes;
-            DArray<MaterialNode> _materials;
+            DArray<std::shared_ptr<assets::Object>> _objects;
+            DArray<std::shared_ptr<assets::Material>> _materials;
             DArray<TextureNode> _textures;
         };
     } // namespace scene
