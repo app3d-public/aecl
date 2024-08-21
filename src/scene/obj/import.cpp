@@ -1,4 +1,4 @@
-#include <core/event/event.hpp>
+#include <core/event.hpp>
 #include <core/hash.hpp>
 #include <core/locales.hpp>
 #include <core/log.hpp>
