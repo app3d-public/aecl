@@ -1,6 +1,6 @@
 #pragma once
 
-#include <assets/image.hpp>
+#include <assets/asset.hpp>
 #include "format.hpp"
 
 namespace ecl
@@ -30,7 +30,7 @@ namespace ecl
         class IExporter
         {
         public:
-            IExporter(const std::filesystem::path &path, const DArray<assets::ImageInfo> &images)
+            IExporter(const std::filesystem::path &path, const DArray<assets::Image2D> &images)
                 : _path(path), _images(images)
             {
             }
@@ -56,19 +56,19 @@ namespace ecl
              *
              * @return A vector of SubImageInfo objects containing information about the subimages
              */
-            DArray<assets::ImageInfo> images() const { return _images; }
+            DArray<assets::Image2D> images() const { return _images; }
 
             virtual bool save(size_t dstBit) = 0;
 
         protected:
             std::filesystem::path _path;
-            DArray<assets::ImageInfo> _images;
+            DArray<assets::Image2D> _images;
         };
 
         class OIIOExporter : public IExporter
         {
         public:
-            OIIOExporter(const std::filesystem::path &path, const DArray<assets::ImageInfo> &images, Format format)
+            OIIOExporter(const std::filesystem::path &path, const DArray<assets::Image2D> &images, Format format)
                 : IExporter(path, images), _format(format)
             {
             }
@@ -98,10 +98,10 @@ namespace ecl
          * This class inherits from OIIOExporter and provides an implementation for saving images in BMP
          * format.
          */
-        class BMPExporter final : public OIIOExporter
+        class APPLIB_API BMPExporter final : public OIIOExporter
         {
         public:
-            BMPExporter(const std::filesystem::path &path, const assets::ImageInfo &image, f32 dpi = 72.0f,
+            BMPExporter(const std::filesystem::path &path, const assets::Image2D &image, f32 dpi = 72.0f,
                         bool dither = false)
                 : OIIOExporter(path, {image},
                                {FormatFlagBits::bit8 | FormatFlagBits::alpha, vk::Format::eR8G8B8A8Srgb}),
@@ -162,10 +162,10 @@ namespace ecl
          * This class inherits from OIIOExporter and provides an implementation for saving images in GIF
          * format.
          */
-        class GIFExporter final : public OIIOExporter
+        class APPLIB_API GIFExporter final : public OIIOExporter
         {
         public:
-            GIFExporter(const std::filesystem::path &path, const DArray<assets::ImageInfo> &images,
+            GIFExporter(const std::filesystem::path &path, const DArray<assets::Image2D> &images,
                         bool interlacing = false, int loops = 0, int fps = 0)
                 : OIIOExporter(path, images,
                                {FormatFlagBits::bit8 | FormatFlagBits::multilayer, vk::Format::eR8G8B8A8Srgb}),
@@ -232,10 +232,10 @@ namespace ecl
          * This class inherits from OIIOExporter and provides an implementation for saving images in HDR
          * format.
          */
-        class HDRExporter final : public OIIOExporter
+        class APPLIB_API HDRExporter final : public OIIOExporter
         {
         public:
-            HDRExporter(const std::filesystem::path &path, const assets::ImageInfo &image)
+            HDRExporter(const std::filesystem::path &path, const assets::Image2D &image)
                 : OIIOExporter(path, {image},
                                {FormatFlagBits::bit16 | FormatFlagBits::bit32, vk::Format::eUndefined,
                                 vk::Format::eR16G16B16A16Sfloat, vk::Format::eR32G32B32A32Sfloat})
@@ -252,10 +252,10 @@ namespace ecl
          * This class inherits from OIIOExporter and provides an implementation for saving images in HEIF
          * format.
          */
-        class HEIFExporter final : public OIIOExporter
+        class APPLIB_API HEIFExporter final : public OIIOExporter
         {
         public:
-            HEIFExporter(const std::filesystem::path &path, const assets::ImageInfo &image, int compression = 100)
+            HEIFExporter(const std::filesystem::path &path, const assets::Image2D &image, int compression = 100)
                 : OIIOExporter(path, {image},
                                {FormatFlagBits::bit8 | FormatFlagBits::alpha | FormatFlagBits::multilayer,
                                 vk::Format::eR8G8B8A8Srgb}),
@@ -286,10 +286,10 @@ namespace ecl
         /**
          * @brief A class that exports an image in JPEG format.
          */
-        class JPEGExporter final : public OIIOExporter
+        class APPLIB_API JPEGExporter final : public OIIOExporter
         {
         public:
-            JPEGExporter(const std::filesystem::path &path, const assets::ImageInfo &image, f32 dpi = 72.0f,
+            JPEGExporter(const std::filesystem::path &path, const assets::Image2D &image, f32 dpi = 72.0f,
                          bool dither = false, bool progressive = false, int compression = 100,
                          const std::string &appName = "")
                 : OIIOExporter(path, {image}, {FormatFlagBits::bit8, vk::Format::eR8G8B8A8Srgb}),
@@ -397,7 +397,7 @@ namespace ecl
         /**
          * @brief A class that exports an image in JPEG2000 format.
          */
-        class JPEG2000Exporter final : public OIIOExporter
+        class APPLIB_API JPEG2000Exporter final : public OIIOExporter
         {
         public:
             /**
@@ -407,7 +407,7 @@ namespace ecl
              * @param unassociatedAlpha Whether to use unassociated alpha in the exported image.
              * @param dither Whether to use dithering in the exported image.
              */
-            JPEG2000Exporter(const std::filesystem::path &path, const assets::ImageInfo &image,
+            JPEG2000Exporter(const std::filesystem::path &path, const assets::Image2D &image,
                              bool unassociatedAlpha = false, bool dither = false)
                 : OIIOExporter(path, {image},
                                {FormatFlagBits::bit8 | FormatFlagBits::bit16 | FormatFlagBits::alpha,
@@ -458,7 +458,7 @@ namespace ecl
             bool _dither;
         };
 
-        class JPEGXLExporter final : public OIIOExporter
+        class APPLIB_API JPEGXLExporter final : public OIIOExporter
         {
         public:
             /**
@@ -466,7 +466,7 @@ namespace ecl
              * @param path The file path where to save the exported image.
              * @param image An object representing the subimage to be exported.
              */
-            JPEGXLExporter(const std::filesystem::path &path, const assets::ImageInfo &image)
+            JPEGXLExporter(const std::filesystem::path &path, const assets::Image2D &image)
                 : OIIOExporter(path, {image},
                                {FormatFlagBits::bit8 | FormatFlagBits::bit16, vk::Format::eR8G8B8A8Srgb,
                                 vk::Format::eR16G16B16A16Uint})
@@ -480,7 +480,7 @@ namespace ecl
         /**
          * @brief A class that exports an image in OpenEXR format.
          */
-        class OpenEXRExporter final : public OIIOExporter
+        class APPLIB_API OpenEXRExporter final : public OIIOExporter
         {
         public:
             /**
@@ -497,7 +497,7 @@ namespace ecl
              * a level from 1 to 9 may be appended (the default is "zip:4"),
              * but note that this is only honored when building against OpenEXR 3.1.3 or later.
              */
-            OpenEXRExporter(const std::filesystem::path &path, const DArray<assets::ImageInfo> &images,
+            OpenEXRExporter(const std::filesystem::path &path, const DArray<assets::Image2D> &images,
                             const std::string &compression = "none")
                 : OIIOExporter(path, images,
                                {FormatFlagBits::bit16 | FormatFlagBits::bit32 | FormatFlagBits::alpha |
@@ -535,7 +535,7 @@ namespace ecl
         /**
          * @brief A class that exports an image in PNG format.
          */
-        class PNGExporter final : public OIIOExporter
+        class APPLIB_API PNGExporter final : public OIIOExporter
         {
         public:
             /**
@@ -553,7 +553,7 @@ namespace ecl
              * 16 (PNG_FILTER_SUB), 32 (PNG_FILTER_UP), 64 (PNG_FILTER_AVG), or 128 (PNG_FILTER_PAETH).
              * @param unassociatedAlpha Whether to use unassociated alpha in the exported image.
              */
-            PNGExporter(const std::filesystem::path &path, const assets::ImageInfo &image, f32 dpi = 72.0f,
+            PNGExporter(const std::filesystem::path &path, const assets::Image2D &image, f32 dpi = 72.0f,
                         bool dither = false, int compression = 6, int filter = 0, bool unassociatedAlpha = false)
                 : OIIOExporter(path, {image},
                                {FormatFlagBits::bit8 | FormatFlagBits::bit16 | FormatFlagBits::alpha,
@@ -663,7 +663,7 @@ namespace ecl
         /**
          * @brief A class that exports an image in PNM/PBM format.
          */
-        class PNMExporter final : public OIIOExporter
+        class APPLIB_API PNMExporter final : public OIIOExporter
         {
         public:
             /**
@@ -673,7 +673,7 @@ namespace ecl
              * @param binary Save as binary file (PBM)
              * @param dither Whether to use dithering in the exported image.
              */
-            PNMExporter(const std::filesystem::path &path, const assets::ImageInfo &image, bool binary = false,
+            PNMExporter(const std::filesystem::path &path, const assets::Image2D &image, bool binary = false,
                         bool dither = false)
                 : OIIOExporter(path, {image}, {FormatFlagBits::bit8, vk::Format::eR8G8B8A8Srgb}),
                   _binary(binary),
@@ -724,7 +724,7 @@ namespace ecl
         /**
          * @brief A class that exports an image in Targa format.
          */
-        class TargaExporter final : public OIIOExporter
+        class APPLIB_API TargaExporter final : public OIIOExporter
         {
         public:
             /**
@@ -736,7 +736,7 @@ namespace ecl
              * Values of none and rle are supported. The default is RLE.
              * @param appName The name of the application that created the image.
              */
-            TargaExporter(const std::filesystem::path &path, const assets::ImageInfo &image, bool dither = false,
+            TargaExporter(const std::filesystem::path &path, const assets::Image2D &image, bool dither = false,
                           const std::string &compression = "rle", const std::string &appName = "")
                 : OIIOExporter(
                       path, {image},
@@ -808,7 +808,7 @@ namespace ecl
         /**
          * @brief A class that exports an image in TIFF format.
          */
-        class TIFFExporter final : public OIIOExporter
+        class APPLIB_API TIFFExporter final : public OIIOExporter
         {
         public:
             /**
@@ -831,7 +831,7 @@ namespace ecl
              * @param compression A string representing the compression algorithm to be used for the exported
              * image.
              */
-            TIFFExporter(const std::filesystem::path &path, const DArray<assets::ImageInfo> &images,
+            TIFFExporter(const std::filesystem::path &path, const DArray<assets::Image2D> &images,
                          bool unassociatedAlpha = false, bool dither = false, int zipquality = 6,
                          bool forceBigTIFF = false, const std::string &appName = "", f32 dpi = 72.0f,
                          const std::string &compression = "none")
@@ -981,7 +981,7 @@ namespace ecl
         /**
          * @brief A class that exports an image in WebP format.
          */
-        class WebPExporter final : public OIIOExporter
+        class APPLIB_API WebPExporter final : public OIIOExporter
         {
         public:
             /**
@@ -990,7 +990,7 @@ namespace ecl
              * @param subimage An object of class SubImageInfo representing the subimage to be exported.
              * @param dither A boolean representing whether to use dithering in the exported image.
              */
-            WebPExporter(const std::filesystem::path &path, const assets::ImageInfo &image, bool dither = false)
+            WebPExporter(const std::filesystem::path &path, const assets::Image2D &image, bool dither = false)
                 : OIIOExporter(path, {image},
                                {FormatFlagBits::bit8 | FormatFlagBits::alpha, vk::Format::eR8G8B8A8Srgb}),
                   _dither(dither)
@@ -1020,11 +1020,11 @@ namespace ecl
             bool _dither;
         };
 
-        class AssetExporter final : public IExporter
+        class APPLIB_API AssetExporter final : public IExporter
         {
         public:
-            AssetExporter(const std::filesystem::path &path, const assets::ImageInfo &image, int compression = 5,
-                          u32 checksum = 0, assets::ImageTypeFlags flags = assets::ImageTypeFlagBits::undefined)
+            AssetExporter(const std::filesystem::path &path, const assets::Image2D &image, int compression = 5,
+                          u32 checksum = 0)
                 : IExporter(path, {image})
             {
             }
@@ -1066,32 +1066,14 @@ namespace ecl
              */
             u32 checksum() const { return _checksum; }
 
-            /**
-             * @brief Sets the image type flags for the exported image.
-             * @param flags An assets::ImageTypeFlags value representing the image type flags for the exported image.
-             * If the image type flags are not set, the default image type flags will be used.
-             */
-            AssetExporter &flags(assets::ImageTypeFlags flags)
-            {
-                _flags = flags;
-                return *this;
-            }
-
-            /**
-             * @brief Returns the image type flags for the exported image.
-             * @return An assets::ImageTypeFlags value representing the image type flags for the exported image.
-             */
-            assets::ImageTypeFlags flags() const { return _flags; }
-
             virtual bool save(size_t dstBit) override;
 
         private:
             int _compression;
             u32 _checksum;
-            assets::ImageTypeFlags _flags;
         };
 
-        inline bool isImageEquals(const assets::ImageInfo &image, Format srcFormat, vk::Format dstFormat)
+        inline bool isImageEquals(const assets::Image2D &image, Format srcFormat, vk::Format dstFormat)
         {
             if (image.channelCount != 3 && !((srcFormat.flags & FormatFlagBits::alpha) && image.channelCount == 4))
                 return false;

@@ -14,23 +14,20 @@ namespace tests
 
         DArray<std::shared_ptr<assets::Object>> objects;
         createObjects(objects);
-        auto mat = std::make_shared<assets::meta::MatRangeAssignAtrr>();
+        auto mat = std::make_shared<assets::MatRangeAssignAtrr>();
         mat->matID = 0;
-        objects.front()->meta.push_front(mat);
+        objects.front()->meta.push_back(mat);
         exporter.objects(objects);
         exporter.objects(objects);
 
-        DArray<std::shared_ptr<assets::Material>> materials;
+        DArray<std::shared_ptr<assets::Asset>> materials;
         createMaterials(materials);
         exporter.materials(materials);
 
-        DArray<TextureNode> textures(1);
-        createGeneratedTexture(textures.front());
+        DArray<assets::Target::Addr> textures(1);
+        createGeneratedTexture(textures.front(), outputDir / "tex");
         exporter.textures(textures);
 
-        auto state = exporter.save();
-        scalable_free(textures.front().image.pixels);
-        exporter.clear();
-        return state;
+        return exporter.save();
     }
 } // namespace tests

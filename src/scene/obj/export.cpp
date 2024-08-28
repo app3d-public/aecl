@@ -3,7 +3,6 @@
 #include <core/io/file.hpp>
 #include <core/log.hpp>
 #include <core/std/string.hpp>
-#include <ecl/image/export.hpp>
 #include <ecl/scene/obj/export.hpp>
 #include <filesystem>
 #include <oneapi/tbb/parallel_for.h>
@@ -24,7 +23,7 @@ namespace ecl
                 if (flags & MeshExportFlagBits::transform_swapYZ) std::swap(pos.y, pos.z);
             }
 
-            void Exporter::writeVertices(assets::meta::mesh::Model &model, std::stringstream &ss)
+            void Exporter::writeVertices(assets::mesh::Model &model, std::stringstream &ss)
             {
                 // v
                 for (auto &group : model.groups)
@@ -58,8 +57,7 @@ namespace ecl
                     for (auto &face : model.faces) std::reverse(face.vertices.begin(), face.vertices.end());
             }
 
-            void Exporter::writeTriangles(assets::meta::mesh::MeshBlock *meta, std::ostream &os,
-                                          const DArray<u32> &faces)
+            void Exporter::writeTriangles(assets::mesh::MeshBlock *meta, std::ostream &os, const DArray<u32> &faces)
             {
                 const auto &m = meta->model;
                 auto &groups = meta->model.groups;
@@ -97,7 +95,7 @@ namespace ecl
                 for (const auto &block : blocks) os << block.str();
             }
 
-            void Exporter::writeFaces(assets::meta::mesh::MeshBlock *meta, std::ostream &os, const DArray<u32> &faces)
+            void Exporter::writeFaces(assets::mesh::MeshBlock *meta, std::ostream &os, const DArray<u32> &faces)
             {
                 size_t threadCount = oneapi::tbb::this_task_arena::max_concurrency();
                 DArray<std::stringstream> blocks(threadCount);
@@ -143,29 +141,15 @@ namespace ecl
                 os << token << " " << value << "\n";
             }
 
-            void Exporter::writeTexture2D(std::ostream &os, const std::string &token, const TextureNode &tex)
+            void Exporter::writeTexture2D(std::ostream &os, const std::string &token, const assets::Target::Addr &tex)
             {
-                if (!(tex.flags & assets::ImageTypeFlagBits::external))
-                {
-                    std::string filename = f("generated_%d.png", _genID++);
-                    std::filesystem::path parent = _path.parent_path();
-                    std::filesystem::path texFolder = parent / "tex";
-                    std::filesystem::path path = texFolder / filename;
-                    if (!std::filesystem::exists(path)) std::filesystem::create_directories(texFolder);
-                    logInfo("Converting generated texture to image: %ls", path.c_str());
-                    ecl::image::PNGExporter exporter(path, tex.image);
-                    if (!exporter.compression(6).dpi(72.0f).save(tex.image.bytesPerChannel))
-                        logWarn("Failed to save generated texture");
-                    else
-                        os << token << " ./tex/" << filename << "\n";
-                }
-                else if (_materialFlags & MaterialExportFlagBits::texture_origin)
-                    os << token << " " << tex.path.string() << "\n";
+                if (_materialFlags & MaterialExportFlagBits::texture_origin)
+                    os << token << " " << tex.url << "\n";
                 else if (_materialFlags & MaterialExportFlagBits::texture_copyToLocal)
                 {
                     std::filesystem::path parent = _path.parent_path();
-                    std::filesystem::path path = parent / "tex" / tex.path.filename();
-                    if (io::file::copyFile(tex.path, path, std::filesystem::copy_options::overwrite_existing))
+                    std::filesystem::path path = parent / "tex" / tex.url;
+                    if (io::file::copyFile(tex.url, path, std::filesystem::copy_options::overwrite_existing))
                         os << token << " ./tex/" << path.filename().string() << "\n";
                 }
             }
@@ -187,25 +171,15 @@ namespace ecl
                 os << "\n" << matBlock.str();
             }
 
-            void Exporter::writeMaterial(const std::shared_ptr<assets::Material> &mat, std::ostream &os)
+            void Exporter::writeMaterial(const std::shared_ptr<assets::MaterialInfo>& matInfo, const std::shared_ptr<assets::Material>& mat, std::ostream &os)
             {
                 std::stringstream matBlock;
-                auto it = std::find_if(mat->meta.begin(), mat->meta.end(),
-                                       [](const std::shared_ptr<assets::meta::Block> &block) {
-                                           return block->signature() == assets::meta::sign_block_material;
-                                       });
-                if (it == mat->meta.end())
-                {
-                    logWarn("Failed to find material meta block");
-                    return;
-                }
-                auto meta = std::static_pointer_cast<assets::meta::MaterialBlock>(*it);
-                matBlock << "newmtl " << meta->name << "\n";
+                matBlock << "newmtl " << matInfo->name << "\n";
                 writeVec3sRGB(matBlock, "Ka", {1, 1, 1});
-                writeVec3sRGB(matBlock, "Kd", mat->info.albedo.rgb);
-                if (mat->info.albedo.textured)
+                writeVec3sRGB(matBlock, "Kd", mat->albedo.rgb);
+                if (mat->albedo.textured)
                 {
-                    auto &tex = _textures[mat->info.albedo.textureID];
+                    auto &tex = _textures[mat->albedo.textureID];
                     writeTexture2D(matBlock, "map_Kd", tex);
                 }
                 writeVec3sRGB(matBlock, "Ks", {1, 1, 1});
@@ -220,7 +194,8 @@ namespace ecl
             }
 
             void Exporter::writeMtlLibInfo(std::ofstream &mtlStream, std::stringstream &objStream,
-                                           DArray<std::shared_ptr<assets::meta::MaterialBlock>> &metaInfo)
+                                           DArray<std::shared_ptr<assets::MaterialInfo>> &metaInfo,
+                                           DArray<std::shared_ptr<assets::Material>> &materials)
             {
                 if (_materialFlags != MaterialExportFlagBits::none)
                 {
@@ -239,34 +214,44 @@ namespace ecl
 
                 for (auto &mat : _materials)
                 {
-                    auto it = std::find_if(mat->meta.begin(), mat->meta.end(),
-                                           [](const std::shared_ptr<assets::meta::Block> &block) {
-                                               return block->signature() == assets::meta::sign_block_material;
-                                           });
-                    if (it == mat->meta.end())
+                    for (auto &block : mat->blocks)
                     {
-                        logWarn("Failed to find material meta block");
-                        continue;
+                        switch (block->signature())
+                        {
+                            case assets::sign_block::material:
+                                materials.push_back(std::static_pointer_cast<assets::Material>(block));
+                                break;
+                            case assets::sign_block::material_info:
+                                metaInfo.push_back(std::static_pointer_cast<assets::MaterialInfo>(block));
+                                break;
+                            default:
+                                break;
+                        }
                     }
-                    metaInfo.push_back(std::static_pointer_cast<assets::meta::MaterialBlock>(*it));
+                }
+                if (materials.size() != metaInfo.size())
+                {
+                    logWarn("Some meta data is missing in materials");
+                    materials.clear();
+                    metaInfo.clear();
                 }
             }
 
             void Exporter::writeObject(const std::shared_ptr<assets::Object> &object,
-                                       const DArray<std::shared_ptr<assets::meta::MaterialBlock>> &matMeta,
+                                       const DArray<std::shared_ptr<assets::MaterialInfo>> &matInfo,
                                        std::stringstream &objStream)
             {
-                std::shared_ptr<assets::meta::mesh::MeshBlock> mesh;
-                DArray<std::shared_ptr<assets::meta::MatRangeAssignAtrr>> assignes;
+                std::shared_ptr<assets::mesh::MeshBlock> mesh;
+                DArray<std::shared_ptr<assets::MatRangeAssignAtrr>> assignes;
                 for (auto &block : object->meta)
                 {
                     switch (block->signature())
                     {
-                        case assets::meta::sign_block_mesh:
-                            mesh = std::static_pointer_cast<assets::meta::mesh::MeshBlock>(block);
+                        case assets::sign_block::mesh:
+                            mesh = std::static_pointer_cast<assets::mesh::MeshBlock>(block);
                             break;
-                        case assets::meta::sign_block_mesh_mat_range_assign:
-                            assignes.push_back(std::static_pointer_cast<assets::meta::MatRangeAssignAtrr>(block));
+                        case assets::sign_block::material_range_assign:
+                            assignes.push_back(std::static_pointer_cast<assets::MatRangeAssignAtrr>(block));
                             break;
                         default:
                             break;
@@ -279,14 +264,12 @@ namespace ecl
                     objStream << "o " << object->name << "\n";
                 auto &model = mesh->model;
                 writeVertices(model, objStream);
-                DArray<std::shared_ptr<assets::meta::MatRangeAssignAtrr>> assignesAttr;
-                auto default_matID_it =
-                    std::find_if(assignes.begin(), assignes.end(),
-                                 [](const std::shared_ptr<assets::meta::MatRangeAssignAtrr> &range) {
-                                     return range->faces.empty();
-                                 });
+                DArray<std::shared_ptr<assets::MatRangeAssignAtrr>> assignesAttr;
+                auto default_matID_it = std::find_if(
+                    assignes.begin(), assignes.end(),
+                    [](const std::shared_ptr<assets::MatRangeAssignAtrr> &range) { return range->faces.empty(); });
                 u32 default_matID = default_matID_it == assignes.end() ? -1 : (*default_matID_it)->matID;
-                assets::utils::filterMatAssignments(matMeta, assignes, model.faces.size(), default_matID, assignesAttr);
+                assets::utils::filterMatAssignments(matInfo, assignes, model.faces.size(), default_matID, assignesAttr);
                 for (auto &assign : assignesAttr)
                 {
                     if (assign->faces.empty()) continue;
@@ -298,7 +281,7 @@ namespace ecl
                             _allMaterialsExist = false;
                         }
                         else
-                            objStream << "usemtl " << matMeta[assign->matID]->name << "\n";
+                            objStream << "usemtl " << matInfo[assign->matID]->name << "\n";
                     }
                     if (_meshFlags & MeshExportFlagBits::export_triangulated)
                         writeTriangles(mesh.get(), objStream, assign->faces);
@@ -307,13 +290,12 @@ namespace ecl
                 }
             }
 
-            void Exporter::writeMtl(std::ofstream &stream)
+            void Exporter::writeMtl(std::ofstream &stream, const DArray<std::shared_ptr<assets::MaterialInfo>> &matInfo,
+                                    const DArray<std::shared_ptr<assets::Material>> &materials)
             {
                 if (!stream) return;
-                std::filesystem::path texFolder = _path;
-                texFolder.replace_filename("tex");
                 if (!_allMaterialsExist) writeDefaultMaterial(stream, _objFlags & ObjExportFlagBits::mat_PBR);
-                for (const auto &mat : _materials) writeMaterial(mat, stream);
+                for (int m = 0; m < materials.size(); ++m) writeMaterial(matInfo[m], materials[m], stream);
                 stream.close();
             }
 
@@ -325,8 +307,9 @@ namespace ecl
                     std::stringstream ss;
                     ss << "# App3D ECL OBJ Exporter\n";
                     std::ofstream mtlStream;
-                    DArray<std::shared_ptr<assets::meta::MaterialBlock>> matMeta;
-                    writeMtlLibInfo(mtlStream, ss, matMeta);
+                    DArray<std::shared_ptr<assets::MaterialInfo>> matMeta;
+                    DArray<std::shared_ptr<assets::Material>> materials;
+                    writeMtlLibInfo(mtlStream, ss, matMeta, materials);
                     for (auto &object : _objects) writeObject(object, matMeta, ss);
 
                     std::string error;
@@ -335,8 +318,8 @@ namespace ecl
                         logError("OBJ export failed: %s", error.c_str());
                         return false;
                     }
-                    
-                    writeMtl(mtlStream);
+
+                    writeMtl(mtlStream, matMeta, materials);
                     return true;
                 }
                 catch (const std::exception &e)

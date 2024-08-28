@@ -2,8 +2,6 @@
 #include <core/log.hpp>
 #include <ecl/image/export.hpp>
 #include <memory>
-#include "assets/asset.hpp"
-#include "assets/image.hpp"
 
 namespace ecl
 {
@@ -47,7 +45,7 @@ namespace ecl
         {
             assert(dstBit == 1);
             pixels.resize(1);
-            assets::ImageInfo image = _images[0];
+            assets::Image2D image = _images[0];
             std::shared_ptr<void> copy = copySrcBuffer(image.pixels, image.imageSize(), image.imageFormat);
             image.pixels = copy.get();
             if (!isImageEquals(image, _format, vk::Format::eR8G8B8A8Srgb))
@@ -74,7 +72,7 @@ namespace ecl
             std::unique_ptr<OIIO::ImageOutput> out = OIIO::ImageOutput::create(_path.string());
             DArray<OIIO::ImageSpec> specs;
 
-            for (assets::ImageInfo image : _images)
+            for (assets::Image2D image : _images)
             {
                 std::shared_ptr<void> copy = copySrcBuffer(image.pixels, image.imageSize(), image.imageFormat);
                 image.pixels = copy.get();
@@ -122,7 +120,7 @@ namespace ecl
         {
             assert(dstBit == 4);
             pixels.resize(1);
-            assets::ImageInfo image = _images[0];
+            assets::Image2D image = _images[0];
             std::shared_ptr<void> copy = copySrcBuffer(image.pixels, image.imageSize(), image.imageFormat);
             image.pixels = copy.get();
             if (!isImageEquals(image, _format, vk::Format::eR32G32B32A32Sfloat))
@@ -141,7 +139,7 @@ namespace ecl
         bool HEIFExporter::save(size_t dstBit, DArray<std::shared_ptr<void>> &pixels)
         {
             assert(dstBit == 1);
-            assets::ImageInfo image = _images[0];
+            assets::Image2D image = _images[0];
             int dstChannels = image.channelCount > 3 ? 4 : 3;
             pixels.resize(1);
             std::shared_ptr<void> copy = copySrcBuffer(image.pixels, image.imageSize(), image.imageFormat);
@@ -164,7 +162,7 @@ namespace ecl
         {
             assert(dstBit == 1);
             pixels.resize(1);
-            assets::ImageInfo image = _images[0];
+            assets::Image2D image = _images[0];
             std::shared_ptr<void> copy = copySrcBuffer(image.pixels, image.imageSize(), image.imageFormat);
             image.pixels = copy.get();
             if (!isImageEquals(image, _format, vk::Format::eR8G8B8A8Srgb))
@@ -191,7 +189,7 @@ namespace ecl
         bool JPEG2000Exporter::save(size_t dstBit, DArray<std::shared_ptr<void>> &pixels)
         {
             assert(dstBit == 1 || dstBit == 2);
-            assets::ImageInfo image = _images[0];
+            assets::Image2D image = _images[0];
             int dstChannels = image.channelCount > 3 ? 4 : 3;
             const vk::Format dstFormat = getFormatByBit(dstBit, _format);
             pixels.resize(1);
@@ -216,7 +214,7 @@ namespace ecl
         bool JPEGXLExporter::save(size_t dstBit, DArray<std::shared_ptr<void>> &pixels)
         {
             assert(dstBit == 1 || dstBit == 2);
-            assets::ImageInfo image = _images[0];
+            assets::Image2D image = _images[0];
             int dstChannels = image.channelCount > 3 ? 4 : 3;
             const vk::Format dstFormat = getFormatByBit(dstBit, _format);
             pixels.resize(1);
@@ -251,7 +249,7 @@ namespace ecl
                 maxHeight = std::max(maxHeight, image.height);
             }
 
-            for (assets::ImageInfo image : _images)
+            for (assets::Image2D image : _images)
             {
                 std::shared_ptr<void> copy = copySrcBuffer(image.pixels, image.imageSize(), image.imageFormat);
                 image.pixels = copy.get();
@@ -299,7 +297,7 @@ namespace ecl
             pixels.resize(1);
             const vk::Format dstFormat = getFormatByBit(dstBit, _format);
             const OIIO::TypeDesc dstType = vkFormatToOIIO(dstFormat);
-            assets::ImageInfo image = _images[0];
+            assets::Image2D image = _images[0];
             int dstChannels = image.channelCount > 3 ? 4 : 3;
             std::shared_ptr<void> copy = copySrcBuffer(image.pixels, image.imageSize(), image.imageFormat);
             image.pixels = copy.get();
@@ -329,7 +327,7 @@ namespace ecl
         {
             assert(dstBit == 1);
             pixels.resize(1);
-            assets::ImageInfo image = _images[0];
+            assets::Image2D image = _images[0];
             std::shared_ptr<void> copy = copySrcBuffer(image.pixels, image.imageSize(), image.imageFormat);
             image.pixels = copy.get();
             if (!isImageEquals(image, _format, vk::Format::eR8G8B8A8Srgb))
@@ -351,7 +349,7 @@ namespace ecl
         {
             assert(dstBit == 1);
             pixels.resize(1);
-            assets::ImageInfo image = _images[0];
+            assets::Image2D image = _images[0];
             int dstChannels = image.channelCount > 3 ? 4 : 3;
             std::shared_ptr<void> copy = copySrcBuffer(image.pixels, image.imageSize(), image.imageFormat);
             image.pixels = copy.get();
@@ -380,7 +378,7 @@ namespace ecl
             const vk::Format dstFormat = getFormatByBit(dstBit, _format);
             const OIIO::TypeDesc dstType = vkFormatToOIIO(dstFormat);
 
-            for (assets::ImageInfo image : _images)
+            for (assets::Image2D image : _images)
             {
                 std::shared_ptr<void> copy = copySrcBuffer(image.pixels, image.imageSize(), image.imageFormat);
                 image.pixels = copy.get();
@@ -429,7 +427,7 @@ namespace ecl
         {
             assert(dstBit == 1);
             pixels.resize(1);
-            assets::ImageInfo image = _images[0];
+            assets::Image2D image = _images[0];
             std::shared_ptr<void> copy = copySrcBuffer(image.pixels, image.imageSize(), image.imageFormat);
             image.pixels = copy.get();
             if (!isImageEquals(image, _format, vk::Format::eR8G8B8A8Srgb))
@@ -456,12 +454,12 @@ namespace ecl
                 currentImage.pixels = copy.get();
                 assets::utils::convertImage(currentImage, currentImage.imageFormat, dstBit);
             }
-            auto image2D = std::make_shared<assets::Image2D>(currentImage);
-            assets::InfoHeader header;
-            header.type = assets::Type::Image;
-            header.compressed = _compression > 0;
-            assets::Image image{header, _flags, image2D, _checksum};
-            return image.save(_path, _compression);
+            assets::Asset asset;
+            asset.header.type = assets::Type::Image;
+            asset.header.compressed = _compression > 0;
+            asset.blocks.push_back(std::make_shared<assets::Image2D>(currentImage));
+            asset.checksum = _checksum;
+            return asset.save(_path, _compression);
         }
     } // namespace image
 } // namespace ecl

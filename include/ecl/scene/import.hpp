@@ -1,9 +1,6 @@
 #pragma once
 
-#include <assets/image.hpp>
-#include <assets/material.hpp>
-#include <assets/scene.hpp>
-#include <assets/library.hpp>
+#include <assets/asset.hpp>
 #include <core/io/file.hpp>
 #include <exception>
 #include <string>
@@ -52,7 +49,7 @@ namespace ecl
             DArray<std::shared_ptr<assets::Object>> &objects() { return _objects; }
 
             // Get the list of imported materials
-            DArray<std::shared_ptr<assets::Material>> &materials() { return _materials; }
+            DArray<std::shared_ptr<assets::Asset>> &materials() { return _materials; }
 
             // Get the list of imported textures
             DArray<std::shared_ptr<assets::Target>> &textures() { return _textures; }
@@ -67,7 +64,7 @@ namespace ecl
         protected:
             std::filesystem::path _path;
             DArray<std::shared_ptr<assets::Object>> _objects;
-            DArray<std::shared_ptr<assets::Material>> _materials;
+            DArray<std::shared_ptr<assets::Asset>> _materials;
             DArray<std::shared_ptr<assets::Target>> _textures;
         };
     } // namespace scene

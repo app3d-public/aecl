@@ -1,8 +1,7 @@
 #pragma once
 
-#include <assets/image.hpp>
-#include <assets/material.hpp>
-#include <assets/scene.hpp>
+#include <assets/asset.hpp>
+#include <core/std/enum.hpp>
 
 namespace ecl
 {
@@ -34,13 +33,6 @@ namespace ecl
 
         using MaterialExportFlags = Flags<MaterialExportFlagBits>;
 
-        struct TextureNode
-        {
-            assets::ImageInfo image;
-            assets::ImageTypeFlags flags;
-            std::filesystem::path path;
-        };
-
         class IExporter
         {
         public:
@@ -71,25 +63,24 @@ namespace ecl
             DArray<std::shared_ptr<assets::Object>> &object() { return _objects; }
 
             // Set the list of exported materials
-            IExporter &materials(const DArray<std::shared_ptr<assets::Material>> &materials)
+            IExporter &materials(const DArray<std::shared_ptr<assets::Asset>> &materials)
             {
                 _materials = materials;
                 return *this;
             }
 
             // Get the list of exported materials
-            DArray<std::shared_ptr<assets::Material>> &materials() { return _materials; }
-
+            DArray<std::shared_ptr<assets::Asset>> &materials() { return _materials; }
 
             // Set the list of exported textures
-            IExporter &textures(const DArray<TextureNode> &textures)
+            IExporter &textures(const DArray<assets::Target::Addr> &textures)
             {
                 _textures = textures;
                 return *this;
             }
-            
+
             // Get the list of imported textures
-            DArray<TextureNode> &textures() { return _textures; }
+            DArray<assets::Target::Addr> &textures() { return _textures; }
 
             inline void clear()
             {
@@ -103,8 +94,8 @@ namespace ecl
             MeshExportFlags _meshFlags;
             MaterialExportFlags _materialFlags;
             DArray<std::shared_ptr<assets::Object>> _objects;
-            DArray<std::shared_ptr<assets::Material>> _materials;
-            DArray<TextureNode> _textures;
+            DArray<std::shared_ptr<assets::Asset>> _materials;
+            DArray<assets::Target::Addr> _textures;
         };
     } // namespace scene
 } // namespace ecl

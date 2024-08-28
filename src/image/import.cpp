@@ -12,13 +12,13 @@ namespace ecl
         bool OIIOLoader::loadImage(
             const std::unique_ptr<OIIO::ImageInput> &inp, int subimage,
             std::function<bool(const std::unique_ptr<OIIO::ImageInput> &, int, int, void *, size_t)> loadHandler,
-            assets::ImageInfo &info)
+            assets::Image2D &info)
         {
             info.pixels = scalable_malloc(info.imageSize());
             return loadHandler(inp, subimage, info.channelCount, info.pixels, info.imageSize());
         }
 
-        io::file::ReadState OIIOLoader::load(const std::filesystem::path &path, DArray<assets::ImageInfo> &images)
+        io::file::ReadState OIIOLoader::load(const std::filesystem::path &path, DArray<assets::Image2D> &images)
         {
             auto inp = OIIO::ImageInput::open(path.string());
             if (!inp)
@@ -34,12 +34,13 @@ namespace ecl
                 const OIIO::ImageSpec &spec = inp->spec();
                 DArray<std::string> channelNames(spec.channelnames.size());
                 for (size_t i = 0; i < spec.nchannels; i++) channelNames[i] = spec.channelnames[i];
-                assets::ImageInfo info{static_cast<u16>(spec.width),
-                                       static_cast<u16>(spec.height),
-                                       spec.nchannels,
-                                       channelNames,
-                                       static_cast<u8>(spec.pixel_bytes() / spec.nchannels),
-                                       nullptr};
+                assets::Image2D info;
+                info.width = spec.width;
+                info.height = spec.height;
+                info.channelCount = spec.nchannels;
+                info.channelNames = channelNames;
+                info.bytesPerChannel = spec.pixel_bytes() / spec.nchannels;
+                info.pixels = nullptr;
                 if (!loadHandler)
                 {
                     switch (info.bytesPerChannel)
@@ -76,14 +77,18 @@ namespace ecl
             return images.empty() ? io::file::ReadState::Error : io::file::ReadState::Success;
         }
 
-        io::file::ReadState AssetLoader::load(const std::filesystem::path &path, DArray<assets::ImageInfo> &images)
+        io::file::ReadState AssetLoader::load(const std::filesystem::path &path, DArray<assets::Image2D> &images)
         {
-            auto asset = assets::Image::readFromFile(path);
+            auto asset = assets::Asset::readFromFile(path);
             if (!asset) return io::file::ReadState::Error;
-            _checksum = asset->checksum();
-            auto textureInfo = std::dynamic_pointer_cast<assets::Image2D>(asset->stream());
-            if (!textureInfo) return io::file::ReadState::Error;
-            images.push_back(*textureInfo);
+            _checksum = asset->checksum;
+            if (asset->blocks.empty() || asset->blocks.front()->signature() != assets::sign_block::image2D)
+            {
+                logWarn("ECL Asset Loader can recognize only 2D images");
+                return io::file::ReadState::Error;
+            }
+            auto image = std::static_pointer_cast<assets::Image2D>(asset->blocks.front());
+            images.push_back(*image);
             return io::file::ReadState::Success;
         }
 

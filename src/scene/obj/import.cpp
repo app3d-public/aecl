@@ -127,7 +127,7 @@ namespace ecl
                 return ps.fsize;
             }
 
-            using namespace assets::meta::mesh;
+            using namespace assets::mesh;
 
             struct GroupRange
             {
@@ -283,7 +283,7 @@ namespace ecl
                     }
                     logDebug("Indices: %zu", m.indices.size());
                     objects.push_back(std::make_shared<assets::Object>(group.name));
-                    objects.back()->meta.push_front(group.mesh);
+                    objects.back()->meta.push_back(group.mesh);
                 }
             }
 
@@ -721,7 +721,7 @@ namespace ecl
 
             void convertToMaterials(std::filesystem::path basePath, const DArray<Material> &mtlMatList,
                                     emhash5::HashMap<std::string, int> &matMap,
-                                    DArray<std::shared_ptr<assets::Material>> &materials,
+                                    DArray<std::shared_ptr<assets::Asset>> &materials,
                                     DArray<std::shared_ptr<assets::Target>> &textures)
             {
                 emhash5::HashMap<std::string, size_t> texMap;
@@ -731,10 +731,9 @@ namespace ecl
                 {
                     auto &mtl = mtlMatList[i];
                     auto [mIt, mInserted] = matMap.emplace(mtl.name, i);
-                    materials[i] = std::make_shared<assets::Material>();
-                    auto &mat = materials[i]->info;
+                    auto mat = std::make_shared<assets::Material>();
                     if (mtl.map_Kd.path.empty())
-                        mat.albedo.rgb = mtl.Kd.value;
+                        mat->albedo.rgb = mtl.Kd.value;
                     else
                     {
                         std::filesystem::path parsedPath = mtl.map_Kd.path;
@@ -743,17 +742,22 @@ namespace ecl
                         auto [it, inserted] = texMap.insert({parsedPath.string(), textures.size()});
                         if (inserted)
                         {
-                            assets::TargetMetaData metaData;
-                            metaData.type = assets::Type::Image;
-                            metaData.checksum = 0;
-                            metaData.compressed = false;
-                            assets::TargetAddr addr{assets::TargetProto::File, basePath.string()};
-                            textures.emplace_back(std::make_shared<assets::Target>(addr, metaData));
+                            auto target = std::make_shared<assets::Target>();
+                            assets::Target::Addr metaData;
+                            target->header.type = assets::Type::Image;
+                            target->header.compressed = false;
+                            target->checksum = 0;
+                            target->addr.proto = assets::Target::Addr::Proto::File;
+                            target->addr.url = basePath.string();
+                            textures.push_back(target);
                         }
-                        mat.albedo.textured = true;
-                        mat.albedo.textureID = it->second;
+                        mat->albedo.textured = true;
+                        mat->albedo.textureID = it->second;
                     }
-                    materials[i]->meta.push_front(std::make_shared<assets::meta::MaterialBlock>(mIt->first));
+                    materials[i] = std::make_shared<assets::Asset>();
+                    materials[i]->header.type = assets::Type::Material;
+                    materials[i]->blocks.push_back(mat);
+                    materials[i]->blocks.push_back(std::make_shared<assets::MaterialInfo>(mIt->first));
                 }
             }
 
@@ -830,8 +834,7 @@ namespace ecl
 
             void assignMaterialsToGroups(ParseSingleThread &ps, const DArray<GroupRange> &groups,
                                          const emhash5::HashMap<std::string, int> &matMap,
-                                         DArray<std::shared_ptr<assets::Material>> &materials,
-                                         DArray<DArray<u32>> &ranges)
+                                         DArray<std::shared_ptr<assets::Asset>> &materials, DArray<DArray<u32>> &ranges)
             {
                 if (ps.useMtlsize == 0) return;
                 int umID = 0;
@@ -852,16 +855,18 @@ namespace ecl
                                 logWarn("Can't find mtl in library: %s", ps.useMtl[umID].value.c_str());
                             else
                             {
-                                auto meta = std::dynamic_pointer_cast<assets::meta::MaterialBlock>(
-                                    materials[it->second]->meta.front());
-                                if (!meta)
+                                auto meta = materials[it->second]->blocks;
+                                auto m_it = std::find_if(meta.begin(), meta.end(), [](auto &block) {
+                                    return block->signature() == assets::sign_block::material_info;
+                                });
+                                if (m_it == meta.end())
                                 {
-                                    logError("Can't cast material to meta block");
+                                    logWarn("Can't find material info block");
                                     continue;
                                 }
-                                if (std::find(meta->assignments.begin(), meta->assignments.end(), g) ==
-                                    meta->assignments.end())
-                                    meta->assignments.push_back(g);
+                                auto assignments = std::static_pointer_cast<assets::MaterialInfo>(*m_it)->assignments;
+                                if (std::find(assignments.begin(), assignments.end(), g) == assignments.end())
+                                    assignments.push_back(g);
                             }
                         }
                     }
@@ -889,11 +894,11 @@ namespace ecl
                                 for (; f < ps.fsize && ps.f[f].index < m_next; ++f);
                             else
                             {
-                                auto meta = std::make_shared<assets::meta::MatRangeAssignAtrr>();
+                                auto meta = std::make_shared<assets::MatRangeAssignAtrr>();
                                 meta->matID = it->second;
                                 for (; f < ps.fsize && ps.f[f].index < m_next; ++f)
                                     meta->faces.push_back(f - group.startIndex);
-                                objects[gr]->meta.push_front(meta);
+                                objects[gr]->meta.push_back(meta);
                             }
                         }
                     }

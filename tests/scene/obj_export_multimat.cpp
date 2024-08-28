@@ -3,30 +3,34 @@
 
 namespace tests
 {
-    void createMultimatMaterials(DArray<std::shared_ptr<assets::Material>> &materials)
+    void createMultimatMaterials(DArray<std::shared_ptr<assets::Asset>> &materials)
     {
         materials.resize(2);
         {
             auto mat = std::make_shared<assets::Material>();
-            mat->info.albedo.rgb = glm::vec3(0.5, 1.0, 0.0f);
-            mat->info.albedo.textured = false;
-            mat->info.albedo.textureID = -1;
-            auto meta = std::make_shared<assets::meta::MaterialBlock>();
+            mat->albedo.rgb = glm::vec3(0.5, 1.0, 0.0f);
+            mat->albedo.textured = false;
+            mat->albedo.textureID = -1;
+            auto meta = std::make_shared<assets::MaterialInfo>();
             meta->name = "ecl:test:mat_first_e";
             meta->assignments.push_back(0);
-            mat->meta.push_front(meta);
-            materials[0] = mat;
+            materials[0] = std::make_shared<assets::Asset>();
+            materials[0]->header.type = assets::Type::Material;
+            materials[0]->blocks.push_back(mat);
+            materials[0]->blocks.push_back(meta);
         }
         {
             auto mat = std::make_shared<assets::Material>();
-            mat->info.albedo.rgb = glm::vec3(1.0, 0.5, 0.0f);
-            mat->info.albedo.textured = false;
-            mat->info.albedo.textureID = -1;
-            auto meta = std::make_shared<assets::meta::MaterialBlock>();
+            mat->albedo.rgb = glm::vec3(1.0, 0.5, 0.0f);
+            mat->albedo.textured = false;
+            mat->albedo.textureID = -1;
+            auto meta = std::make_shared<assets::MaterialInfo>();
             meta->name = "ecl:test:mat_second_e";
             meta->assignments.push_back(0);
-            mat->meta.push_front(meta);
-            materials[1] = mat;
+            materials[1] = std::make_shared<assets::Asset>();
+            materials[1]->header.type = assets::Type::Material;
+            materials[1]->blocks.push_back(mat);
+            materials[1]->blocks.push_back(meta);
         }
     }
 
@@ -42,22 +46,22 @@ namespace tests
         DArray<std::shared_ptr<assets::Object>> objects;
         createObjects(objects);
         // Materials assignments
-        auto mat0 = std::make_shared<assets::meta::MatRangeAssignAtrr>();
+        auto mat0 = std::make_shared<assets::MatRangeAssignAtrr>();
         mat0->matID = 0;
         mat0->faces.resize(2);
         mat0->faces[0] = 2;
         mat0->faces[1] = 3;
-        objects.front()->meta.push_front(mat0);
+        objects.front()->meta.push_back(mat0);
 
-        auto mat1 = std::make_shared<assets::meta::MatRangeAssignAtrr>();
+        auto mat1 = std::make_shared<assets::MatRangeAssignAtrr>();
         mat1->matID = 1;
         mat1->faces.resize(2);
         mat1->faces[0] = 4;
         mat1->faces[1] = 5;
-        objects.front()->meta.push_front(mat1);
+        objects.front()->meta.push_back(mat1);
         exporter.objects(objects);
 
-        DArray<std::shared_ptr<assets::Material>> materials;
+        DArray<std::shared_ptr<assets::Asset>> materials;
         createMultimatMaterials(materials);
         exporter.materials(materials);
 

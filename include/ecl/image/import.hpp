@@ -1,8 +1,8 @@
 #pragma once
 
-#include <assets/image.hpp>
+#include <assets/asset.hpp>
 #include <core/api.hpp>
-#include "core/io/file.hpp"
+#include <core/io/file.hpp>
 #include "format.hpp"
 
 namespace ecl
@@ -27,7 +27,7 @@ namespace ecl
              * @param images Vector to store the loaded image data.
              * @return True if the image is successfully loaded, false otherwise.
              */
-            virtual io::file::ReadState load(const std::filesystem::path &path, DArray<assets::ImageInfo> &images) = 0;
+            virtual io::file::ReadState load(const std::filesystem::path &path, DArray<assets::Image2D> &images) = 0;
         };
 
         class OIIOLoader : public ILoader
@@ -42,7 +42,8 @@ namespace ecl
              * @param images Vector to store the loaded image data.
              * @return True if the image is successfully loaded, false otherwise.
              */
-            virtual io::file::ReadState load(const std::filesystem::path &path, DArray<assets::ImageInfo> &images) override;
+            virtual io::file::ReadState load(const std::filesystem::path &path,
+                                             DArray<assets::Image2D> &images) override;
 
         protected:
             Format _format;
@@ -50,7 +51,7 @@ namespace ecl
             static bool loadImage(
                 const std::unique_ptr<OIIO::ImageInput> &inp, int subimage,
                 std::function<bool(const std::unique_ptr<OIIO::ImageInput> &, int, int, void *, size_t)> loadHandler,
-                assets::ImageInfo &info);
+                assets::Image2D &info);
         };
 
         class BMPLoader final : public OIIOLoader
@@ -186,7 +187,8 @@ namespace ecl
              * @param images Vector to store the loaded image data.
              * @return True if the image is successfully loaded, false otherwise.
              */
-            virtual io::file::ReadState load(const std::filesystem::path &path, DArray<assets::ImageInfo> &images) override;
+            virtual io::file::ReadState load(const std::filesystem::path &path,
+                                             DArray<assets::Image2D> &images) override;
 
         private:
             u32 _checksum = 0;

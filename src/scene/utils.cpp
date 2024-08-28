@@ -18,7 +18,7 @@ namespace ecl
             return sum > 0;
         }
 
-        using namespace assets::meta::mesh;
+        using namespace assets::mesh;
 
         DArray<Vertex2D> projectToVertex2D(const Face &face, const DArray<Vertex> &vertices, DArray<u32> &vertexIndices)
         {
