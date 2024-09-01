@@ -4,8 +4,9 @@ namespace tests
 {
     bool runTest(const std::filesystem::path &dataDir, const std::filesystem::path &outputDir)
     {
+        events::Manager e;
         ecl::scene::obj::Importer importer(dataDir / "cube.obj");
-        auto state = importer.load();
+        auto state = importer.load(e);
         importer.clear();
         return state == io::file::ReadState::Success;
     }

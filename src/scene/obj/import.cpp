@@ -1,4 +1,3 @@
-#include <core/event.hpp>
 #include <core/hash.hpp>
 #include <core/locales.hpp>
 #include <core/log.hpp>
@@ -905,17 +904,17 @@ namespace ecl
                 }
             }
 
-            io::file::ReadState Importer::load()
+            io::file::ReadState Importer::load(events::Manager &e)
             {
                 auto start = std::chrono::high_resolution_clock::now();
                 logInfo("Loading OBJ file: %s", _path.string().c_str());
                 std::string header = f("%s %ls", _("Task:File:Load"), _path.filename().c_str());
-                events::mng.dispatch<TaskUpdateEvent>("task:update", (void *)this, header, _("Task:File:Read"));
+                e.dispatch<TaskUpdateEvent>("task:update", (void *)this, header, _("Task:File:Read"));
                 ParseIndexed parsed;
                 io::file::ReadState result = io::file::readByBlock(_path.string(), parsed, parseLine);
                 if (result != io::file::ReadState::Success) return result;
 
-                events::mng.dispatch<TaskUpdateEvent>("task:update", (void *)this, header, _("Task:File:Serialize"),
+                e.dispatch<TaskUpdateEvent>("task:update", (void *)this, header, _("Task:File:Serialize"),
                                                       0.2f);
                 logInfo("Serializing parse result");
                 ParseSingleThread ps;
@@ -923,7 +922,7 @@ namespace ecl
                 DArray<GroupRange> groups;
                 createGroupRanges(ps, groups);
                 indexGroups(ps, _objects, groups);
-                events::mng.dispatch<TaskUpdateEvent>("task:update", (void *)this, header, _("Task:File:Load:Mat"),
+                e.dispatch<TaskUpdateEvent>("task:update", (void *)this, header, _("Task:File:Load:Mat"),
                                                       0.8f);
                 if (!parsed.mtllib.empty())
                 {

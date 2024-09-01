@@ -386,7 +386,7 @@ namespace ecl
                  * @brief Load the scene
                  * @return True if the scene was loaded
                  **/
-                io::file::ReadState load() override;
+                io::file::ReadState load(events::Manager &e) override;
             };
         } // namespace obj
     } // namespace scene

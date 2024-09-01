@@ -1,6 +1,7 @@
 #pragma once
 
 #include <assets/asset.hpp>
+#include <core/event.hpp>
 #include <core/io/file.hpp>
 #include <exception>
 #include <string>
@@ -40,7 +41,7 @@ namespace ecl
              * @brief Load the scene
              * @return Read state result
              **/
-            virtual io::file::ReadState load() = 0;
+            virtual io::file::ReadState load(events::Manager &e) = 0;
 
             // Get the filename path
             const std::filesystem::path path() const { return _path.string(); }
