@@ -47,7 +47,7 @@ namespace ecl
             const std::filesystem::path path() const { return _path.string(); }
 
             // Get the list of imported meshes
-            DArray<std::shared_ptr<assets::Object>> &objects() { return _objects; }
+            DArray<assets::Object> &objects() { return _objects; }
 
             // Get the list of imported materials
             DArray<std::shared_ptr<assets::Asset>> &materials() { return _materials; }
@@ -64,7 +64,7 @@ namespace ecl
 
         protected:
             std::filesystem::path _path;
-            DArray<std::shared_ptr<assets::Object>> _objects;
+            DArray<assets::Object> _objects;
             DArray<std::shared_ptr<assets::Asset>> _materials;
             DArray<std::shared_ptr<assets::Target>> _textures;
         };

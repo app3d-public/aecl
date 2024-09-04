@@ -246,8 +246,7 @@ namespace ecl
                 }
             }
 
-            void indexGroups(ParseSingleThread &ps, DArray<std::shared_ptr<assets::Object>> &objects,
-                             DArray<GroupRange> &groups)
+            void indexGroups(ParseSingleThread &ps, DArray<assets::Object> &objects, DArray<GroupRange> &groups)
             {
                 for (auto &group : groups)
                 {
@@ -281,8 +280,8 @@ namespace ecl
                         currentID += ires[i].size();
                     }
                     logDebug("Indices: %zu", m.indices.size());
-                    objects.push_back(std::make_shared<assets::Object>(group.name));
-                    objects.back()->meta.push_back(group.mesh);
+                    objects.emplace_back(group.name);
+                    objects.back().meta.push_back(group.mesh);
                 }
             }
 
@@ -874,7 +873,7 @@ namespace ecl
 
             void assignRangesToObjects(ParseSingleThread &ps, const DArray<DArray<u32>> &ranges,
                                        emhash5::HashMap<std::string, int> &matMap, const DArray<GroupRange> &groups,
-                                       DArray<std::shared_ptr<assets::Object>> &objects)
+                                       DArray<assets::Object> &objects)
             {
                 for (int gr = 0; gr < ranges.size(); ++gr)
                 {
@@ -897,7 +896,7 @@ namespace ecl
                                 meta->matID = it->second;
                                 for (; f < ps.fsize && ps.f[f].index < m_next; ++f)
                                     meta->faces.push_back(f - group.startIndex);
-                                objects[gr]->meta.push_back(meta);
+                                objects[gr].meta.push_back(meta);
                             }
                         }
                     }
@@ -914,16 +913,14 @@ namespace ecl
                 io::file::ReadState result = io::file::readByBlock(_path.string(), parsed, parseLine);
                 if (result != io::file::ReadState::Success) return result;
 
-                e.dispatch<TaskUpdateEvent>("task:update", (void *)this, header, _("Task:File:Serialize"),
-                                                      0.2f);
+                e.dispatch<TaskUpdateEvent>("task:update", (void *)this, header, _("Task:File:Serialize"), 0.2f);
                 logInfo("Serializing parse result");
                 ParseSingleThread ps;
                 allocatePS(parsed, ps);
                 DArray<GroupRange> groups;
                 createGroupRanges(ps, groups);
                 indexGroups(ps, _objects, groups);
-                e.dispatch<TaskUpdateEvent>("task:update", (void *)this, header, _("Task:File:Load:Mat"),
-                                                      0.8f);
+                e.dispatch<TaskUpdateEvent>("task:update", (void *)this, header, _("Task:File:Load:Mat"), 0.8f);
                 if (!parsed.mtllib.empty())
                 {
                     DArray<Material> mtlMaterials;
