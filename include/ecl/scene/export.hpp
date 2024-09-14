@@ -36,66 +36,29 @@ namespace ecl
         class IExporter
         {
         public:
+            std::filesystem::path path;
+            MeshExportFlags meshFlags;
+            MaterialExportFlags materialFlags;
+            astl::vector<assets::Object> objects;
+            astl::vector<assets::Asset> materials;
+            astl::vector<assets::Target::Addr> textures;
+
             /**
              * @brief Create a scene exporter
              * @param filename Name of the file
              **/
-            IExporter(const std::filesystem::path &path, MeshExportFlags meshFlags, MaterialExportFlags materialFlags)
-                : _path(path), _meshFlags(meshFlags), _materialFlags(materialFlags)
-            {
-            }
+            IExporter(const std::filesystem::path &path) : path(path) {}
 
             virtual ~IExporter() = default;
 
             virtual bool save() = 0;
 
-            // Get the filename path
-            const std::filesystem::path path() const { return _path.string(); }
-
-            // Set the list of exported meshes
-            IExporter &objects(const DArray<std::shared_ptr<assets::Object>> &objects)
-            {
-                _objects = objects;
-                return *this;
-            }
-
-            // Get the list of exported meshes
-            DArray<std::shared_ptr<assets::Object>> &object() { return _objects; }
-
-            // Set the list of exported materials
-            IExporter &materials(const DArray<std::shared_ptr<assets::Asset>> &materials)
-            {
-                _materials = materials;
-                return *this;
-            }
-
-            // Get the list of exported materials
-            DArray<std::shared_ptr<assets::Asset>> &materials() { return _materials; }
-
-            // Set the list of exported textures
-            IExporter &textures(const DArray<assets::Target::Addr> &textures)
-            {
-                _textures = textures;
-                return *this;
-            }
-
-            // Get the list of imported textures
-            DArray<assets::Target::Addr> &textures() { return _textures; }
-
             inline void clear()
             {
-                _objects.clear();
-                _materials.clear();
-                _textures.clear();
+                objects.clear();
+                materials.clear();
+                textures.clear();
             }
-
-        protected:
-            std::filesystem::path _path;
-            MeshExportFlags _meshFlags;
-            MaterialExportFlags _materialFlags;
-            DArray<std::shared_ptr<assets::Object>> _objects;
-            DArray<std::shared_ptr<assets::Asset>> _materials;
-            DArray<assets::Target::Addr> _textures;
         };
     } // namespace scene
 } // namespace ecl

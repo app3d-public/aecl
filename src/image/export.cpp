@@ -41,7 +41,7 @@ namespace ecl
             }
         }
 
-        bool BMPExporter::save(size_t dstBit, DArray<std::shared_ptr<void>> &pixels)
+        bool BMPExporter::save(size_t dstBit, astl::vector<std::shared_ptr<void>> &pixels)
         {
             assert(dstBit == 1);
             pixels.resize(1);
@@ -65,12 +65,12 @@ namespace ecl
             return out->close();
         }
 
-        bool GIFExporter::save(size_t dstBit, DArray<std::shared_ptr<void>> &pixels)
+        bool GIFExporter::save(size_t dstBit, astl::vector<std::shared_ptr<void>> &pixels)
         {
             assert(dstBit == 1);
             pixels.resize(_images.size());
             std::unique_ptr<OIIO::ImageOutput> out = OIIO::ImageOutput::create(_path.string());
-            DArray<OIIO::ImageSpec> specs;
+            astl::vector<OIIO::ImageSpec> specs;
 
             for (assets::Image2D image : _images)
             {
@@ -116,7 +116,7 @@ namespace ecl
             return out->close();
         }
 
-        bool HDRExporter::save(size_t dstBit, DArray<std::shared_ptr<void>> &pixels)
+        bool HDRExporter::save(size_t dstBit, astl::vector<std::shared_ptr<void>> &pixels)
         {
             assert(dstBit == 4);
             pixels.resize(1);
@@ -136,7 +136,7 @@ namespace ecl
             return out->close();
         }
 
-        bool HEIFExporter::save(size_t dstBit, DArray<std::shared_ptr<void>> &pixels)
+        bool HEIFExporter::save(size_t dstBit, astl::vector<std::shared_ptr<void>> &pixels)
         {
             assert(dstBit == 1);
             assets::Image2D image = _images[0];
@@ -158,7 +158,7 @@ namespace ecl
             return out->close();
         }
 
-        bool JPEGExporter::save(size_t dstBit, DArray<std::shared_ptr<void>> &pixels)
+        bool JPEGExporter::save(size_t dstBit, astl::vector<std::shared_ptr<void>> &pixels)
         {
             assert(dstBit == 1);
             pixels.resize(1);
@@ -186,7 +186,7 @@ namespace ecl
             return out->close();
         }
 
-        bool JPEG2000Exporter::save(size_t dstBit, DArray<std::shared_ptr<void>> &pixels)
+        bool JPEG2000Exporter::save(size_t dstBit, astl::vector<std::shared_ptr<void>> &pixels)
         {
             assert(dstBit == 1 || dstBit == 2);
             assets::Image2D image = _images[0];
@@ -211,7 +211,7 @@ namespace ecl
             return out->close();
         }
 
-        bool JPEGXLExporter::save(size_t dstBit, DArray<std::shared_ptr<void>> &pixels)
+        bool JPEGXLExporter::save(size_t dstBit, astl::vector<std::shared_ptr<void>> &pixels)
         {
             assert(dstBit == 1 || dstBit == 2);
             assets::Image2D image = _images[0];
@@ -234,12 +234,12 @@ namespace ecl
             return out->close();
         }
 
-        bool OpenEXRExporter::save(size_t dstBit, DArray<std::shared_ptr<void>> &pixels)
+        bool OpenEXRExporter::save(size_t dstBit, astl::vector<std::shared_ptr<void>> &pixels)
         {
             assert(dstBit == 2 || dstBit == 4);
             pixels.resize(_images.size());
             std::unique_ptr<OIIO::ImageOutput> out = OIIO::ImageOutput::create(_path.string());
-            DArray<OIIO::ImageSpec> specs;
+            astl::vector<OIIO::ImageSpec> specs;
             const vk::Format dstFormat = getFormatByBit(dstBit, _format);
             const OIIO::TypeDesc dstType = vkFormatToOIIO(dstFormat);
             u16 maxWidth = 0, maxHeight = 0;
@@ -291,7 +291,7 @@ namespace ecl
             return out->close();
         }
 
-        bool PNGExporter::save(size_t dstBit, DArray<std::shared_ptr<void>> &pixels)
+        bool PNGExporter::save(size_t dstBit, astl::vector<std::shared_ptr<void>> &pixels)
         {
             assert(dstBit == 1 || dstBit == 2);
             pixels.resize(1);
@@ -323,7 +323,7 @@ namespace ecl
             return out->close();
         }
 
-        bool PNMExporter::save(size_t dstBit, DArray<std::shared_ptr<void>> &pixels)
+        bool PNMExporter::save(size_t dstBit, astl::vector<std::shared_ptr<void>> &pixels)
         {
             assert(dstBit == 1);
             pixels.resize(1);
@@ -345,7 +345,7 @@ namespace ecl
             return out->close();
         }
 
-        bool TargaExporter::save(size_t dstBit, DArray<std::shared_ptr<void>> &pixels)
+        bool TargaExporter::save(size_t dstBit, astl::vector<std::shared_ptr<void>> &pixels)
         {
             assert(dstBit == 1);
             pixels.resize(1);
@@ -370,10 +370,10 @@ namespace ecl
             return out->close();
         }
 
-        bool TIFFExporter::save(size_t dstBit, DArray<std::shared_ptr<void>> &pixels)
+        bool TIFFExporter::save(size_t dstBit, astl::vector<std::shared_ptr<void>> &pixels)
         {
             std::unique_ptr<OIIO::ImageOutput> out = OIIO::ImageOutput::create(_path.string());
-            DArray<OIIO::ImageSpec> specs;
+            astl::vector<OIIO::ImageSpec> specs;
             pixels.resize(_images.size());
             const vk::Format dstFormat = getFormatByBit(dstBit, _format);
             const OIIO::TypeDesc dstType = vkFormatToOIIO(dstFormat);
@@ -423,7 +423,7 @@ namespace ecl
             return out->close();
         }
 
-        bool WebPExporter::save(size_t dstBit, DArray<std::shared_ptr<void>> &pixels)
+        bool WebPExporter::save(size_t dstBit, astl::vector<std::shared_ptr<void>> &pixels)
         {
             assert(dstBit == 1);
             pixels.resize(1);

@@ -47,13 +47,13 @@ namespace ecl
             const std::filesystem::path path() const { return _path.string(); }
 
             // Get the list of imported meshes
-            DArray<assets::Object> &objects() { return _objects; }
+            astl::vector<assets::Object> &objects() { return _objects; }
 
             // Get the list of imported materials
-            DArray<std::shared_ptr<assets::Asset>> &materials() { return _materials; }
+            astl::vector<std::shared_ptr<assets::Asset>> &materials() { return _materials; }
 
             // Get the list of imported textures
-            DArray<std::shared_ptr<assets::Target>> &textures() { return _textures; }
+            astl::vector<std::shared_ptr<assets::Target>> &textures() { return _textures; }
 
             inline void clear()
             {
@@ -64,9 +64,9 @@ namespace ecl
 
         protected:
             std::filesystem::path _path;
-            DArray<assets::Object> _objects;
-            DArray<std::shared_ptr<assets::Asset>> _materials;
-            DArray<std::shared_ptr<assets::Target>> _textures;
+            astl::vector<assets::Object> _objects;
+            astl::vector<std::shared_ptr<assets::Asset>> _materials;
+            astl::vector<std::shared_ptr<assets::Target>> _textures;
         };
     } // namespace scene
 } // namespace ecl

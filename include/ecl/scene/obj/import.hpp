@@ -307,7 +307,7 @@ namespace ecl
                 oneapi::tbb::concurrent_vector<Line<glm::vec3>> v;
                 oneapi::tbb::concurrent_vector<Line<glm::vec2>> vt;
                 oneapi::tbb::concurrent_vector<Line<glm::vec3>> vn;
-                oneapi::tbb::concurrent_vector<Line<DArray<glm::ivec3> *>> f;
+                oneapi::tbb::concurrent_vector<Line<astl::vector<glm::ivec3> *>> f;
                 oneapi::tbb::concurrent_vector<Line<std::string>> g;
                 std::string mtllib;
                 oneapi::tbb::concurrent_vector<Line<std::string>> useMtl;
@@ -328,7 +328,8 @@ namespace ecl
              * @param matIndex The current material index.
              * @param lineIndex The index of the line being parsed.
              */
-            void parseMTLline(const std::string_view &line, DArray<Material> &materials, int &matIndex, int lineIndex);
+            void parseMTLline(const std::string_view &line, astl::vector<Material> &materials, int &matIndex,
+                              int lineIndex);
 
             /**
              * @brief Process MTL color option.
@@ -370,8 +371,9 @@ namespace ecl
              * @param materials The Dst materials list.
              * @param textures The Dst texture list.
              */
-            void convertToMaterials(std::filesystem::path basePath, const DArray<Material> &mtlMatList,
-                                    DArray<assets::MaterialInfo> &materials, DArray<assets::Image2D> &textures);
+            void convertToMaterials(std::filesystem::path basePath, const astl::vector<Material> &mtlMatList,
+                                    astl::vector<assets::MaterialInfo> &materials,
+                                    astl::vector<assets::Image2D> &textures);
 
             /**
              * @brief Load the scene
@@ -380,7 +382,7 @@ namespace ecl
             class APPLIB_API Importer : public ILoader
             {
             public:
-                Importer(const std::filesystem::path &filename) : ILoader(filename) {};
+                Importer(const std::filesystem::path &filename) : ILoader(filename){};
 
                 /**
                  * @brief Load the scene

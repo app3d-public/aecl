@@ -27,7 +27,8 @@ namespace ecl
              * @param images Vector to store the loaded image data.
              * @return True if the image is successfully loaded, false otherwise.
              */
-            virtual io::file::ReadState load(const std::filesystem::path &path, DArray<assets::Image2D> &images) = 0;
+            virtual io::file::ReadState load(const std::filesystem::path &path,
+                                             astl::vector<assets::Image2D> &images) = 0;
         };
 
         class OIIOLoader : public ILoader
@@ -43,7 +44,7 @@ namespace ecl
              * @return True if the image is successfully loaded, false otherwise.
              */
             virtual io::file::ReadState load(const std::filesystem::path &path,
-                                             DArray<assets::Image2D> &images) override;
+                                             astl::vector<assets::Image2D> &images) override;
 
         protected:
             Format _format;
@@ -188,7 +189,7 @@ namespace ecl
              * @return True if the image is successfully loaded, false otherwise.
              */
             virtual io::file::ReadState load(const std::filesystem::path &path,
-                                             DArray<assets::Image2D> &images) override;
+                                             astl::vector<assets::Image2D> &images) override;
 
         private:
             u32 _checksum = 0;

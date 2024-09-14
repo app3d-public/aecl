@@ -18,7 +18,7 @@ namespace ecl
             return loadHandler(inp, subimage, info.channelCount, info.pixels, info.imageSize());
         }
 
-        io::file::ReadState OIIOLoader::load(const std::filesystem::path &path, DArray<assets::Image2D> &images)
+        io::file::ReadState OIIOLoader::load(const std::filesystem::path &path, astl::vector<assets::Image2D> &images)
         {
             auto inp = OIIO::ImageInput::open(path.string());
             if (!inp)
@@ -32,7 +32,7 @@ namespace ecl
             for (int subimage{0}; inp->seek_subimage(subimage, 0); subimage++)
             {
                 const OIIO::ImageSpec &spec = inp->spec();
-                DArray<std::string> channelNames(spec.channelnames.size());
+                astl::vector<std::string> channelNames(spec.channelnames.size());
                 for (size_t i = 0; i < spec.nchannels; i++) channelNames[i] = spec.channelnames[i];
                 assets::Image2D info;
                 info.width = spec.width;
@@ -77,7 +77,7 @@ namespace ecl
             return images.empty() ? io::file::ReadState::Error : io::file::ReadState::Success;
         }
 
-        io::file::ReadState AssetLoader::load(const std::filesystem::path &path, DArray<assets::Image2D> &images)
+        io::file::ReadState AssetLoader::load(const std::filesystem::path &path, astl::vector<assets::Image2D> &images)
         {
             auto asset = assets::Asset::readFromFile(path);
             if (!asset) return io::file::ReadState::Error;

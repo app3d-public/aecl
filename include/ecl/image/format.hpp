@@ -87,7 +87,7 @@ namespace ecl
 
         constexpr Type getTypeByExt(std::string_view extension)
         {
-            constexpr SArray<std::pair<std::string_view, Type>, 54> extMap = {
+            constexpr std::array<std::pair<std::string_view, Type>, 54> extMap = {
                 {{".bmp", Type::BMP},      {".gif", Type::GIF},      {".hdr", Type::HDR},    {".heif", Type::HEIF},
                  {".heic", Type::HEIF},    {".avif", Type::HEIF},    {".jpg", Type::JPEG},   {".jpe", Type::JPEG},
                  {".jpeg", Type::JPEG},    {".jif", Type::JPEG},     {".jfif", Type::JPEG},  {".jfi", Type::JPEG},

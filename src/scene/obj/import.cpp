@@ -24,7 +24,7 @@ namespace ecl
                     {
                         token += 2;
                         glm::vec3 v;
-                        if (!strToV3(token, v))
+                        if (!astl::stov3(token, v))
                             throw std::runtime_error("Failed to parse line: " + std::string(line));
                         else
                             buffer.v.emplace_back(lineIndex, v);
@@ -33,7 +33,7 @@ namespace ecl
                     {
                         token += 3;
                         glm::vec2 vt;
-                        if (!strToV2(token, vt))
+                        if (!astl::stov2(token, vt))
                             throw std::runtime_error("Failed to parse line: " + std::string(line));
                         else
                             buffer.vt.emplace_back(lineIndex, vt);
@@ -42,7 +42,7 @@ namespace ecl
                     {
                         token += 3;
                         glm::vec3 vn;
-                        if (!strToV3(token, vn))
+                        if (!astl::stov3(token, vn))
                             throw std::runtime_error("Failed to parse line: " + std::string(line));
                         else
                             buffer.vn.emplace_back(lineIndex, vn);
@@ -51,17 +51,17 @@ namespace ecl
                 else if (token[0] == 'g' || token[0] == 'o')
                 {
                     token += 2;
-                    std::string str = trimEnd(token);
+                    std::string str = astl::trim_end(token);
                     if (str != "off" && !str.empty()) buffer.g.emplace_back(lineIndex, str);
                 }
                 else if (token[0] == 'f')
                 {
                     token += 2;
-                    DArray<glm::ivec3> *vtn = new DArray<glm::ivec3>();
+                    astl::vector<glm::ivec3> *vtn = new astl::vector<glm::ivec3>();
                     while (true)
                     {
                         int vId{0}, vtId{0}, vnId{0};
-                        if (!(strToI(token, vId))) break;
+                        if (!(astl::stoi(token, vId))) break;
                         // Handle negative indices
                         if (vId < 0) vId += buffer.v.size() + 1;
 
@@ -71,12 +71,12 @@ namespace ecl
                             if (*token == '/')
                             {
                                 ++token;
-                                if (strToI(token, vtId))
+                                if (astl::stoi(token, vtId))
                                     if (vtId < 0) vtId += buffer.vt.size() + 1;
                                 if (*token == '/')
                                 {
                                     ++token;
-                                    if (strToI(token, vnId))
+                                    if (astl::stoi(token, vnId))
                                         if (vnId < 0) vnId += buffer.vn.size() + 1;
                                 }
                             }
@@ -94,12 +94,12 @@ namespace ecl
                 else if (strncmp(token, "mtllib", 6) == 0)
                 {
                     token += 7;
-                    buffer.mtllib = getStrRange(token);
+                    buffer.mtllib = astl::str_range(token);
                 }
                 else if (strncmp(token, "usemtl", 6) == 0)
                 {
                     token += 7;
-                    buffer.useMtl.emplace_back(lineIndex, getStrRange(token));
+                    buffer.useMtl.emplace_back(lineIndex, astl::str_range(token));
                 }
             }
 
@@ -111,7 +111,7 @@ namespace ecl
                 size_t vtsize;
                 Line<glm::vec3> *__restrict vn;
                 size_t vnsize;
-                Line<DArray<glm::ivec3> *> *__restrict f;
+                Line<astl::vector<glm::ivec3> *> *__restrict f;
                 size_t fsize;
                 Line<std::string> *g;
                 size_t gsize;
@@ -149,7 +149,7 @@ namespace ecl
                 }
             };
 
-            glm::vec3 calculateNormal(const ParseSingleThread &ps, const DArray<glm::ivec3> &__restrict inFace)
+            glm::vec3 calculateNormal(const ParseSingleThread &ps, const astl::vector<glm::ivec3> &__restrict inFace)
             {
                 glm::vec3 normal{0.0f};
                 for (int v = 0; v < inFace.size(); ++v)
@@ -212,7 +212,7 @@ namespace ecl
                 if (ps.vnsize > 0) vtnMap.reserve(ps.vsize);
                 auto &m = group.mesh->model;
                 m.faces.resize(faceCount);
-                DArray<int> posMap(ps.vsize, -1);
+                astl::vector<int> posMap(ps.vsize, -1);
                 for (size_t f = 0; f < faceCount; ++f)
                 {
                     auto &inFace = ps.f[group.startIndex + f].value;
@@ -246,7 +246,8 @@ namespace ecl
                 }
             }
 
-            void indexGroups(ParseSingleThread &ps, DArray<assets::Object> &objects, DArray<GroupRange> &groups)
+            void indexGroups(ParseSingleThread &ps, astl::vector<assets::Object> &objects,
+                             astl::vector<GroupRange> &groups)
             {
                 for (auto &group : groups)
                 {
@@ -259,8 +260,8 @@ namespace ecl
                     logInfo("Imported vertices: %zu", m.vertices.size());
                     logInfo("Imported faces: %zu", m.faces.size());
                     logInfo("Triangulating mesh group");
-                    DArray<DArray<u32>> ires(faceCount);
-                    DArray<DArray<bary::Vertex>> bres(faceCount);
+                    astl::vector<astl::vector<u32>> ires(faceCount);
+                    astl::vector<astl::vector<bary::Vertex>> bres(faceCount);
                     oneapi::tbb::parallel_for(oneapi::tbb::blocked_range<size_t>(0, faceCount),
                                               [&](const oneapi::tbb::blocked_range<size_t> &range) {
                                                   for (size_t i = range.begin(); i < range.end(); ++i)
@@ -286,7 +287,7 @@ namespace ecl
             }
 
             void parseMTL(const std::filesystem::path &basePath, const ParseIndexed &parsed,
-                          DArray<Material> &materials)
+                          astl::vector<Material> &materials)
             {
                 std::filesystem::path parsedPath = parsed.mtllib;
                 if (parsedPath.is_relative()) parsedPath = parsedPath.lexically_normal();
@@ -305,7 +306,7 @@ namespace ecl
                 oss << fileStream.rdbuf();
                 std::string fileContent = oss.str();
                 fileStream.close();
-                StringPool<char> stringPool(fileContent.size());
+                astl::string_pool<char> stringPool(fileContent.size());
                 io::file::fillLineBuffer(fileContent.c_str(), fileContent.size(), stringPool);
 
                 // Process each line from the buffer
@@ -330,7 +331,7 @@ namespace ecl
                         return false;
                 }
                 glm::vec3 color;
-                if (strToV3(token, color))
+                if (astl::stov3(token, color))
                     colorOption.value = color;
                 else
                     return false;
@@ -379,39 +380,39 @@ namespace ecl
                         else if (strncmp(token, "boost", 5) == 0)
                         {
                             token += 6;
-                            if (!strToF(token, dst.boost)) return false;
+                            if (!astl::stof(token, dst.boost)) return false;
                         }
                         else if (strncmp(token, "mm", 2) == 0)
                         {
                             token += 3;
-                            if (!strToV2(token, dst.mm)) return false;
+                            if (!astl::stov2(token, dst.mm)) return false;
                         }
                         else if (token[0] == 'o')
                         {
                             token += 2;
-                            strToV3Optional(token, dst.offset);
+                            astl::stov3_opt(token, dst.offset);
                         }
                         else if (token[0] == 's')
                         {
                             token += 2;
-                            strToV3Optional(token, dst.scale);
+                            astl::stov3_opt(token, dst.scale);
                         }
                         else if (token[0] == 't')
                         {
                             if (isspace(token[1]))
                             {
                                 token += 2;
-                                strToV3Optional(token, dst.turbulence);
+                                astl::stov3_opt(token, dst.turbulence);
                             }
                             else if (strncmp(token, "texres", 6) == 0)
                             {
                                 token += 7;
-                                if (!strToI(token, dst.resolution)) return false;
+                                if (!astl::stoi(token, dst.resolution)) return false;
                             }
                             else if (strncmp(token, "type", 4) == 0)
                             {
                                 token += 5;
-                                dst.type = getStrRange(token);
+                                dst.type = astl::str_range(token);
                             }
                             else
                                 return false;
@@ -424,7 +425,7 @@ namespace ecl
                         else if (strncmp(token, "bm", 2) == 0)
                         {
                             token += 3;
-                            if (!strToF(token, dst.bumpIntensity)) return false;
+                            if (!astl::stof(token, dst.bumpIntensity)) return false;
                         }
                         else if (strncmp(token, "imfchan", 7) == 0)
                         {
@@ -435,21 +436,22 @@ namespace ecl
                         }
                         else
                         {
-                            logWarn("Unknown option: %s", getStrRange(token).c_str());
+                            logWarn("Unknown option: %s", astl::str_range(token).c_str());
                             return false;
                         }
                     }
                     else
                     {
                         if (pathProcessed) break;
-                        dst.path = getStrRange(token);
+                        dst.path = astl::str_range(token);
                         pathProcessed = true;
                     }
                 } while (true);
                 return true;
             }
 
-            void parseMTLline(const std::string_view &line, DArray<Material> &materials, int &matIndex, int lineIndex)
+            void parseMTLline(const std::string_view &line, astl::vector<Material> &materials, int &matIndex,
+                              int lineIndex)
             {
                 try
                 {
@@ -458,7 +460,7 @@ namespace ecl
                     if (strncmp(token, "newmtl", 6) == 0)
                     {
                         token += 7;
-                        Material material(getStrRange(token));
+                        Material material(astl::str_range(token));
                         materials.push_back(std::move(material));
                         ++matIndex;
                     }
@@ -483,31 +485,31 @@ namespace ecl
                         {
                             token += 3;
                             float ns;
-                            if (!strToF(token, ns)) throw ParseException(line, lineIndex);
+                            if (!astl::stof(token, ns)) throw ParseException(line, lineIndex);
                             materials[matIndex].Ns = ns;
                         }
                         else if (token[1] == 'i')
                         {
                             token += 3;
-                            if (!strToF(token, materials[matIndex].Ni)) throw ParseException(line, lineIndex);
+                            if (!astl::stof(token, materials[matIndex].Ni)) throw ParseException(line, lineIndex);
                         }
                     }
                     else if (strncmp(token, "illum", 5) == 0)
                     {
                         token += 6;
-                        if (!strToI(token, materials[matIndex].illum)) throw ParseException(line, lineIndex);
+                        if (!astl::stoi(token, materials[matIndex].illum)) throw ParseException(line, lineIndex);
                     }
                     else if (token[0] == 'd')
                     {
                         token += 2;
-                        if (!strToF(token, materials[matIndex].d)) throw ParseException(line, lineIndex);
+                        if (!astl::stof(token, materials[matIndex].d)) throw ParseException(line, lineIndex);
                     }
                     else if (token[0] == 'T')
                     {
                         if (token[1] == 'r')
                         {
                             token += 3;
-                            if (!strToF(token, materials[matIndex].Tr)) throw ParseException(line, lineIndex);
+                            if (!astl::stof(token, materials[matIndex].Tr)) throw ParseException(line, lineIndex);
                         }
                         else if (token[1] == 'f')
                         {
@@ -658,29 +660,29 @@ namespace ecl
                         if (token[1] == 'r')
                         {
                             token += 3;
-                            if (!strToF(token, materials[matIndex].Pr)) throw ParseException(line, lineIndex);
+                            if (!astl::stof(token, materials[matIndex].Pr)) throw ParseException(line, lineIndex);
                         }
                         else if (token[1] == 'm')
                         {
                             token += 3;
-                            if (!strToF(token, materials[matIndex].Pm)) throw ParseException(line, lineIndex);
+                            if (!astl::stof(token, materials[matIndex].Pm)) throw ParseException(line, lineIndex);
                         }
                         else if (token[1] == 's')
                         {
                             token += 3;
-                            if (!strToF(token, materials[matIndex].Ps)) throw ParseException(line, lineIndex);
+                            if (!astl::stof(token, materials[matIndex].Ps)) throw ParseException(line, lineIndex);
                         }
                         else if (token[1] == 'c')
                         {
                             if (isspace(token[2]))
                             {
                                 token += 3;
-                                if (!strToF(token, materials[matIndex].Pc)) throw ParseException(line, lineIndex);
+                                if (!astl::stof(token, materials[matIndex].Pc)) throw ParseException(line, lineIndex);
                             }
                             else if (token[2] == 'r')
                             {
                                 token += 4;
-                                if (!strToF(token, materials[matIndex].Pcr)) throw ParseException(line, lineIndex);
+                                if (!astl::stof(token, materials[matIndex].Pcr)) throw ParseException(line, lineIndex);
                             }
                         }
                     }
@@ -689,12 +691,12 @@ namespace ecl
                         if (isspace(token[5]))
                         {
                             token += 6;
-                            if (!strToF(token, materials[matIndex].aniso)) throw ParseException(line, lineIndex);
+                            if (!astl::stof(token, materials[matIndex].aniso)) throw ParseException(line, lineIndex);
                         }
                         else if (token[5] == 'r')
                         {
                             token += 7;
-                            if (!strToF(token, materials[matIndex].anisor)) throw ParseException(line, lineIndex);
+                            if (!astl::stof(token, materials[matIndex].anisor)) throw ParseException(line, lineIndex);
                         }
                     }
                     else if (strncmp(token, "norm", 4) == 0)
@@ -717,10 +719,10 @@ namespace ecl
                 }
             }
 
-            void convertToMaterials(std::filesystem::path basePath, const DArray<Material> &mtlMatList,
+            void convertToMaterials(std::filesystem::path basePath, const astl::vector<Material> &mtlMatList,
                                     emhash5::HashMap<std::string, int> &matMap,
-                                    DArray<std::shared_ptr<assets::Asset>> &materials,
-                                    DArray<std::shared_ptr<assets::Target>> &textures)
+                                    astl::vector<std::shared_ptr<assets::Asset>> &materials,
+                                    astl::vector<std::shared_ptr<assets::Target>> &textures)
             {
                 emhash5::HashMap<std::string, size_t> texMap;
                 matMap.reserve(mtlMatList.size());
@@ -777,7 +779,8 @@ namespace ecl
                 pst.v = (Line<glm::vec3> *)scalable_malloc(pst.vsize * sizeof(Line<glm::vec3>));
                 pst.vt = (Line<glm::vec2> *)scalable_malloc(pst.vtsize * sizeof(Line<glm::vec2>));
                 pst.vn = (Line<glm::vec3> *)scalable_malloc(pst.vnsize * sizeof(Line<glm::vec3>));
-                pst.f = (Line<DArray<glm::ivec3> *> *)scalable_malloc(pst.fsize * sizeof(Line<DArray<glm::ivec3> *>));
+                pst.f = (Line<astl::vector<glm::ivec3> *> *)scalable_malloc(pst.fsize *
+                                                                            sizeof(Line<astl::vector<glm::ivec3> *>));
                 pst.g = (Line<std::string> *)scalable_malloc(pst.gsize * sizeof(Line<std::string>));
                 pst.useMtl = (Line<std::string> *)scalable_malloc(pst.useMtlsize * sizeof(Line<std::string>));
 
@@ -785,7 +788,7 @@ namespace ecl
                 for (size_t i = 0; i < pmt.v.size(); ++i) new (&pst.v[i]) Line<glm::vec3>(pmt.v[i]);
                 for (size_t i = 0; i < pmt.vt.size(); ++i) new (&pst.vt[i]) Line<glm::vec2>(pmt.vt[i]);
                 for (size_t i = 0; i < pmt.vn.size(); ++i) new (&pst.vn[i]) Line<glm::vec3>(pmt.vn[i]);
-                for (size_t i = 0; i < pmt.f.size(); ++i) new (&pst.f[i]) Line<DArray<glm::ivec3> *>(pmt.f[i]);
+                for (size_t i = 0; i < pmt.f.size(); ++i) new (&pst.f[i]) Line<astl::vector<glm::ivec3> *>(pmt.f[i]);
                 for (size_t i = 0; i < pmt.g.size(); ++i) new (&pst.g[i]) Line<std::string>(pmt.g[i]);
                 for (size_t i = 0; i < pmt.useMtl.size(); ++i) new (&pst.useMtl[i]) Line<std::string>(pmt.useMtl[i]);
             }
@@ -807,7 +810,7 @@ namespace ecl
                 scalable_free(ps.useMtl);
             }
 
-            void createGroupRanges(ParseSingleThread &ps, DArray<GroupRange> &groups)
+            void createGroupRanges(ParseSingleThread &ps, astl::vector<GroupRange> &groups)
             {
                 groups.reserve(ps.gsize + 1);
 
@@ -830,9 +833,10 @@ namespace ecl
                 }
             }
 
-            void assignMaterialsToGroups(ParseSingleThread &ps, const DArray<GroupRange> &groups,
+            void assignMaterialsToGroups(ParseSingleThread &ps, const astl::vector<GroupRange> &groups,
                                          const emhash5::HashMap<std::string, int> &matMap,
-                                         DArray<std::shared_ptr<assets::Asset>> &materials, DArray<DArray<u32>> &ranges)
+                                         astl::vector<std::shared_ptr<assets::Asset>> &materials,
+                                         astl::vector<astl::vector<u32>> &ranges)
             {
                 if (ps.useMtlsize == 0) return;
                 int umID = 0;
@@ -871,9 +875,9 @@ namespace ecl
                 }
             }
 
-            void assignRangesToObjects(ParseSingleThread &ps, const DArray<DArray<u32>> &ranges,
-                                       emhash5::HashMap<std::string, int> &matMap, const DArray<GroupRange> &groups,
-                                       DArray<assets::Object> &objects)
+            void assignRangesToObjects(ParseSingleThread &ps, const astl::vector<astl::vector<u32>> &ranges,
+                                       emhash5::HashMap<std::string, int> &matMap,
+                                       const astl::vector<GroupRange> &groups, astl::vector<assets::Object> &objects)
             {
                 for (int gr = 0; gr < ranges.size(); ++gr)
                 {
@@ -907,26 +911,26 @@ namespace ecl
             {
                 auto start = std::chrono::high_resolution_clock::now();
                 logInfo("Loading OBJ file: %s", _path.string().c_str());
-                std::string header = f("%s %ls", _("Task:File:Load"), _path.filename().c_str());
-                e.dispatch<TaskUpdateEvent>("task:update", (void *)this, header, _("Task:File:Read"));
+                std::string header = astl::format("%s %ls", _("Task:File:Load"), _path.filename().c_str());
+                e.dispatch<task::UpdateEvent>("task:update", (void *)this, header, _("Task:File:Read"));
                 ParseIndexed parsed;
                 io::file::ReadState result = io::file::readByBlock(_path.string(), parsed, parseLine);
                 if (result != io::file::ReadState::Success) return result;
 
-                e.dispatch<TaskUpdateEvent>("task:update", (void *)this, header, _("Task:File:Serialize"), 0.2f);
+                e.dispatch<task::UpdateEvent>("task:update", (void *)this, header, _("Task:File:Serialize"), 0.2f);
                 logInfo("Serializing parse result");
                 ParseSingleThread ps;
                 allocatePS(parsed, ps);
-                DArray<GroupRange> groups;
+                astl::vector<GroupRange> groups;
                 createGroupRanges(ps, groups);
                 indexGroups(ps, _objects, groups);
-                e.dispatch<TaskUpdateEvent>("task:update", (void *)this, header, _("Task:File:Load:Mat"), 0.8f);
+                e.dispatch<task::UpdateEvent>("task:update", (void *)this, header, _("Task:File:Load:Mat"), 0.8f);
                 if (!parsed.mtllib.empty())
                 {
-                    DArray<Material> mtlMaterials;
+                    astl::vector<Material> mtlMaterials;
                     parseMTL(_path, parsed, mtlMaterials);
                     emhash5::HashMap<std::string, int> matMap;
-                    DArray<DArray<u32>> faceMatRanges;
+                    astl::vector<astl::vector<u32>> faceMatRanges;
                     convertToMaterials(_path, mtlMaterials, matMap, _materials, _textures);
                     assignMaterialsToGroups(ps, groups, matMap, _materials, faceMatRanges);
                     assignRangesToObjects(ps, faceMatRanges, matMap, groups, _objects);

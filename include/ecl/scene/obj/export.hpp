@@ -27,20 +27,13 @@ namespace ecl
             class APPLIB_API Exporter final : public IExporter
             {
             public:
+                ObjExportFlags objFlags;
                 /**
                  * Constructs an Exporter object with the given parameters.
                  *
                  * @param path The path to the output file.
-                 * @param meshFlags Mesh export flags.
-                 * @param materialFlags Material export flags.
-                 * @param objFlags Wavefront OBJ specific export flags.
-                 * @param texFolder The path to the texture folder. (Used if textures are exported as copies)
                  */
-                Exporter(const std::filesystem::path &path, MeshExportFlags meshFlags,
-                         MaterialExportFlags materialFlags, ObjExportFlags objFlags)
-                    : IExporter(path, meshFlags, materialFlags), _objFlags(objFlags)
-                {
-                }
+                Exporter(const std::filesystem::path &path) : IExporter(path) {}
 
                 /**
                  * Saves the exported scene to the output file.
@@ -50,24 +43,23 @@ namespace ecl
                 bool save() override;
 
             private:
-                ObjExportFlags _objFlags;
                 emhash5::HashMap<glm::vec2, u32> _vtMap;
                 emhash5::HashMap<glm::vec3, u32> _vnMap;
                 bool _allMaterialsExist = true;
 
                 void writeVertices(assets::mesh::Model &model, std::stringstream &ss);
-                void writeFaces(assets::mesh::MeshBlock *meta, std::ostream &os, const DArray<u32> &faces);
-                void writeTriangles(assets::mesh::MeshBlock *meta, std::ostream &os, const DArray<u32> &faces);
+                void writeFaces(assets::mesh::MeshBlock *meta, std::ostream &os, const astl::vector<u32> &faces);
+                void writeTriangles(assets::mesh::MeshBlock *meta, std::ostream &os, const astl::vector<u32> &faces);
                 void writeTexture2D(std::ostream &os, const std::string &token, const assets::Target::Addr &tex);
                 void writeMaterial(const std::shared_ptr<assets::MaterialInfo> &matInfo,
                                    const std::shared_ptr<assets::Material> &mat, std::ostream &os);
                 void writeMtlLibInfo(std::ofstream &mtlStream, std::stringstream &objStream,
-                                     DArray<std::shared_ptr<assets::MaterialInfo>> &metaInfo,
-                                     DArray<std::shared_ptr<assets::Material>> &materials);
-                void writeMtl(std::ofstream &stream, const DArray<std::shared_ptr<assets::MaterialInfo>> &matInfo,
-                              const DArray<std::shared_ptr<assets::Material>> &materials);
-                void writeObject(const std::shared_ptr<assets::Object> &object,
-                                 const DArray<std::shared_ptr<assets::MaterialInfo>> &matInfo,
+                                     astl::vector<std::shared_ptr<assets::MaterialInfo>> &metaInfo,
+                                     astl::vector<std::shared_ptr<assets::Material>> &materials);
+                void writeMtl(std::ofstream &stream, const astl::vector<std::shared_ptr<assets::MaterialInfo>> &matInfo,
+                              const astl::vector<std::shared_ptr<assets::Material>> &materials);
+                void writeObject(const assets::Object &object,
+                                 const astl::vector<std::shared_ptr<assets::MaterialInfo>> &matInfo,
                                  std::stringstream &objStream);
             };
         } // namespace obj

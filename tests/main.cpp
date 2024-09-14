@@ -1,5 +1,4 @@
 #include <core/log.hpp>
-#include <core/task.hpp>
 #include <cstdlib>
 
 namespace tests
@@ -18,7 +17,6 @@ int main(int argc, char *argv[])
     const char *outputDir = getenv("TEST_OUTPUT_DIR");
     if (!dataDir || !outputDir) return 1;
     bool result = tests::runTest(dataDir, outputDir);
-    TaskManager::global().await(true);
     logging::mng->await();
     logging::LogManager::destroy();
     return result ? 0 : 1;

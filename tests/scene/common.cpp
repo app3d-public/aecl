@@ -4,7 +4,7 @@
 
 namespace tests
 {
-    void createCubeVerticles(DArray<assets::mesh::Vertex> &vertices)
+    void createCubeVerticles(astl::vector<assets::mesh::Vertex> &vertices)
     {
         vertices.resize(24);
         // Front face
@@ -39,7 +39,7 @@ namespace tests
         vertices[23] = {{-100, -100, -100}, {0, 0}, {0, -1, 0}};
     }
 
-    void createCubeVGroups(DArray<assets::mesh::VertexGroup> &vertexGroups)
+    void createCubeVGroups(astl::vector<assets::mesh::VertexGroup> &vertexGroups)
     {
         vertexGroups.resize(8);
         vertexGroups[0] = {{3, 12, 22}, {0, 3, 5}};
@@ -52,7 +52,7 @@ namespace tests
         vertexGroups[7] = {{9, 14, 18}, {2, 3, 4}};
     }
 
-    void createCubeFaces(DArray<assets::mesh::Face> &faces)
+    void createCubeFaces(astl::vector<assets::mesh::Face> &faces)
     {
         faces.resize(6);
         faces[0] = {{
@@ -111,11 +111,11 @@ namespace tests
                     6};
     }
 
-    void createObjects(DArray<std::shared_ptr<assets::Object>> &objects)
+    void createObjects(astl::vector<assets::Object> &objects)
     {
-        objects.push_back(std::make_shared<assets::Object>());
+        objects.emplace_back();
         auto cube = objects.front();
-        cube->name = "cube";
+        cube.name = "cube";
         auto meshBlock = std::make_shared<assets::mesh::MeshBlock>();
         auto &model = meshBlock->model;
         createCubeVerticles(model.vertices);
@@ -124,21 +124,23 @@ namespace tests
         createCubeVGroups(model.groups);
         createCubeFaces(model.faces);
         model.aabb = {{-100, -100, -100}, {100, 100, 100}};
-        cube->meta.push_back(meshBlock);
+        cube.meta.push_back(meshBlock);
     }
 
-    void createMaterials(DArray<std::shared_ptr<assets::Asset>> &materials)
+    void createMaterials(astl::vector<assets::Asset> &materials)
     {
+        materials.emplace_back();
         auto mat = std::make_shared<assets::Material>();
         mat->albedo.textured = true;
         mat->albedo.textureID = 0;
         auto meta = std::make_shared<assets::MaterialInfo>();
         meta->name = "ecl:test:mat_e";
         meta->assignments.push_back(0);
-        auto asset = std::make_shared<assets::Asset>();
-        asset->header.type = assets::Type::Material;
-        asset->blocks.push_back(mat);
-        asset->blocks.push_back(meta);
+        materials.emplace_back();
+        auto &asset = materials.back();
+        asset.header.type = assets::Type::Material;
+        asset.blocks.push_back(mat);
+        asset.blocks.push_back(meta);
         materials.push_back(asset);
     }
 

@@ -30,7 +30,7 @@ namespace ecl
         class IExporter
         {
         public:
-            IExporter(const std::filesystem::path &path, const DArray<assets::Image2D> &images)
+            IExporter(const std::filesystem::path &path, const astl::vector<assets::Image2D> &images)
                 : _path(path), _images(images)
             {
             }
@@ -56,19 +56,19 @@ namespace ecl
              *
              * @return A vector of SubImageInfo objects containing information about the subimages
              */
-            DArray<assets::Image2D> images() const { return _images; }
+            astl::vector<assets::Image2D> images() const { return _images; }
 
             virtual bool save(size_t dstBit) = 0;
 
         protected:
             std::filesystem::path _path;
-            DArray<assets::Image2D> _images;
+            astl::vector<assets::Image2D> _images;
         };
 
         class OIIOExporter : public IExporter
         {
         public:
-            OIIOExporter(const std::filesystem::path &path, const DArray<assets::Image2D> &images, Format format)
+            OIIOExporter(const std::filesystem::path &path, const astl::vector<assets::Image2D> &images, Format format)
                 : IExporter(path, images), _format(format)
             {
             }
@@ -82,14 +82,14 @@ namespace ecl
 
             virtual bool save(size_t dstBit) override
             {
-                DArray<std::shared_ptr<void>> pixels;
+                astl::vector<std::shared_ptr<void>> pixels;
                 return save(dstBit, pixels);
             }
 
         protected:
             Format _format;
 
-            virtual bool save(size_t dstBit, DArray<std::shared_ptr<void>> &pixels) = 0;
+            virtual bool save(size_t dstBit, astl::vector<std::shared_ptr<void>> &pixels) = 0;
         };
 
         /**
@@ -149,7 +149,7 @@ namespace ecl
             bool dither() const { return _dither; }
 
             using OIIOExporter::save;
-            bool save(size_t dstBit, DArray<std::shared_ptr<void>> &pixels) override;
+            bool save(size_t dstBit, astl::vector<std::shared_ptr<void>> &pixels) override;
 
         private:
             f32 _dpi;
@@ -165,7 +165,7 @@ namespace ecl
         class APPLIB_API GIFExporter final : public OIIOExporter
         {
         public:
-            GIFExporter(const std::filesystem::path &path, const DArray<assets::Image2D> &images,
+            GIFExporter(const std::filesystem::path &path, const astl::vector<assets::Image2D> &images,
                         bool interlacing = false, int loops = 0, int fps = 0)
                 : OIIOExporter(path, images,
                                {FormatFlagBits::bit8 | FormatFlagBits::multilayer, vk::Format::eR8G8B8A8Srgb}),
@@ -218,7 +218,7 @@ namespace ecl
             int fps() const { return _fps; }
 
             using OIIOExporter::save;
-            bool save(size_t dstBit, DArray<std::shared_ptr<void>> &pixels) override;
+            bool save(size_t dstBit, astl::vector<std::shared_ptr<void>> &pixels) override;
 
         private:
             bool _interlacing;
@@ -243,7 +243,7 @@ namespace ecl
             }
 
             using OIIOExporter::save;
-            bool save(size_t dstBit, DArray<std::shared_ptr<void>> &pixels) override;
+            bool save(size_t dstBit, astl::vector<std::shared_ptr<void>> &pixels) override;
         };
 
         /**
@@ -277,7 +277,7 @@ namespace ecl
             int compression() const { return _compression; }
 
             using OIIOExporter::save;
-            bool save(size_t dstBit, DArray<std::shared_ptr<void>> &pixels) override;
+            bool save(size_t dstBit, astl::vector<std::shared_ptr<void>> &pixels) override;
 
         private:
             int _compression;
@@ -302,7 +302,7 @@ namespace ecl
             }
 
             using OIIOExporter::save;
-            bool save(size_t dstBit, DArray<std::shared_ptr<void>> &pixels) override;
+            bool save(size_t dstBit, astl::vector<std::shared_ptr<void>> &pixels) override;
 
             /**
              * @brief Sets the dots per inch of the image.
@@ -451,7 +451,7 @@ namespace ecl
             bool dither() const { return _dither; }
 
             using OIIOExporter::save;
-            bool save(size_t dstBit, DArray<std::shared_ptr<void>> &pixels) override;
+            bool save(size_t dstBit, astl::vector<std::shared_ptr<void>> &pixels) override;
 
         private:
             bool _unassociatedAlpha;
@@ -474,7 +474,7 @@ namespace ecl
             }
 
             using OIIOExporter::save;
-            bool save(size_t dstBit, DArray<std::shared_ptr<void>> &pixels) override;
+            bool save(size_t dstBit, astl::vector<std::shared_ptr<void>> &pixels) override;
         };
 
         /**
@@ -497,7 +497,7 @@ namespace ecl
              * a level from 1 to 9 may be appended (the default is "zip:4"),
              * but note that this is only honored when building against OpenEXR 3.1.3 or later.
              */
-            OpenEXRExporter(const std::filesystem::path &path, const DArray<assets::Image2D> &images,
+            OpenEXRExporter(const std::filesystem::path &path, const astl::vector<assets::Image2D> &images,
                             const std::string &compression = "none")
                 : OIIOExporter(path, images,
                                {FormatFlagBits::bit16 | FormatFlagBits::bit32 | FormatFlagBits::alpha |
@@ -526,7 +526,7 @@ namespace ecl
             std::string compression() const { return _compression; }
 
             using OIIOExporter::save;
-            bool save(size_t dstBit, DArray<std::shared_ptr<void>> &pixels) override;
+            bool save(size_t dstBit, astl::vector<std::shared_ptr<void>> &pixels) override;
 
         private:
             std::string _compression;
@@ -650,7 +650,7 @@ namespace ecl
             bool unassociatedAlpha() const { return _unassociatedAlpha; }
 
             using OIIOExporter::save;
-            bool save(size_t dstBit, DArray<std::shared_ptr<void>> &pixels) override;
+            bool save(size_t dstBit, astl::vector<std::shared_ptr<void>> &pixels) override;
 
         private:
             f32 _dpi;
@@ -714,7 +714,7 @@ namespace ecl
             }
 
             using OIIOExporter::save;
-            bool save(size_t dstBit, DArray<std::shared_ptr<void>> &pixels) override;
+            bool save(size_t dstBit, astl::vector<std::shared_ptr<void>> &pixels) override;
 
         private:
             bool _binary;
@@ -797,7 +797,7 @@ namespace ecl
             bool dither() const { return _dither; }
 
             using OIIOExporter::save;
-            bool save(size_t dstBit, DArray<std::shared_ptr<void>> &pixels) override;
+            bool save(size_t dstBit, astl::vector<std::shared_ptr<void>> &pixels) override;
 
         private:
             bool _dither;
@@ -831,7 +831,7 @@ namespace ecl
              * @param compression A string representing the compression algorithm to be used for the exported
              * image.
              */
-            TIFFExporter(const std::filesystem::path &path, const DArray<assets::Image2D> &images,
+            TIFFExporter(const std::filesystem::path &path, const astl::vector<assets::Image2D> &images,
                          bool unassociatedAlpha = false, bool dither = false, int zipquality = 6,
                          bool forceBigTIFF = false, const std::string &appName = "", f32 dpi = 72.0f,
                          const std::string &compression = "none")
@@ -966,7 +966,7 @@ namespace ecl
             f32 dpi() const { return _dpi; }
 
             using OIIOExporter::save;
-            bool save(size_t dstBit, DArray<std::shared_ptr<void>> &pixels) override;
+            bool save(size_t dstBit, astl::vector<std::shared_ptr<void>> &pixels) override;
 
         private:
             bool _unassociatedAlpha;
@@ -1014,7 +1014,7 @@ namespace ecl
             bool dither() const { return _dither; }
 
             using OIIOExporter::save;
-            bool save(size_t dstBit, DArray<std::shared_ptr<void>> &pixels) override;
+            bool save(size_t dstBit, astl::vector<std::shared_ptr<void>> &pixels) override;
 
         private:
             bool _dither;
