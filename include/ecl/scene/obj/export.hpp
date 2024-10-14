@@ -1,6 +1,6 @@
 #pragma once
 
-#include <core/hash.hpp>
+#include <core/std/hash.hpp>
 #include <emhash/hash_table5.hpp>
 #include <oneapi/tbb/concurrent_unordered_set.h>
 #include "../export.hpp"

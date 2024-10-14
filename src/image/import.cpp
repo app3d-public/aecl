@@ -1,5 +1,5 @@
 #include <assets/utils.hpp>
-#include <core/hash.hpp>
+#include <core/std/hash.hpp>
 #include <core/log.hpp>
 #include <ecl/image/import.hpp>
 #include <oneapi/tbb/scalable_allocator.h>

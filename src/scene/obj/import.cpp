@@ -1,6 +1,6 @@
-#include <core/hash.hpp>
 #include <core/locales.hpp>
 #include <core/log.hpp>
+#include <core/std/hash.hpp>
 #include <core/std/string.hpp>
 #include <core/task.hpp>
 #include <ecl/scene/obj/import.hpp>
