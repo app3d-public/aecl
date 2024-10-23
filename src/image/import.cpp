@@ -1,6 +1,6 @@
 #include <assets/utils.hpp>
-#include <core/std/hash.hpp>
 #include <core/log.hpp>
+#include <core/std/hash.hpp>
 #include <ecl/image/import.hpp>
 #include <oneapi/tbb/scalable_allocator.h>
 #include "core/io/file.hpp"
@@ -87,7 +87,7 @@ namespace ecl
                 logWarn("ECL Asset Loader can recognize only 2D images");
                 return io::file::ReadState::Error;
             }
-            auto image = std::static_pointer_cast<assets::Image2D>(asset->blocks.front());
+            auto image = astl::static_pointer_cast<assets::Image2D>(asset->blocks.front());
             images.push_back(*image);
             return io::file::ReadState::Success;
         }
@@ -97,35 +97,35 @@ namespace ecl
             switch (getTypeByExt(path.extension().string()))
             {
                 case Type::BMP:
-                    return new BMPLoader();
+                    return astl::alloc<BMPLoader>();
                 case Type::GIF:
-                    return new GIFLoader();
+                    return astl::alloc<GIFLoader>();
                 case Type::HDR:
-                    return new HDRLoader();
+                    return astl::alloc<HDRLoader>();
                 case Type::HEIF:
-                    return new HEIFLoader();
+                    return astl::alloc<HEIFLoader>();
                 case Type::JPEG:
-                    return new JPEGLoader();
+                    return astl::alloc<JPEGLoader>();
                 case Type::JPEG2000:
-                    return new JPEG2000Loader();
+                    return astl::alloc<JPEG2000Loader>();
                 case Type::JPEGXL:
-                    return new JPEGXLLoader();
+                    return astl::alloc<JPEGXLLoader>();
                 case Type::OpenEXR:
-                    return new OpenEXRLoader();
+                    return astl::alloc<OpenEXRLoader>();
                 case Type::PNG:
-                    return new PNGLoader();
+                    return astl::alloc<PNGLoader>();
                 case Type::PBM:
-                    return new PBMLoader();
+                    return astl::alloc<PBMLoader>();
                 case Type::RAW:
-                    return new RAWLoader();
+                    return astl::alloc<RAWLoader>();
                 case Type::Targa:
-                    return new TargaLoader();
+                    return astl::alloc<TargaLoader>();
                 case Type::TIFF:
-                    return new TIFFLoader();
+                    return astl::alloc<TIFFLoader>();
                 case Type::WebP:
-                    return new WebPLoader();
+                    return astl::alloc<WebPLoader>();
                 case Type::Asset:
-                    return new AssetLoader();
+                    return astl::alloc<AssetLoader>();
                 default:
                     return nullptr;
             }

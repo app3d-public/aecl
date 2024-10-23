@@ -50,10 +50,10 @@ namespace ecl
             astl::vector<assets::Object> &objects() { return _objects; }
 
             // Get the list of imported materials
-            astl::vector<std::shared_ptr<assets::Asset>> &materials() { return _materials; }
+            astl::vector<astl::shared_ptr<assets::Asset>> &materials() { return _materials; }
 
             // Get the list of imported textures
-            astl::vector<std::shared_ptr<assets::Target>> &textures() { return _textures; }
+            astl::vector<astl::shared_ptr<assets::Target>> &textures() { return _textures; }
 
             inline void clear()
             {
@@ -65,8 +65,8 @@ namespace ecl
         protected:
             std::filesystem::path _path;
             astl::vector<assets::Object> _objects;
-            astl::vector<std::shared_ptr<assets::Asset>> _materials;
-            astl::vector<std::shared_ptr<assets::Target>> _textures;
+            astl::vector<astl::shared_ptr<assets::Asset>> _materials;
+            astl::vector<astl::shared_ptr<assets::Target>> _textures;
         };
     } // namespace scene
 } // namespace ecl

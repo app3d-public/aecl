@@ -51,15 +51,15 @@ namespace ecl
                 void writeFaces(assets::mesh::MeshBlock *meta, std::ostream &os, const astl::vector<u32> &faces);
                 void writeTriangles(assets::mesh::MeshBlock *meta, std::ostream &os, const astl::vector<u32> &faces);
                 void writeTexture2D(std::ostream &os, const std::string &token, const assets::Target::Addr &tex);
-                void writeMaterial(const std::shared_ptr<assets::MaterialInfo> &matInfo,
-                                   const std::shared_ptr<assets::Material> &mat, std::ostream &os);
+                void writeMaterial(const astl::shared_ptr<assets::MaterialInfo> &matInfo,
+                                   const astl::shared_ptr<assets::Material> &mat, std::ostream &os);
                 void writeMtlLibInfo(std::ofstream &mtlStream, std::stringstream &objStream,
-                                     astl::vector<std::shared_ptr<assets::MaterialInfo>> &metaInfo,
-                                     astl::vector<std::shared_ptr<assets::Material>> &materials);
-                void writeMtl(std::ofstream &stream, const astl::vector<std::shared_ptr<assets::MaterialInfo>> &matInfo,
-                              const astl::vector<std::shared_ptr<assets::Material>> &materials);
+                                     astl::vector<astl::shared_ptr<assets::MaterialInfo>> &metaInfo,
+                                     astl::vector<astl::shared_ptr<assets::Material>> &materials);
+                void writeMtl(std::ofstream &stream, const astl::vector<astl::shared_ptr<assets::MaterialInfo>> &matInfo,
+                              const astl::vector<astl::shared_ptr<assets::Material>> &materials);
                 void writeObject(const assets::Object &object,
-                                 const astl::vector<std::shared_ptr<assets::MaterialInfo>> &matInfo,
+                                 const astl::vector<astl::shared_ptr<assets::MaterialInfo>> &matInfo,
                                  std::stringstream &objStream);
             };
         } // namespace obj

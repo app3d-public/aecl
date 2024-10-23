@@ -7,32 +7,32 @@ namespace ecl
 {
     namespace image
     {
-        std::shared_ptr<void> copySrcBuffer(const void *src, size_t size, vk::Format format)
+        astl::shared_ptr<void> copySrcBuffer(const void *src, size_t size, vk::Format format)
         {
             switch (format)
             {
                 case vk::Format::eR8G8B8A8Srgb:
                 {
-                    std::shared_ptr<u8> copy(new u8[size], std::default_delete<u8[]>());
+                    astl::shared_ptr<u8[]> copy(size);
                     std::memcpy(copy.get(), src, size * sizeof(u8));
                     return copy;
                 }
                 case vk::Format::eR16G16B16A16Uint:
                 {
-                    std::shared_ptr<u16> copy(new u16[size], std::default_delete<u16[]>());
+                    astl::shared_ptr<u16[]> copy(size);
                     std::memcpy(copy.get(), src, size * sizeof(u16));
                     return copy;
                 }
                 case vk::Format::eR32G32B32A32Uint:
                 {
-                    std::shared_ptr<u32> copy(new u32[size], std::default_delete<u32[]>());
+                    astl::shared_ptr<u32[]> copy(size);
                     std::memcpy(copy.get(), src, size * sizeof(u32));
                     return copy;
                 }
                 case vk::Format::eR16G16B16A16Sfloat:
                 case vk::Format::eR32G32B32A32Sfloat:
                 {
-                    std::shared_ptr<float> copy(new float[size], std::default_delete<float[]>());
+                    astl::shared_ptr<float[]> copy(size);
                     std::memcpy(copy.get(), src, size * sizeof(float));
                     return copy;
                 }
@@ -41,17 +41,16 @@ namespace ecl
             }
         }
 
-        bool BMPExporter::save(size_t dstBit, astl::vector<std::shared_ptr<void>> &pixels)
+        bool BMPExporter::save(size_t dstBit, astl::vector<astl::shared_ptr<void>> &pixels)
         {
             assert(dstBit == 1);
             pixels.resize(1);
             assets::Image2D image = _images[0];
-            std::shared_ptr<void> copy = copySrcBuffer(image.pixels, image.imageSize(), image.imageFormat);
+            astl::shared_ptr<void> copy = copySrcBuffer(image.pixels, image.imageSize(), image.imageFormat);
             image.pixels = copy.get();
             if (!isImageEquals(image, _format, vk::Format::eR8G8B8A8Srgb))
                 assets::utils::convertImage(image, vk::Format::eR8G8B8A8Srgb, image.channelCount > 3 ? 4 : 3);
             pixels.emplace_back(copy);
-
             std::unique_ptr<OIIO::ImageOutput> out = OIIO::ImageOutput::create(_path.string());
             OIIO::ImageSpec spec(image.width, image.height, image.channelCount, OIIO::TypeDesc::UINT8);
             spec.attribute("XResolution", _dpi);
@@ -65,7 +64,7 @@ namespace ecl
             return out->close();
         }
 
-        bool GIFExporter::save(size_t dstBit, astl::vector<std::shared_ptr<void>> &pixels)
+        bool GIFExporter::save(size_t dstBit, astl::vector<astl::shared_ptr<void>> &pixels)
         {
             assert(dstBit == 1);
             pixels.resize(_images.size());
@@ -74,7 +73,7 @@ namespace ecl
 
             for (assets::Image2D image : _images)
             {
-                std::shared_ptr<void> copy = copySrcBuffer(image.pixels, image.imageSize(), image.imageFormat);
+                astl::shared_ptr<void> copy = copySrcBuffer(image.pixels, image.imageSize(), image.imageFormat);
                 image.pixels = copy.get();
 
                 if (!isImageEquals(image, _format, vk::Format::eR8G8B8A8Srgb))
@@ -116,12 +115,12 @@ namespace ecl
             return out->close();
         }
 
-        bool HDRExporter::save(size_t dstBit, astl::vector<std::shared_ptr<void>> &pixels)
+        bool HDRExporter::save(size_t dstBit, astl::vector<astl::shared_ptr<void>> &pixels)
         {
             assert(dstBit == 4);
             pixels.resize(1);
             assets::Image2D image = _images[0];
-            std::shared_ptr<void> copy = copySrcBuffer(image.pixels, image.imageSize(), image.imageFormat);
+            astl::shared_ptr<void> copy = copySrcBuffer(image.pixels, image.imageSize(), image.imageFormat);
             image.pixels = copy.get();
             if (!isImageEquals(image, _format, vk::Format::eR32G32B32A32Sfloat))
                 assets::utils::convertImage(image, vk::Format::eR32G32B32A32Sfloat, 3);
@@ -136,13 +135,13 @@ namespace ecl
             return out->close();
         }
 
-        bool HEIFExporter::save(size_t dstBit, astl::vector<std::shared_ptr<void>> &pixels)
+        bool HEIFExporter::save(size_t dstBit, astl::vector<astl::shared_ptr<void>> &pixels)
         {
             assert(dstBit == 1);
             assets::Image2D image = _images[0];
             int dstChannels = image.channelCount > 3 ? 4 : 3;
             pixels.resize(1);
-            std::shared_ptr<void> copy = copySrcBuffer(image.pixels, image.imageSize(), image.imageFormat);
+            astl::shared_ptr<void> copy = copySrcBuffer(image.pixels, image.imageSize(), image.imageFormat);
             image.pixels = copy.get();
             if (!isImageEquals(image, _format, vk::Format::eR8G8B8A8Srgb))
                 assets::utils::convertImage(image, vk::Format::eR8G8B8A8Srgb, dstChannels);
@@ -158,12 +157,12 @@ namespace ecl
             return out->close();
         }
 
-        bool JPEGExporter::save(size_t dstBit, astl::vector<std::shared_ptr<void>> &pixels)
+        bool JPEGExporter::save(size_t dstBit, astl::vector<astl::shared_ptr<void>> &pixels)
         {
             assert(dstBit == 1);
             pixels.resize(1);
             assets::Image2D image = _images[0];
-            std::shared_ptr<void> copy = copySrcBuffer(image.pixels, image.imageSize(), image.imageFormat);
+            astl::shared_ptr<void> copy = copySrcBuffer(image.pixels, image.imageSize(), image.imageFormat);
             image.pixels = copy.get();
             if (!isImageEquals(image, _format, vk::Format::eR8G8B8A8Srgb))
                 assets::utils::convertImage(image, vk::Format::eR8G8B8A8Srgb, 3);
@@ -186,14 +185,14 @@ namespace ecl
             return out->close();
         }
 
-        bool JPEG2000Exporter::save(size_t dstBit, astl::vector<std::shared_ptr<void>> &pixels)
+        bool JPEG2000Exporter::save(size_t dstBit, astl::vector<astl::shared_ptr<void>> &pixels)
         {
             assert(dstBit == 1 || dstBit == 2);
             assets::Image2D image = _images[0];
             int dstChannels = image.channelCount > 3 ? 4 : 3;
             const vk::Format dstFormat = getFormatByBit(dstBit, _format);
             pixels.resize(1);
-            std::shared_ptr<void> copy = copySrcBuffer(image.pixels, image.imageSize(), image.imageFormat);
+            astl::shared_ptr<void> copy = copySrcBuffer(image.pixels, image.imageSize(), image.imageFormat);
             image.pixels = copy.get();
             if (!isImageEquals(image, _format, dstFormat)) assets::utils::convertImage(image, dstFormat, dstChannels);
             pixels.emplace_back(copy);
@@ -211,14 +210,14 @@ namespace ecl
             return out->close();
         }
 
-        bool JPEGXLExporter::save(size_t dstBit, astl::vector<std::shared_ptr<void>> &pixels)
+        bool JPEGXLExporter::save(size_t dstBit, astl::vector<astl::shared_ptr<void>> &pixels)
         {
             assert(dstBit == 1 || dstBit == 2);
             assets::Image2D image = _images[0];
             int dstChannels = image.channelCount > 3 ? 4 : 3;
             const vk::Format dstFormat = getFormatByBit(dstBit, _format);
             pixels.resize(1);
-            std::shared_ptr<void> copy = copySrcBuffer(image.pixels, image.imageSize(), image.imageFormat);
+            astl::shared_ptr<void> copy = copySrcBuffer(image.pixels, image.imageSize(), image.imageFormat);
             image.pixels = copy.get();
             if (!isImageEquals(image, _format, dstFormat)) assets::utils::convertImage(image, dstFormat, dstChannels);
             pixels.emplace_back(copy);
@@ -234,7 +233,7 @@ namespace ecl
             return out->close();
         }
 
-        bool OpenEXRExporter::save(size_t dstBit, astl::vector<std::shared_ptr<void>> &pixels)
+        bool OpenEXRExporter::save(size_t dstBit, astl::vector<astl::shared_ptr<void>> &pixels)
         {
             assert(dstBit == 2 || dstBit == 4);
             pixels.resize(_images.size());
@@ -251,7 +250,7 @@ namespace ecl
 
             for (assets::Image2D image : _images)
             {
-                std::shared_ptr<void> copy = copySrcBuffer(image.pixels, image.imageSize(), image.imageFormat);
+                astl::shared_ptr<void> copy = copySrcBuffer(image.pixels, image.imageSize(), image.imageFormat);
                 image.pixels = copy.get();
                 if (!isImageEquals(image, _format, dstFormat))
                     assets::utils::convertImage(image, dstFormat, image.channelCount);
@@ -291,7 +290,7 @@ namespace ecl
             return out->close();
         }
 
-        bool PNGExporter::save(size_t dstBit, astl::vector<std::shared_ptr<void>> &pixels)
+        bool PNGExporter::save(size_t dstBit, astl::vector<astl::shared_ptr<void>> &pixels)
         {
             assert(dstBit == 1 || dstBit == 2);
             pixels.resize(1);
@@ -299,7 +298,7 @@ namespace ecl
             const OIIO::TypeDesc dstType = vkFormatToOIIO(dstFormat);
             assets::Image2D image = _images[0];
             int dstChannels = image.channelCount > 3 ? 4 : 3;
-            std::shared_ptr<void> copy = copySrcBuffer(image.pixels, image.imageSize(), image.imageFormat);
+            astl::shared_ptr<void> copy = copySrcBuffer(image.pixels, image.imageSize(), image.imageFormat);
             image.pixels = copy.get();
             if (!isImageEquals(image, _format, dstFormat)) assets::utils::convertImage(image, dstFormat, dstChannels);
             pixels.emplace_back(copy);
@@ -323,12 +322,12 @@ namespace ecl
             return out->close();
         }
 
-        bool PNMExporter::save(size_t dstBit, astl::vector<std::shared_ptr<void>> &pixels)
+        bool PNMExporter::save(size_t dstBit, astl::vector<astl::shared_ptr<void>> &pixels)
         {
             assert(dstBit == 1);
             pixels.resize(1);
             assets::Image2D image = _images[0];
-            std::shared_ptr<void> copy = copySrcBuffer(image.pixels, image.imageSize(), image.imageFormat);
+            astl::shared_ptr<void> copy = copySrcBuffer(image.pixels, image.imageSize(), image.imageFormat);
             image.pixels = copy.get();
             if (!isImageEquals(image, _format, vk::Format::eR8G8B8A8Srgb))
                 assets::utils::convertImage(image, vk::Format::eR8G8B8A8Srgb, 3);
@@ -345,13 +344,13 @@ namespace ecl
             return out->close();
         }
 
-        bool TargaExporter::save(size_t dstBit, astl::vector<std::shared_ptr<void>> &pixels)
+        bool TargaExporter::save(size_t dstBit, astl::vector<astl::shared_ptr<void>> &pixels)
         {
             assert(dstBit == 1);
             pixels.resize(1);
             assets::Image2D image = _images[0];
             int dstChannels = image.channelCount > 3 ? 4 : 3;
-            std::shared_ptr<void> copy = copySrcBuffer(image.pixels, image.imageSize(), image.imageFormat);
+            astl::shared_ptr<void> copy = copySrcBuffer(image.pixels, image.imageSize(), image.imageFormat);
             image.pixels = copy.get();
             if (!isImageEquals(image, _format, vk::Format::eR8G8B8A8Srgb))
                 assets::utils::convertImage(image, vk::Format::eR8G8B8A8Srgb, dstChannels);
@@ -370,7 +369,7 @@ namespace ecl
             return out->close();
         }
 
-        bool TIFFExporter::save(size_t dstBit, astl::vector<std::shared_ptr<void>> &pixels)
+        bool TIFFExporter::save(size_t dstBit, astl::vector<astl::shared_ptr<void>> &pixels)
         {
             std::unique_ptr<OIIO::ImageOutput> out = OIIO::ImageOutput::create(_path.string());
             astl::vector<OIIO::ImageSpec> specs;
@@ -380,7 +379,7 @@ namespace ecl
 
             for (assets::Image2D image : _images)
             {
-                std::shared_ptr<void> copy = copySrcBuffer(image.pixels, image.imageSize(), image.imageFormat);
+                astl::shared_ptr<void> copy = copySrcBuffer(image.pixels, image.imageSize(), image.imageFormat);
                 image.pixels = copy.get();
                 if (!isImageEquals(image, _format, dstFormat))
                     assets::utils::convertImage(image, dstFormat, image.channelCount);
@@ -423,12 +422,12 @@ namespace ecl
             return out->close();
         }
 
-        bool WebPExporter::save(size_t dstBit, astl::vector<std::shared_ptr<void>> &pixels)
+        bool WebPExporter::save(size_t dstBit, astl::vector<astl::shared_ptr<void>> &pixels)
         {
             assert(dstBit == 1);
             pixels.resize(1);
             assets::Image2D image = _images[0];
-            std::shared_ptr<void> copy = copySrcBuffer(image.pixels, image.imageSize(), image.imageFormat);
+            astl::shared_ptr<void> copy = copySrcBuffer(image.pixels, image.imageSize(), image.imageFormat);
             image.pixels = copy.get();
             if (!isImageEquals(image, _format, vk::Format::eR8G8B8A8Srgb))
                 assets::utils::convertImage(image, vk::Format::eR8G8B8A8Srgb, image.channelCount > 3 ? 4 : 3);
@@ -449,7 +448,7 @@ namespace ecl
             auto &currentImage = _images.front();
             if (currentImage.bytesPerChannel != dstBit)
             {
-                std::shared_ptr<void> copy =
+                astl::shared_ptr<void> copy =
                     copySrcBuffer(currentImage.pixels, currentImage.imageSize(), currentImage.imageFormat);
                 currentImage.pixels = copy.get();
                 assets::utils::convertImage(currentImage, currentImage.imageFormat, dstBit);
@@ -457,7 +456,7 @@ namespace ecl
             assets::Asset asset;
             asset.header.type = assets::Type::Image;
             asset.header.compressed = _compression > 0;
-            asset.blocks.push_back(std::make_shared<assets::Image2D>(currentImage));
+            asset.blocks.push_back(astl::make_shared<assets::Image2D>(currentImage));
             asset.checksum = _checksum;
             return asset.save(_path, _compression);
         }

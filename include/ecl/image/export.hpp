@@ -19,7 +19,7 @@ namespace ecl
          * @param format Vulkan format that determines the bit depth of the source buffer.
          * @return Shared pointer to the dynamically allocated buffer containing the copied data.
          */
-        std::shared_ptr<void> copySrcBuffer(const void *src, size_t size, vk::Format format);
+        astl::shared_ptr<void> copySrcBuffer(const void *src, size_t size, vk::Format format);
 
         /**
          * @brief An abstract class for exporting images
@@ -82,14 +82,14 @@ namespace ecl
 
             virtual bool save(size_t dstBit) override
             {
-                astl::vector<std::shared_ptr<void>> pixels;
+                astl::vector<astl::shared_ptr<void>> pixels;
                 return save(dstBit, pixels);
             }
 
         protected:
             Format _format;
 
-            virtual bool save(size_t dstBit, astl::vector<std::shared_ptr<void>> &pixels) = 0;
+            virtual bool save(size_t dstBit, astl::vector<astl::shared_ptr<void>> &pixels) = 0;
         };
 
         /**
@@ -149,7 +149,7 @@ namespace ecl
             bool dither() const { return _dither; }
 
             using OIIOExporter::save;
-            bool save(size_t dstBit, astl::vector<std::shared_ptr<void>> &pixels) override;
+            bool save(size_t dstBit, astl::vector<astl::shared_ptr<void>> &pixels) override;
 
         private:
             f32 _dpi;
@@ -218,7 +218,7 @@ namespace ecl
             int fps() const { return _fps; }
 
             using OIIOExporter::save;
-            bool save(size_t dstBit, astl::vector<std::shared_ptr<void>> &pixels) override;
+            bool save(size_t dstBit, astl::vector<astl::shared_ptr<void>> &pixels) override;
 
         private:
             bool _interlacing;
@@ -243,7 +243,7 @@ namespace ecl
             }
 
             using OIIOExporter::save;
-            bool save(size_t dstBit, astl::vector<std::shared_ptr<void>> &pixels) override;
+            bool save(size_t dstBit, astl::vector<astl::shared_ptr<void>> &pixels) override;
         };
 
         /**
@@ -277,7 +277,7 @@ namespace ecl
             int compression() const { return _compression; }
 
             using OIIOExporter::save;
-            bool save(size_t dstBit, astl::vector<std::shared_ptr<void>> &pixels) override;
+            bool save(size_t dstBit, astl::vector<astl::shared_ptr<void>> &pixels) override;
 
         private:
             int _compression;
@@ -302,7 +302,7 @@ namespace ecl
             }
 
             using OIIOExporter::save;
-            bool save(size_t dstBit, astl::vector<std::shared_ptr<void>> &pixels) override;
+            bool save(size_t dstBit, astl::vector<astl::shared_ptr<void>> &pixels) override;
 
             /**
              * @brief Sets the dots per inch of the image.
@@ -451,7 +451,7 @@ namespace ecl
             bool dither() const { return _dither; }
 
             using OIIOExporter::save;
-            bool save(size_t dstBit, astl::vector<std::shared_ptr<void>> &pixels) override;
+            bool save(size_t dstBit, astl::vector<astl::shared_ptr<void>> &pixels) override;
 
         private:
             bool _unassociatedAlpha;
@@ -474,7 +474,7 @@ namespace ecl
             }
 
             using OIIOExporter::save;
-            bool save(size_t dstBit, astl::vector<std::shared_ptr<void>> &pixels) override;
+            bool save(size_t dstBit, astl::vector<astl::shared_ptr<void>> &pixels) override;
         };
 
         /**
@@ -526,7 +526,7 @@ namespace ecl
             std::string compression() const { return _compression; }
 
             using OIIOExporter::save;
-            bool save(size_t dstBit, astl::vector<std::shared_ptr<void>> &pixels) override;
+            bool save(size_t dstBit, astl::vector<astl::shared_ptr<void>> &pixels) override;
 
         private:
             std::string _compression;
@@ -650,7 +650,7 @@ namespace ecl
             bool unassociatedAlpha() const { return _unassociatedAlpha; }
 
             using OIIOExporter::save;
-            bool save(size_t dstBit, astl::vector<std::shared_ptr<void>> &pixels) override;
+            bool save(size_t dstBit, astl::vector<astl::shared_ptr<void>> &pixels) override;
 
         private:
             f32 _dpi;
@@ -714,7 +714,7 @@ namespace ecl
             }
 
             using OIIOExporter::save;
-            bool save(size_t dstBit, astl::vector<std::shared_ptr<void>> &pixels) override;
+            bool save(size_t dstBit, astl::vector<astl::shared_ptr<void>> &pixels) override;
 
         private:
             bool _binary;
@@ -797,7 +797,7 @@ namespace ecl
             bool dither() const { return _dither; }
 
             using OIIOExporter::save;
-            bool save(size_t dstBit, astl::vector<std::shared_ptr<void>> &pixels) override;
+            bool save(size_t dstBit, astl::vector<astl::shared_ptr<void>> &pixels) override;
 
         private:
             bool _dither;
@@ -966,7 +966,7 @@ namespace ecl
             f32 dpi() const { return _dpi; }
 
             using OIIOExporter::save;
-            bool save(size_t dstBit, astl::vector<std::shared_ptr<void>> &pixels) override;
+            bool save(size_t dstBit, astl::vector<astl::shared_ptr<void>> &pixels) override;
 
         private:
             bool _unassociatedAlpha;
@@ -1014,7 +1014,7 @@ namespace ecl
             bool dither() const { return _dither; }
 
             using OIIOExporter::save;
-            bool save(size_t dstBit, astl::vector<std::shared_ptr<void>> &pixels) override;
+            bool save(size_t dstBit, astl::vector<astl::shared_ptr<void>> &pixels) override;
 
         private:
             bool _dither;

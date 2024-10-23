@@ -13,7 +13,7 @@ namespace tests
         exporter.materialFlags = MaterialExportFlagBits::texture_copyToLocal;;
 
         createObjects(exporter.objects);
-        auto mat = std::make_shared<assets::MatRangeAssignAtrr>();
+        auto mat = astl::make_shared<assets::MatRangeAssignAtrr>();
         mat->matID = 0;
         exporter.objects.front().meta.push_back(mat);
 

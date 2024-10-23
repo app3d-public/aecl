@@ -57,7 +57,7 @@ namespace ecl
                 else if (token[0] == 'f')
                 {
                     token += 2;
-                    astl::vector<glm::ivec3> *vtn = new astl::vector<glm::ivec3>();
+                    astl::vector<glm::ivec3> *vtn = astl::alloc<astl::vector<glm::ivec3>>();
                     while (true)
                     {
                         int vId{0}, vtId{0}, vnId{0};
@@ -133,7 +133,7 @@ namespace ecl
                 int startIndex;
                 int rangeEnd;
                 std::string name;
-                std::shared_ptr<MeshBlock> mesh;
+                astl::shared_ptr<MeshBlock> mesh;
             };
 
             glm::vec3 getInnerEdge(size_t pos, f32 v1, f32 v2)
@@ -253,7 +253,7 @@ namespace ecl
                 {
                     logInfo("Indexing group data: '%s'", group.name.c_str());
                     const size_t faceCount = group.rangeEnd - group.startIndex;
-                    group.mesh = std::make_shared<MeshBlock>();
+                    group.mesh = astl::make_shared<MeshBlock>();
                     auto &m = group.mesh->model;
                     m.groups.reserve(faceCount * 3);
                     indexMesh(faceCount, ps, group);
@@ -281,7 +281,7 @@ namespace ecl
                         currentID += ires[i].size();
                     }
                     logDebug("Indices: %zu", m.indices.size());
-                    objects.emplace_back(group.name);
+                    objects.emplace_back(astl::IDGen()(), group.name);
                     objects.back().meta.push_back(group.mesh);
                 }
             }
@@ -721,8 +721,8 @@ namespace ecl
 
             void convertToMaterials(std::filesystem::path basePath, const astl::vector<Material> &mtlMatList,
                                     emhash5::HashMap<std::string, int> &matMap,
-                                    astl::vector<std::shared_ptr<assets::Asset>> &materials,
-                                    astl::vector<std::shared_ptr<assets::Target>> &textures)
+                                    astl::vector<astl::shared_ptr<assets::Asset>> &materials,
+                                    astl::vector<astl::shared_ptr<assets::Target>> &textures)
             {
                 emhash5::HashMap<std::string, size_t> texMap;
                 matMap.reserve(mtlMatList.size());
@@ -731,7 +731,7 @@ namespace ecl
                 {
                     auto &mtl = mtlMatList[i];
                     auto [mIt, mInserted] = matMap.emplace(mtl.name, i);
-                    auto mat = std::make_shared<assets::Material>();
+                    auto mat = astl::make_shared<assets::Material>();
                     if (mtl.map_Kd.path.empty())
                         mat->albedo.rgb = mtl.Kd.value;
                     else
@@ -742,7 +742,7 @@ namespace ecl
                         auto [it, inserted] = texMap.insert({parsedPath.string(), textures.size()});
                         if (inserted)
                         {
-                            auto target = std::make_shared<assets::Target>();
+                            auto target = astl::make_shared<assets::Target>();
                             assets::Target::Addr metaData;
                             target->header.type = assets::Type::Image;
                             target->header.compressed = false;
@@ -754,10 +754,11 @@ namespace ecl
                         mat->albedo.textured = true;
                         mat->albedo.textureID = it->second;
                     }
-                    materials[i] = std::make_shared<assets::Asset>();
+                    materials[i] = astl::make_shared<assets::Asset>();
                     materials[i]->header.type = assets::Type::Material;
                     materials[i]->blocks.push_back(mat);
-                    materials[i]->blocks.push_back(std::make_shared<assets::MaterialInfo>(mIt->first));
+                    materials[i]->blocks.push_back(
+                        astl::make_shared<assets::MaterialInfo>(astl::IDGen()(), mIt->first));
                 }
             }
 
@@ -776,38 +777,22 @@ namespace ecl
                 pst.gsize = pmt.g.size();
                 pst.useMtlsize = pmt.useMtl.size();
 
-                pst.v = (Line<glm::vec3> *)scalable_malloc(pst.vsize * sizeof(Line<glm::vec3>));
-                pst.vt = (Line<glm::vec2> *)scalable_malloc(pst.vtsize * sizeof(Line<glm::vec2>));
-                pst.vn = (Line<glm::vec3> *)scalable_malloc(pst.vnsize * sizeof(Line<glm::vec3>));
-                pst.f = (Line<astl::vector<glm::ivec3> *> *)scalable_malloc(pst.fsize *
-                                                                            sizeof(Line<astl::vector<glm::ivec3> *>));
-                pst.g = (Line<std::string> *)scalable_malloc(pst.gsize * sizeof(Line<std::string>));
-                pst.useMtl = (Line<std::string> *)scalable_malloc(pst.useMtlsize * sizeof(Line<std::string>));
-
-                // Construct
-                for (size_t i = 0; i < pmt.v.size(); ++i) new (&pst.v[i]) Line<glm::vec3>(pmt.v[i]);
-                for (size_t i = 0; i < pmt.vt.size(); ++i) new (&pst.vt[i]) Line<glm::vec2>(pmt.vt[i]);
-                for (size_t i = 0; i < pmt.vn.size(); ++i) new (&pst.vn[i]) Line<glm::vec3>(pmt.vn[i]);
-                for (size_t i = 0; i < pmt.f.size(); ++i) new (&pst.f[i]) Line<astl::vector<glm::ivec3> *>(pmt.f[i]);
-                for (size_t i = 0; i < pmt.g.size(); ++i) new (&pst.g[i]) Line<std::string>(pmt.g[i]);
-                for (size_t i = 0; i < pmt.useMtl.size(); ++i) new (&pst.useMtl[i]) Line<std::string>(pmt.useMtl[i]);
+                pst.v = astl::alloc_n<Line<glm::vec3>>(pst.vsize);
+                pst.vt = astl::alloc_n<Line<glm::vec2>>(pst.vtsize);
+                pst.vn = astl::alloc_n<Line<glm::vec3>>(pst.vnsize);
+                pst.f = astl::alloc_n<Line<astl::vector<glm::ivec3> *>>(pst.fsize);
+                pst.g = astl::alloc_n<Line<std::string>>(pst.gsize);
+                pst.useMtl = astl::alloc_n<Line<std::string>>(pst.useMtlsize);
             }
 
             void freePS(ParseSingleThread &ps)
             {
-                scalable_free(ps.v);
-                scalable_free(ps.vt);
-                scalable_free(ps.vn);
-                for (size_t i = 0; i < ps.fsize; ++i)
-                {
-                    delete ps.f[i].value;
-                    ps.f[i].~Line();
-                }
-                scalable_free(ps.f);
-                for (size_t i = 0; i < ps.gsize; ++i) ps.g[i].~Line();
-                scalable_free(ps.g);
-                for (size_t i = 0; i < ps.useMtlsize; ++i) ps.useMtl[i].~Line();
-                scalable_free(ps.useMtl);
+                astl::release(ps.v, ps.vsize);
+                astl::release(ps.vt, ps.vtsize);
+                astl::release(ps.vn, ps.vnsize);
+                astl::release(ps.f, ps.fsize);
+                astl::release(ps.g, ps.gsize);
+                astl::release(ps.useMtl, ps.useMtlsize);
             }
 
             void createGroupRanges(ParseSingleThread &ps, astl::vector<GroupRange> &groups)
@@ -835,7 +820,7 @@ namespace ecl
 
             void assignMaterialsToGroups(ParseSingleThread &ps, const astl::vector<GroupRange> &groups,
                                          const emhash5::HashMap<std::string, int> &matMap,
-                                         astl::vector<std::shared_ptr<assets::Asset>> &materials,
+                                         astl::vector<astl::shared_ptr<assets::Asset>> &materials,
                                          astl::vector<astl::vector<u32>> &ranges)
             {
                 if (ps.useMtlsize == 0) return;
@@ -866,7 +851,7 @@ namespace ecl
                                     logWarn("Can't find material info block");
                                     continue;
                                 }
-                                auto assignments = std::static_pointer_cast<assets::MaterialInfo>(*m_it)->assignments;
+                                auto assignments = astl::static_pointer_cast<assets::MaterialInfo>(*m_it)->assignments;
                                 if (std::find(assignments.begin(), assignments.end(), g) == assignments.end())
                                     assignments.push_back(g);
                             }
@@ -896,7 +881,7 @@ namespace ecl
                                 for (; f < ps.fsize && ps.f[f].index < m_next; ++f);
                             else
                             {
-                                auto meta = std::make_shared<assets::MatRangeAssignAtrr>();
+                                auto meta = astl::make_shared<assets::MatRangeAssignAtrr>();
                                 meta->matID = it->second;
                                 for (; f < ps.fsize && ps.f[f].index < m_next; ++f)
                                     meta->faces.push_back(f - group.startIndex);

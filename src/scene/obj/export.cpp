@@ -172,8 +172,8 @@ namespace ecl
                 os << "\n" << matBlock.str();
             }
 
-            void Exporter::writeMaterial(const std::shared_ptr<assets::MaterialInfo> &matInfo,
-                                         const std::shared_ptr<assets::Material> &mat, std::ostream &os)
+            void Exporter::writeMaterial(const astl::shared_ptr<assets::MaterialInfo> &matInfo,
+                                         const astl::shared_ptr<assets::Material> &mat, std::ostream &os)
             {
                 std::stringstream matBlock;
                 matBlock << "newmtl " << matInfo->name << "\n";
@@ -196,8 +196,8 @@ namespace ecl
             }
 
             void Exporter::writeMtlLibInfo(std::ofstream &mtlStream, std::stringstream &objStream,
-                                           astl::vector<std::shared_ptr<assets::MaterialInfo>> &metaInfo,
-                                           astl::vector<std::shared_ptr<assets::Material>> &materials)
+                                           astl::vector<astl::shared_ptr<assets::MaterialInfo>> &metaInfo,
+                                           astl::vector<astl::shared_ptr<assets::Material>> &materials)
             {
                 if (materialFlags != MaterialExportFlagBits::none)
                 {
@@ -221,10 +221,10 @@ namespace ecl
                         switch (block->signature())
                         {
                             case assets::sign_block::material:
-                                materials.push_back(std::static_pointer_cast<assets::Material>(block));
+                                materials.push_back(astl::static_pointer_cast<assets::Material>(block));
                                 break;
                             case assets::sign_block::material_info:
-                                metaInfo.push_back(std::static_pointer_cast<assets::MaterialInfo>(block));
+                                metaInfo.push_back(astl::static_pointer_cast<assets::MaterialInfo>(block));
                                 break;
                             default:
                                 break;
@@ -240,20 +240,20 @@ namespace ecl
             }
 
             void Exporter::writeObject(const assets::Object &object,
-                                       const astl::vector<std::shared_ptr<assets::MaterialInfo>> &matInfo,
+                                       const astl::vector<astl::shared_ptr<assets::MaterialInfo>> &matInfo,
                                        std::stringstream &objStream)
             {
-                std::shared_ptr<assets::mesh::MeshBlock> mesh;
-                astl::vector<std::shared_ptr<assets::MatRangeAssignAtrr>> assignes;
+                astl::shared_ptr<assets::mesh::MeshBlock> mesh;
+                astl::vector<astl::shared_ptr<assets::MatRangeAssignAtrr>> assignes;
                 for (auto &block : object.meta)
                 {
                     switch (block->signature())
                     {
                         case assets::sign_block::mesh:
-                            mesh = std::static_pointer_cast<assets::mesh::MeshBlock>(block);
+                            mesh = astl::static_pointer_cast<assets::mesh::MeshBlock>(block);
                             break;
                         case assets::sign_block::material_range_assign:
-                            assignes.push_back(std::static_pointer_cast<assets::MatRangeAssignAtrr>(block));
+                            assignes.push_back(astl::static_pointer_cast<assets::MatRangeAssignAtrr>(block));
                             break;
                         default:
                             logWarn("Unsupported signature: 0x%08x", block->signature());
@@ -267,10 +267,10 @@ namespace ecl
                     objStream << "o " << object.name << "\n";
                 auto &model = mesh->model;
                 writeVertices(model, objStream);
-                astl::vector<std::shared_ptr<assets::MatRangeAssignAtrr>> assignesAttr;
+                astl::vector<astl::shared_ptr<assets::MatRangeAssignAtrr>> assignesAttr;
                 auto default_matID_it = std::find_if(
                     assignes.begin(), assignes.end(),
-                    [](const std::shared_ptr<assets::MatRangeAssignAtrr> &range) { return range->faces.empty(); });
+                    [](const astl::shared_ptr<assets::MatRangeAssignAtrr> &range) { return range->faces.empty(); });
                 u32 default_matID = default_matID_it == assignes.end() ? -1 : (*default_matID_it)->matID;
                 assets::utils::filterMatAssignments(matInfo, assignes, model.faces.size(), default_matID, assignesAttr);
                 for (auto &assign : assignesAttr)
@@ -294,8 +294,8 @@ namespace ecl
             }
 
             void Exporter::writeMtl(std::ofstream &stream,
-                                    const astl::vector<std::shared_ptr<assets::MaterialInfo>> &matInfo,
-                                    const astl::vector<std::shared_ptr<assets::Material>> &materials)
+                                    const astl::vector<astl::shared_ptr<assets::MaterialInfo>> &matInfo,
+                                    const astl::vector<astl::shared_ptr<assets::Material>> &materials)
             {
                 if (!stream) return;
                 if (!_allMaterialsExist) writeDefaultMaterial(stream, objFlags & ObjExportFlagBits::mat_PBR);
@@ -311,8 +311,8 @@ namespace ecl
                     std::stringstream ss;
                     ss << "# App3D ECL OBJ Exporter\n";
                     std::ofstream mtlStream;
-                    astl::vector<std::shared_ptr<assets::MaterialInfo>> matMeta;
-                    astl::vector<std::shared_ptr<assets::Material>> materials;
+                    astl::vector<astl::shared_ptr<assets::MaterialInfo>> matMeta;
+                    astl::vector<astl::shared_ptr<assets::Material>> materials;
                     writeMtlLibInfo(mtlStream, ss, matMeta, materials);
                     for (auto &object : objects) writeObject(object, matMeta, ss);
 

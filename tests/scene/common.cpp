@@ -116,7 +116,7 @@ namespace tests
         objects.emplace_back();
         auto cube = objects.front();
         cube.name = "cube";
-        auto meshBlock = std::make_shared<assets::mesh::MeshBlock>();
+        auto meshBlock = astl::make_shared<assets::mesh::MeshBlock>();
         auto &model = meshBlock->model;
         createCubeVerticles(model.vertices);
         model.indices = {2,  3,  0,  0,  1,  2,  6,  7,  4,  4,  5,  6,  10, 11, 8,  8,  9,  10,
@@ -130,10 +130,10 @@ namespace tests
     void createMaterials(astl::vector<assets::Asset> &materials)
     {
         materials.emplace_back();
-        auto mat = std::make_shared<assets::Material>();
+        auto mat = astl::make_shared<assets::Material>();
         mat->albedo.textured = true;
         mat->albedo.textureID = 0;
-        auto meta = std::make_shared<assets::MaterialInfo>();
+        auto meta = astl::make_shared<assets::MaterialInfo>();
         meta->name = "ecl:test:mat_e";
         meta->assignments.push_back(0);
         materials.emplace_back();
