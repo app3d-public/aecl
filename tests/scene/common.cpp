@@ -153,7 +153,7 @@ namespace tests
         image.height = 4;
         image.channelCount = 4;
         image.channelNames = {"red", "green", "blue", "alpha"};
-        char *pixels = (char *)scalable_malloc(64);
+        char *pixels = astl::alloc_n<char>(image.imageSize());
         u8 color[4] = {255, 120, 80, 255};
         for (int w = 0; w < 4; w++)
         {
@@ -170,7 +170,7 @@ namespace tests
         tex.url = (texDir / "generated.png").string();
         ecl::image::PNGExporter exporter(tex.url, image);
         bool success = exporter.save(1);
-        scalable_free(image.pixels);
+        astl::release(pixels);
         if (!success) throw std::runtime_error("Failed to save image");
     }
 } // namespace tests

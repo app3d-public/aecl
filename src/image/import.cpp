@@ -14,7 +14,7 @@ namespace ecl
             std::function<bool(const std::unique_ptr<OIIO::ImageInput> &, int, int, void *, size_t)> loadHandler,
             assets::Image2D &info)
         {
-            info.pixels = scalable_malloc(info.imageSize());
+            info.pixels = astl::mem_allocator<std::byte>::allocate(info.imageSize());
             return loadHandler(inp, subimage, info.channelCount, info.pixels, info.imageSize());
         }
 
