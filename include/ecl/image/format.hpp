@@ -1,8 +1,8 @@
 #pragma once
 
 #include <OpenImageIO/imageio.h>
-#include <core/std/basic_types.hpp>
-#include <core/std/enum.hpp>
+#include <astl/basic_types.hpp>
+#include <astl/enum.hpp>
 #include <vulkan/vulkan.hpp>
 #include <vulkan/vulkan_enums.hpp>
 

@@ -2,7 +2,7 @@
 
 #include <assets/asset.hpp>
 #include <core/api.hpp>
-#include <core/io/file.hpp>
+#include <io/file.hpp>
 #include "format.hpp"
 
 namespace ecl

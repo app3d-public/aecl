@@ -1,10 +1,10 @@
 #include <algorithm>
 #include <assets/utils.hpp>
-#include <core/io/file.hpp>
+#include <astl/string.hpp>
 #include <core/log.hpp>
-#include <core/std/string.hpp>
 #include <ecl/scene/obj/export.hpp>
 #include <filesystem>
+#include <io/file.hpp>
 #include <oneapi/tbb/parallel_for.h>
 
 namespace ecl

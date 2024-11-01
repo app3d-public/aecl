@@ -1,6 +1,6 @@
 #pragma once
 
-#include <core/std/hash.hpp>
+#include <astl/hash.hpp>
 #include <emhash/hash_table5.hpp>
 #include <oneapi/tbb/concurrent_unordered_set.h>
 #include "../export.hpp"
@@ -56,7 +56,8 @@ namespace ecl
                 void writeMtlLibInfo(std::ofstream &mtlStream, std::stringstream &objStream,
                                      astl::vector<astl::shared_ptr<assets::MaterialInfo>> &metaInfo,
                                      astl::vector<astl::shared_ptr<assets::Material>> &materials);
-                void writeMtl(std::ofstream &stream, const astl::vector<astl::shared_ptr<assets::MaterialInfo>> &matInfo,
+                void writeMtl(std::ofstream &stream,
+                              const astl::vector<astl::shared_ptr<assets::MaterialInfo>> &matInfo,
                               const astl::vector<astl::shared_ptr<assets::Material>> &materials);
                 void writeObject(const assets::Object &object,
                                  const astl::vector<astl::shared_ptr<assets::MaterialInfo>> &matInfo,

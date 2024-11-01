@@ -2,7 +2,7 @@
 
 #include <assets/asset.hpp>
 #include <core/event.hpp>
-#include <core/io/file.hpp>
+#include <io/file.hpp>
 #include <exception>
 #include <string>
 

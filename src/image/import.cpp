@@ -1,9 +1,8 @@
 #include <assets/utils.hpp>
+#include <astl/hash.hpp>
 #include <core/log.hpp>
-#include <core/std/hash.hpp>
 #include <ecl/image/import.hpp>
 #include <oneapi/tbb/scalable_allocator.h>
-#include "core/io/file.hpp"
 
 namespace ecl
 {

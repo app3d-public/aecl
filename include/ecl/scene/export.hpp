@@ -1,7 +1,7 @@
 #pragma once
 
 #include <assets/asset.hpp>
-#include <core/std/enum.hpp>
+#include <astl/enum.hpp>
 
 namespace ecl
 {
