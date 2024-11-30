@@ -1,6 +1,5 @@
 #include "common.hpp"
 #include <ecl/image/export.hpp>
-#include <oneapi/tbb/scalable_allocator.h>
 
 namespace tests
 {

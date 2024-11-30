@@ -2,7 +2,6 @@
 #include <astl/hash.hpp>
 #include <core/log.hpp>
 #include <ecl/image/import.hpp>
-#include <oneapi/tbb/scalable_allocator.h>
 
 namespace ecl
 {
