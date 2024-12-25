@@ -777,12 +777,21 @@ namespace ecl
                 pst.gsize = pmt.g.size();
                 pst.useMtlsize = pmt.useMtl.size();
 
+                // Allocate
                 pst.v = astl::alloc_n<Line<glm::vec3>>(pst.vsize);
                 pst.vt = astl::alloc_n<Line<glm::vec2>>(pst.vtsize);
                 pst.vn = astl::alloc_n<Line<glm::vec3>>(pst.vnsize);
                 pst.f = astl::alloc_n<Line<astl::vector<glm::ivec3> *>>(pst.fsize);
                 pst.g = astl::alloc_n<Line<std::string>>(pst.gsize);
                 pst.useMtl = astl::alloc_n<Line<std::string>>(pst.useMtlsize);
+
+                // Construct
+                for (size_t i = 0; i < pmt.v.size(); ++i) new (&pst.v[i]) Line<glm::vec3>(pmt.v[i]);
+                for (size_t i = 0; i < pmt.vt.size(); ++i) new (&pst.vt[i]) Line<glm::vec2>(pmt.vt[i]);
+                for (size_t i = 0; i < pmt.vn.size(); ++i) new (&pst.vn[i]) Line<glm::vec3>(pmt.vn[i]);
+                for (size_t i = 0; i < pmt.f.size(); ++i) new (&pst.f[i]) Line<astl::vector<glm::ivec3> *>(pmt.f[i]);
+                for (size_t i = 0; i < pmt.g.size(); ++i) new (&pst.g[i]) Line<std::string>(pmt.g[i]);
+                for (size_t i = 0; i < pmt.useMtl.size(); ++i) new (&pst.useMtl[i]) Line<std::string>(pmt.useMtl[i]);
             }
 
             void freePS(ParseSingleThread &ps)
@@ -790,6 +799,7 @@ namespace ecl
                 astl::release(ps.v, ps.vsize);
                 astl::release(ps.vt, ps.vtsize);
                 astl::release(ps.vn, ps.vnsize);
+                for (int i = 0; i < ps.fsize; ++i) astl::release(ps.f[i].value);
                 astl::release(ps.f, ps.fsize);
                 astl::release(ps.g, ps.gsize);
                 astl::release(ps.useMtl, ps.useMtlsize);
