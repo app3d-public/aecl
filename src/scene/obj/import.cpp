@@ -906,20 +906,20 @@ namespace ecl
             {
                 auto start = std::chrono::high_resolution_clock::now();
                 logInfo("Loading OBJ file: %s", _path.string().c_str());
-                std::string header = astl::format("%s %ls", _("Task:File:Load"), _path.filename().c_str());
-                e.dispatch<task::UpdateEvent>("task:update", (void *)this, header, _("Task:File:Read"));
+                std::string header = astl::format("%s %ls", _("loading"), _path.filename().c_str());
+                e.dispatch<task::UpdateEvent>("task:update", (void *)this, header, _("file:read"));
                 ParseIndexed parsed;
                 io::file::ReadState result = io::file::readByBlock(_path.string(), parsed, parseLine);
                 if (result != io::file::ReadState::Success) return result;
 
-                e.dispatch<task::UpdateEvent>("task:update", (void *)this, header, _("Task:File:Serialize"), 0.2f);
+                e.dispatch<task::UpdateEvent>("task:update", (void *)this, header, _("data_serialization"), 0.2f);
                 logInfo("Serializing parse result");
                 ParseSingleThread ps;
                 allocatePS(parsed, ps);
                 astl::vector<GroupRange> groups;
                 createGroupRanges(ps, groups);
                 indexGroups(ps, _objects, groups);
-                e.dispatch<task::UpdateEvent>("task:update", (void *)this, header, _("Task:File:Load:Mat"), 0.8f);
+                e.dispatch<task::UpdateEvent>("task:update", (void *)this, header, _("materials:loading"), 0.8f);
                 if (!parsed.mtllib.empty())
                 {
                     astl::vector<Material> mtlMaterials;
