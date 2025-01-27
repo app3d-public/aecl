@@ -1,10 +1,9 @@
 #pragma once
 
 #include <OpenImageIO/imageio.h>
-#include <astl/basic_types.hpp>
 #include <astl/enum.hpp>
+#include <astl/scalars.hpp>
 #include <vulkan/vulkan.hpp>
-#include <vulkan/vulkan_enums.hpp>
 
 namespace ecl
 {
