@@ -1,4 +1,5 @@
 #include <ecl/scene/utils.hpp>
+#include <astl/hashset.hpp>
 #include <mapbox/earcut.hpp>
 
 #define isNearlyZero(x) (fabs(x) < 1e-6f)
@@ -20,7 +21,8 @@ namespace ecl
 
         using namespace assets::mesh;
 
-        astl::vector<Vertex2D> projectToVertex2D(const Face &face, const astl::vector<Vertex> &vertices, astl::vector<u32> &vertexIndices)
+        astl::vector<Vertex2D> projectToVertex2D(const IndexedFace &face, const astl::vector<Vertex> &vertices,
+                                                 astl::vector<u32> &vertexIndices)
         {
             glm::vec3 refPoint = vertices[face.vertices[0].vertex].pos;
             glm::vec3 xAxis, yAxis;
@@ -56,7 +58,7 @@ namespace ecl
             return projectedPolygon;
         }
 
-        astl::vector<u32> triangulate(const Face &face, const astl::vector<Vertex> &vertices)
+        astl::vector<u32> triangulate(const IndexedFace &face, const astl::vector<Vertex> &vertices)
         {
             astl::vector<u32> resultIndices;
             astl::vector<u32> vertexIndices;
@@ -96,11 +98,10 @@ namespace ecl
             }
         };
 
-        void buildBarycentric(astl::vector<bary::Vertex> &barycentric, const Face &face, const astl::vector<Vertex> &vertices,
-                              const astl::vector<u32> &indices)
+        void buildBarycentric(astl::vector<bary::Vertex> &barycentric, const IndexedFace &face,
+                              const astl::vector<Vertex> &vertices, const astl::vector<u32> &indices)
         {
-            static constexpr glm::vec3 barycentric_defaults[3] = {
-                {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f, 0.0f}};
+            static glm::vec3 barycentric_defaults[3] = {{0.0f, 0.0f, 1.0f}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f, 0.0f}};
 
             size_t fv = 0;
             for (size_t i = 0; i < face.vertices.size(); i++)

@@ -12,14 +12,14 @@ namespace ecl
         bool isPolygonCCW(const astl::vector<Vertex2D> &polygon);
 
         // Projects a 3D point to a 2D point
-        astl::vector<Vertex2D> projectToVertex2D(const assets::mesh::Face &face,
+        astl::vector<Vertex2D> projectToVertex2D(const assets::mesh::IndexedFace &face,
                                                  const astl::vector<assets::mesh::Vertex> &vertices,
                                                  astl::vector<u32> &vertexIndices);
 
-        astl::vector<u32> triangulate(const assets::mesh::Face &face,
+        astl::vector<u32> triangulate(const assets::mesh::IndexedFace &face,
                                       const astl::vector<assets::mesh::Vertex> &vertices);
 
-        inline glm::vec3 averageVertexNormal(const assets::mesh::Face &face,
+        inline glm::vec3 averageVertexNormal(const assets::mesh::IndexedFace &face,
                                              const astl::vector<assets::mesh::Vertex> &vertices)
         {
             glm::vec3 normal{0.0f, 0.0f, 0.0f};
@@ -37,7 +37,8 @@ namespace ecl
          *
          * @throws None
          */
-        void buildBarycentric(astl::vector<assets::mesh::bary::Vertex> &barycentric, const assets::mesh::Face &face,
-                              const astl::vector<assets::mesh::Vertex> &vertices, const astl::vector<u32> &indices);
+        void buildBarycentric(astl::vector<assets::mesh::bary::Vertex> &barycentric,
+                              const assets::mesh::IndexedFace &face, const astl::vector<assets::mesh::Vertex> &vertices,
+                              const astl::vector<u32> &indices);
     } // namespace utils
 } // namespace ecl

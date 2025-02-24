@@ -38,20 +38,7 @@ namespace tests
         vertices[23] = {{-100, -100, -100}, {0, 0}, {0, -1, 0}};
     }
 
-    void createCubeVGroups(astl::vector<assets::mesh::VertexGroup> &vertexGroups)
-    {
-        vertexGroups.resize(8);
-        vertexGroups[0] = {{3, 12, 22}, {0, 3, 5}};
-        vertexGroups[1] = {{2, 13, 19}, {0, 3, 4}};
-        vertexGroups[2] = {{0, 7, 21}, {0, 1, 5}};
-        vertexGroups[3] = {{1, 6, 16}, {0, 1, 4}};
-        vertexGroups[4] = {{4, 11, 20}, {1, 2, 5}};
-        vertexGroups[5] = {{5, 10, 17}, {1, 2, 4}};
-        vertexGroups[6] = {{8, 15, 23}, {2, 3, 5}};
-        vertexGroups[7] = {{9, 14, 18}, {2, 3, 4}};
-    }
-
-    void createCubeFaces(astl::vector<assets::mesh::Face> &faces)
+    void createCubeFaces(astl::vector<assets::mesh::IndexedFace> &faces)
     {
         faces.resize(6);
         faces[0] = {{
@@ -113,16 +100,16 @@ namespace tests
     void createObjects(astl::vector<assets::Object> &objects)
     {
         objects.emplace_back();
-        auto cube = objects.front();
+        auto& cube = objects.front();
         cube.name = "cube";
         auto meshBlock = astl::make_shared<assets::mesh::MeshBlock>();
         auto &model = meshBlock->model;
         createCubeVerticles(model.vertices);
         model.indices = {2,  3,  0,  0,  1,  2,  6,  7,  4,  4,  5,  6,  10, 11, 8,  8,  9,  10,
                          14, 15, 12, 12, 13, 14, 18, 19, 16, 16, 17, 18, 22, 23, 20, 20, 21, 22};
-        createCubeVGroups(model.groups);
         createCubeFaces(model.faces);
-        model.aabb = {{-100, -100, -100}, {100, 100, 100}};
+        model.group_count = 8;
+        model.aabb = {glm::vec3{-100, -100, -100}, {100, 100, 100}};
         cube.meta.push_back(meshBlock);
     }
 

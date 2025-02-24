@@ -10,7 +10,7 @@ namespace tests
         exporter.meshFlags =
             MeshExportFlagBits::export_normals | MeshExportFlagBits::export_uv | MeshExportFlagBits::transform_reverseY;
         exporter.objFlags = obj::ObjExportFlagBits::mgp_groups | obj::ObjExportFlagBits::mat_PBR;
-        exporter.materialFlags = MaterialExportFlagBits::texture_copyToLocal;;
+        exporter.materialFlags = MaterialExportFlagBits::texture_copyToLocal;
 
         createObjects(exporter.objects);
         auto mat = astl::make_shared<assets::MatRangeAssignAtrr>();

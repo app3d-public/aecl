@@ -1,27 +1,29 @@
 #pragma once
 
 #include <OpenImageIO/imageio.h>
-#include <astl/basic_types.hpp>
 #include <astl/enum.hpp>
 #include <vulkan/vulkan.hpp>
-#include <vulkan/vulkan_enums.hpp>
 
 namespace ecl
 {
     namespace image
     {
-        enum class FormatFlagBits
+        struct FormatFlagBits
         {
-            none = 0x0,
-            bit8 = 0x1,
-            bit16 = 0x2,
-            bit32 = 0x4,
-            readOnly = 0x8,
-            multilayer = 0x10,
-            alpha = 0x20
+            enum enum_type
+            {
+                none = 0x0,
+                bit8 = 0x1,
+                bit16 = 0x2,
+                bit32 = 0x4,
+                readOnly = 0x8,
+                multilayer = 0x10,
+                alpha = 0x20,
+            };
+            using flag_bitmask = std::true_type;
         };
 
-        using FormatFlags = Flags<FormatFlagBits>;
+        using FormatFlags = astl::flags<FormatFlagBits>;
 
         struct Format
         {
@@ -109,13 +111,3 @@ namespace ecl
         }
     } // namespace image
 } // namespace ecl
-
-template <>
-struct FlagTraits<ecl::image::FormatFlagBits>
-{
-    static constexpr bool isBitmask = true;
-    static constexpr ecl::image::FormatFlags allFlags =
-        ecl::image::FormatFlagBits::none | ecl::image::FormatFlagBits::bit8 | ecl::image::FormatFlagBits::bit16 |
-        ecl::image::FormatFlagBits::bit32 | ecl::image::FormatFlagBits::readOnly |
-        ecl::image::FormatFlagBits::multilayer | ecl::image::FormatFlagBits::alpha;
-};

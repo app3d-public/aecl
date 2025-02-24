@@ -9,7 +9,7 @@ namespace tests
 
     void createCubeVGroups(astl::vector<assets::mesh::VertexGroup> &vertexGroups);
 
-    void createCubeFaces(astl::vector<assets::mesh::Face> &faces);
+    void createCubeFaces(astl::vector<assets::mesh::IndexedFace> &faces);
 
     void createObjects(astl::vector<assets::Object> &objects);
 

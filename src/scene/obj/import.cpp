@@ -136,19 +136,6 @@ namespace ecl
                 astl::shared_ptr<MeshBlock> mesh;
             };
 
-            glm::vec3 getInnerEdge(size_t pos, f32 v1, f32 v2)
-            {
-                switch (pos)
-                {
-                    case 0:
-                        return glm::vec3(v1, v2, 1.0f);
-                    case 1:
-                        return glm::vec3(v1, 1.0f, v2);
-                    default:
-                        return glm::vec3(1.0f, v1, v2);
-                }
-            };
-
             glm::vec3 calculateNormal(const ParseSingleThread &ps, const astl::vector<glm::ivec3> &__restrict inFace)
             {
                 glm::vec3 normal{0.0f};
@@ -164,12 +151,12 @@ namespace ecl
             }
 
             void addVertexToFace(const ParseSingleThread &__restrict ps, u32 vgi, u32 current,
-                                 emhash5::HashMap<glm::ivec3, u32> &vtnMap, const glm::ivec3 &vtn, Model &m, Face &face)
+                                 emhash5::HashMap<glm::ivec3, u32> &vtnMap, const glm::ivec3 &vtn, Model &m,
+                                 IndexedFace &face)
             {
                 auto [vIt, vInserted] = vtnMap.emplace(vtn, vtnMap.size());
                 if (vInserted)
                 {
-                    m.groups[vgi].vertices.emplace_back(m.vertices.size());
                     face.vertices.emplace_back(vgi, m.vertices.size());
                     m.vertices.emplace_back(ps.v[current].value);
                     auto &vertex = m.vertices.back();
@@ -179,37 +166,13 @@ namespace ecl
                     m.aabb.max = glm::max(m.aabb.max, vertex.pos);
                 }
                 else
-                    face.vertices.emplace_back(current, vIt->second);
-            }
-
-            void addVertexToFace(const ParseSingleThread &__restrict ps, u32 vgi, u32 current, const glm::ivec3 &vtn,
-                                 Model &m, Face &face)
-            {
-                Vertex vertex{ps.v[current].value};
-                if (vtn.y != 0 && ps.vtsize > vtn.y) vertex.uv = ps.vt[vtn.y - 1].value;
-                if (vtn.z != 0 && ps.vnsize > vtn.z)
-                    vertex.normal = ps.vn[vtn.z - 1].value;
-                else
-                    vertex.normal = face.normal;
-                auto &vgv = m.groups[vgi].vertices;
-                auto it = std::find_if(vgv.begin(), vgv.end(),
-                                       [&m, &vertex](u32 index) { return m.vertices[index] == vertex; });
-                if (it == vgv.end())
-                {
-                    vgv.emplace_back(m.vertices.size());
-                    face.vertices.emplace_back(vgi, m.vertices.size());
-                    m.vertices.emplace_back(vertex);
-                    m.aabb.min = glm::min(m.aabb.min, vertex.pos);
-                    m.aabb.max = glm::max(m.aabb.max, vertex.pos);
-                }
-                else
-                    face.vertices.emplace_back(vgi, *it);
+                    face.vertices.emplace_back(vgi, vIt->second);
             }
 
             void indexMesh(size_t faceCount, const ParseSingleThread &ps, GroupRange &group)
             {
                 emhash5::HashMap<glm::ivec3, u32> vtnMap;
-                if (ps.vnsize > 0) vtnMap.reserve(ps.vsize);
+                vtnMap.reserve(ps.vsize);
                 auto &m = group.mesh->model;
                 m.faces.resize(faceCount);
                 astl::vector<int> posMap(ps.vsize, -1);
@@ -223,25 +186,8 @@ namespace ecl
                         auto &vtn = (*inFace)[v];
                         const int current = vtn.x - 1;
                         if (ps.vsize < vtn.x) continue;
-                        VertexGroup *vgroup;
-                        u32 vgroupIndex = 0;
-                        if (posMap[current] == -1)
-                        {
-                            m.groups.emplace_back();
-                            vgroup = &m.groups.back();
-                            vgroupIndex = m.groups.size() - 1;
-                            posMap[current] = m.groups.size() - 1;
-                        }
-                        else
-                        {
-                            vgroupIndex = posMap[current];
-                            vgroup = &m.groups[posMap[current]];
-                        }
-                        if (ps.vnsize == 0)
-                            addVertexToFace(ps, vgroupIndex, current, vtn, m, face);
-                        else
-                            addVertexToFace(ps, vgroupIndex, current, vtnMap, vtn, m, face);
-                        vgroup->faces.push_back(f);
+                        if (posMap[current] == -1) posMap[current] = ++m.group_count;
+                        addVertexToFace(ps, posMap[current], current, vtnMap, vtn, m, face);
                     }
                 }
             }
@@ -255,7 +201,6 @@ namespace ecl
                     const size_t faceCount = group.rangeEnd - group.startIndex;
                     group.mesh = astl::make_shared<MeshBlock>();
                     auto &m = group.mesh->model;
-                    m.groups.reserve(faceCount * 3);
                     indexMesh(faceCount, ps, group);
                     logInfo("Imported vertices: %zu", m.vertices.size());
                     logInfo("Imported faces: %zu", m.faces.size());

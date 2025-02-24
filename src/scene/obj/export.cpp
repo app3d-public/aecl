@@ -23,10 +23,11 @@ namespace ecl
                 if (flags & MeshExportFlagBits::transform_swapYZ) std::swap(pos.y, pos.z);
             }
 
-            void Exporter::writeVertices(assets::mesh::Model &model, std::stringstream &ss)
+            void Exporter::writeVertices(assets::mesh::Model &model,
+                                         const astl::vector<assets::mesh::VertexGroup> &groups, std::stringstream &ss)
             {
                 // v
-                for (auto &group : model.groups)
+                for (auto &group : groups)
                 {
                     auto &vID = group.vertices.front();
                     glm::vec3 &pos = model.vertices[vID].pos;
@@ -58,10 +59,10 @@ namespace ecl
             }
 
             void Exporter::writeTriangles(assets::mesh::MeshBlock *meta, std::ostream &os,
-                                          const astl::vector<u32> &faces)
+                                          const astl::vector<u32> &faces,
+                                          const astl::vector<assets::mesh::VertexGroup> &groups)
             {
                 const auto &m = meta->model;
-                auto &groups = meta->model.groups;
                 astl::vector<u32> positions(m.vertices.size());
                 for (int g = 0; g < groups.size(); g++)
                     for (auto id : groups[g].vertices) positions[id] = g;
@@ -195,9 +196,7 @@ namespace ecl
                 os << "\n" << matBlock.str();
             }
 
-            void Exporter::writeMtlLibInfo(std::ofstream &mtlStream, std::stringstream &objStream,
-                                           astl::vector<astl::shared_ptr<assets::MaterialInfo>> &metaInfo,
-                                           astl::vector<astl::shared_ptr<assets::Material>> &materials)
+            void Exporter::writeMtlLibInfo(std::ofstream &mtlStream, std::stringstream &objStream)
             {
                 if (materialFlags != MaterialExportFlagBits::none)
                 {
@@ -216,32 +215,28 @@ namespace ecl
 
                 for (auto &mat : Exporter::materials)
                 {
+                    astl::shared_ptr<assets::Material> ptr;
                     for (auto &block : mat.blocks)
                     {
                         switch (block->signature())
                         {
                             case assets::sign_block::material:
-                                materials.push_back(astl::static_pointer_cast<assets::Material>(block));
+                                ptr = astl::static_pointer_cast<assets::Material>(block);
                                 break;
                             case assets::sign_block::material_info:
-                                metaInfo.push_back(astl::static_pointer_cast<assets::MaterialInfo>(block));
-                                break;
+                            {
+                                auto info = astl::static_pointer_cast<assets::MaterialInfo>(block);
+                                _matMap[info->id] = {info, ptr};
+                            }
+                            break;
                             default:
                                 break;
                         }
                     }
                 }
-                if (materials.size() != metaInfo.size())
-                {
-                    logWarn("Some meta data is missing in materials");
-                    materials.clear();
-                    metaInfo.clear();
-                }
             }
 
-            void Exporter::writeObject(const assets::Object &object,
-                                       const astl::vector<astl::shared_ptr<assets::MaterialInfo>> &matInfo,
-                                       std::stringstream &objStream)
+            void Exporter::writeObject(const assets::Object &object, std::stringstream &objStream)
             {
                 astl::shared_ptr<assets::mesh::MeshBlock> mesh;
                 astl::vector<astl::shared_ptr<assets::MatRangeAssignAtrr>> assignes;
@@ -261,45 +256,55 @@ namespace ecl
                     }
                 }
                 if (!mesh) return;
+                astl::vector<assets::mesh::VertexGroup> vgroups;
+                assets::utils::mesh::fillVertexGroups(mesh->model, vgroups);
                 if (objFlags & ObjExportFlagBits::mgp_groups)
                     objStream << "g " << object.name << "\n";
                 else if (objFlags & ObjExportFlagBits::mgp_objects)
                     objStream << "o " << object.name << "\n";
                 auto &model = mesh->model;
-                writeVertices(model, objStream);
+                writeVertices(model, vgroups, objStream);
                 astl::vector<astl::shared_ptr<assets::MatRangeAssignAtrr>> assignesAttr;
                 auto default_matID_it = std::find_if(
                     assignes.begin(), assignes.end(),
                     [](const astl::shared_ptr<assets::MatRangeAssignAtrr> &range) { return range->faces.empty(); });
-                u32 default_matID = default_matID_it == assignes.end() ? -1 : (*default_matID_it)->matID;
-                assets::utils::filterMatAssignments(matInfo, assignes, model.faces.size(), default_matID, assignesAttr);
+                u64 default_matID = default_matID_it == assignes.end() ? 0 : (*default_matID_it)->matID;
+                assets::utils::filterMatAssignments(assignes, model.faces.size(), default_matID, assignesAttr);
                 for (auto &assign : assignesAttr)
                 {
                     if (assign->faces.empty()) continue;
                     if (materialFlags != MaterialExportFlagBits::none)
                     {
-                        if (assign->matID == -1)
+                        if (assign->matID == 0)
                         {
                             objStream << "usemtl default\n";
                             _allMaterialsExist = false;
                         }
                         else
-                            objStream << "usemtl " << matInfo[assign->matID]->name << "\n";
+                        {
+                            auto it = _matMap.find(assign->matID);
+                            if (it == _matMap.end())
+                                logError("Failed to find material: %llx", assign->matID);
+                            else
+                                objStream << "usemtl " << it->second.info->name << "\n";
+                        }
                     }
                     if (meshFlags & MeshExportFlagBits::export_triangulated)
-                        writeTriangles(mesh.get(), objStream, assign->faces);
+                        writeTriangles(mesh.get(), objStream, assign->faces, vgroups);
                     else
                         writeFaces(mesh.get(), objStream, assign->faces);
                 }
             }
 
-            void Exporter::writeMtl(std::ofstream &stream,
-                                    const astl::vector<astl::shared_ptr<assets::MaterialInfo>> &matInfo,
-                                    const astl::vector<astl::shared_ptr<assets::Material>> &materials)
+            void Exporter::writeMtl(std::ofstream &stream)
             {
                 if (!stream) return;
                 if (!_allMaterialsExist) writeDefaultMaterial(stream, objFlags & ObjExportFlagBits::mat_PBR);
-                for (int m = 0; m < materials.size(); ++m) writeMaterial(matInfo[m], materials[m], stream);
+                for (auto it = _matMap.begin(); it != _matMap.end(); it++)
+                {
+                    auto &ref = it->second;
+                    writeMaterial(ref.info, ref.mat, stream);
+                }
                 stream.close();
             }
 
@@ -311,10 +316,8 @@ namespace ecl
                     std::stringstream ss;
                     ss << "# App3D ECL OBJ Exporter\n";
                     std::ofstream mtlStream;
-                    astl::vector<astl::shared_ptr<assets::MaterialInfo>> matMeta;
-                    astl::vector<astl::shared_ptr<assets::Material>> materials;
-                    writeMtlLibInfo(mtlStream, ss, matMeta, materials);
-                    for (auto &object : objects) writeObject(object, matMeta, ss);
+                    writeMtlLibInfo(mtlStream, ss);
+                    for (auto &object : objects) writeObject(object, ss);
 
                     std::string error;
                     if (!io::file::writeFileByBlock(path.string(), ss.str().c_str(), 1024 * 1024, error))
@@ -322,8 +325,7 @@ namespace ecl
                         logError("OBJ export failed: %s", error.c_str());
                         return false;
                     }
-
-                    writeMtl(mtlStream, matMeta, materials);
+                    writeMtl(mtlStream);
                     return true;
                 }
                 catch (const std::exception &e)
