@@ -2,6 +2,7 @@
 
 #include <OpenImageIO/imageio.h>
 #include <astl/enum.hpp>
+#include <astl/scalars.hpp>
 #include <vulkan/vulkan.hpp>
 
 namespace ecl
