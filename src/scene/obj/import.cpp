@@ -5,7 +5,7 @@
 #include <core/task.hpp>
 #include <ecl/scene/obj/import.hpp>
 #include <ecl/scene/utils.hpp>
-#include <emhash/hash_table5.hpp>
+#include <emhash/hash_table8.hpp>
 #include <oneapi/tbb/parallel_sort.h>
 
 namespace ecl
@@ -151,7 +151,7 @@ namespace ecl
             }
 
             void addVertexToFace(const ParseSingleThread &__restrict ps, u32 vgi, u32 current,
-                                 emhash5::HashMap<glm::ivec3, u32> &vtnMap, const glm::ivec3 &vtn, Model &m,
+                                 emhash8::HashMap<glm::ivec3, u32> &vtnMap, const glm::ivec3 &vtn, Model &m,
                                  IndexedFace &face)
             {
                 auto [vIt, vInserted] = vtnMap.emplace(vtn, vtnMap.size());
@@ -171,7 +171,7 @@ namespace ecl
 
             void indexMesh(size_t faceCount, const ParseSingleThread &ps, GroupRange &group)
             {
-                emhash5::HashMap<glm::ivec3, u32> vtnMap;
+                emhash8::HashMap<glm::ivec3, u32> vtnMap;
                 vtnMap.reserve(ps.vsize);
                 auto &m = group.mesh->model;
                 m.faces.resize(faceCount);
@@ -665,11 +665,11 @@ namespace ecl
             }
 
             void convertToMaterials(std::filesystem::path basePath, const astl::vector<Material> &mtlMatList,
-                                    emhash5::HashMap<std::string, int> &matMap,
+                                    emhash8::HashMap<std::string, int> &matMap,
                                     astl::vector<astl::shared_ptr<assets::Asset>> &materials,
                                     astl::vector<astl::shared_ptr<assets::Target>> &textures)
             {
-                emhash5::HashMap<std::string, size_t> texMap;
+                emhash8::HashMap<std::string, size_t> texMap;
                 matMap.reserve(mtlMatList.size());
                 materials.resize(mtlMatList.size());
                 for (int i = 0; i < mtlMatList.size(); ++i)
@@ -774,7 +774,7 @@ namespace ecl
             }
 
             void assignMaterialsToGroups(ParseSingleThread &ps, const astl::vector<GroupRange> &groups,
-                                         const emhash5::HashMap<std::string, int> &matMap,
+                                         const emhash8::HashMap<std::string, int> &matMap,
                                          astl::vector<astl::shared_ptr<assets::Asset>> &materials,
                                          astl::vector<astl::vector<u32>> &ranges)
             {
@@ -816,7 +816,7 @@ namespace ecl
             }
 
             void assignRangesToObjects(ParseSingleThread &ps, const astl::vector<astl::vector<u32>> &ranges,
-                                       emhash5::HashMap<std::string, int> &matMap,
+                                       emhash8::HashMap<std::string, int> &matMap,
                                        const astl::vector<GroupRange> &groups, astl::vector<assets::Object> &objects)
             {
                 for (int gr = 0; gr < ranges.size(); ++gr)
@@ -852,24 +852,24 @@ namespace ecl
                 auto start = std::chrono::high_resolution_clock::now();
                 logInfo("Loading OBJ file: %s", _path.string().c_str());
                 std::string header = astl::format("%s %ls", _("loading"), _path.filename().c_str());
-                e.dispatch<task::UpdateEvent>("task:update", (void *)this, header, _("file:read"));
+                e.dispatch<task::UpdateEvent>((void *)this, header, _("file:read"));
                 ParseIndexed parsed;
                 io::file::ReadState result = io::file::readByBlock(_path.string(), parsed, parseLine);
                 if (result != io::file::ReadState::Success) return result;
 
-                e.dispatch<task::UpdateEvent>("task:update", (void *)this, header, _("data_serialization"), 0.2f);
+                e.dispatch<task::UpdateEvent>((void *)this, header, _("data_serialization"), 0.2f);
                 logInfo("Serializing parse result");
                 ParseSingleThread ps;
                 allocatePS(parsed, ps);
                 astl::vector<GroupRange> groups;
                 createGroupRanges(ps, groups);
                 indexGroups(ps, _objects, groups);
-                e.dispatch<task::UpdateEvent>("task:update", (void *)this, header, _("materials:loading"), 0.8f);
+                e.dispatch<task::UpdateEvent>((void *)this, header, _("materials:loading"), 0.8f);
                 if (!parsed.mtllib.empty())
                 {
                     astl::vector<Material> mtlMaterials;
                     parseMTL(_path, parsed, mtlMaterials);
-                    emhash5::HashMap<std::string, int> matMap;
+                    emhash8::HashMap<std::string, int> matMap;
                     astl::vector<astl::vector<u32>> faceMatRanges;
                     convertToMaterials(_path, mtlMaterials, matMap, _materials, _textures);
                     assignMaterialsToGroups(ps, groups, matMap, _materials, faceMatRanges);
