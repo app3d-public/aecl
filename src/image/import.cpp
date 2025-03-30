@@ -1,6 +1,6 @@
+#include <acul/hash/hashmap.hpp>
+#include <acul/log.hpp>
 #include <assets/utils.hpp>
-#include <astl/hash.hpp>
-#include <core/log.hpp>
 #include <ecl/image/import.hpp>
 
 namespace ecl
@@ -10,19 +10,19 @@ namespace ecl
         bool OIIOLoader::loadImage(
             const std::unique_ptr<OIIO::ImageInput> &inp, int subimage,
             std::function<bool(const std::unique_ptr<OIIO::ImageInput> &, int, int, void *, size_t)> loadHandler,
-            assets::Image2D &info)
+            umbf::Image2D &info)
         {
-            info.pixels = astl::mem_allocator<std::byte>::allocate(info.imageSize());
+            info.pixels = acul::mem_allocator<std::byte>::allocate(info.imageSize());
             return loadHandler(inp, subimage, info.channelCount, info.pixels, info.imageSize());
         }
 
-        io::file::ReadState OIIOLoader::load(const std::filesystem::path &path, astl::vector<assets::Image2D> &images)
+        acul::io::file::op_state OIIOLoader::load(const acul::string &path, acul::vector<umbf::Image2D> &images)
         {
-            auto inp = OIIO::ImageInput::open(path.string());
+            auto inp = OIIO::ImageInput::open(path.c_str());
             if (!inp)
             {
                 logError("OIIO: %s", OIIO::geterror().c_str());
-                return io::file::ReadState::Error;
+                return acul::io::file::op_state::error;
             }
             std::function<bool(const std::unique_ptr<OIIO::ImageInput> &inp, int, int, void *, vk::DeviceSize)>
                 loadHandler{nullptr};
@@ -30,9 +30,9 @@ namespace ecl
             for (int subimage{0}; inp->seek_subimage(subimage, 0); subimage++)
             {
                 const OIIO::ImageSpec &spec = inp->spec();
-                astl::vector<std::string> channelNames(spec.channelnames.size());
-                for (size_t i = 0; i < spec.nchannels; i++) channelNames[i] = spec.channelnames[i];
-                assets::Image2D info;
+                acul::vector<acul::string> channelNames(spec.channelnames.size());
+                for (size_t i = 0; i < spec.nchannels; i++) channelNames[i] = spec.channelnames[i].c_str();
+                umbf::Image2D info;
                 info.width = spec.width;
                 info.height = spec.height;
                 info.channelCount = spec.nchannels;
@@ -58,7 +58,7 @@ namespace ecl
                     if (imageFormat == vk::Format::eUndefined)
                     {
                         logError("Unsupported image format");
-                        return io::file::ReadState::Error;
+                        return acul::io::file::op_state::error;
                     }
                     OIIO::TypeDesc dstType = vkFormatToOIIO(imageFormat);
                     loadHandler = [dstType](const std::unique_ptr<OIIO::ImageInput> &inp, int subimage, int channels,
@@ -72,58 +72,58 @@ namespace ecl
                 images.push_back(info);
             }
             inp->close();
-            return images.empty() ? io::file::ReadState::Error : io::file::ReadState::Success;
+            return images.empty() ? acul::io::file::op_state::error : acul::io::file::op_state::success;
         }
 
-        io::file::ReadState AssetLoader::load(const std::filesystem::path &path, astl::vector<assets::Image2D> &images)
+        acul::io::file::op_state UMBFLoader::load(const acul::string &path, acul::vector<umbf::Image2D> &images)
         {
-            auto asset = assets::Asset::readFromFile(path);
-            if (!asset) return io::file::ReadState::Error;
+            auto asset = umbf::File::readFromDisk(path);
+            if (!asset) return acul::io::file::op_state::error;
             _checksum = asset->checksum;
-            if (asset->blocks.empty() || asset->blocks.front()->signature() != assets::sign_block::image2D)
+            if (asset->blocks.empty() || asset->blocks.front()->signature() != umbf::sign_block::meta::image2D)
             {
-                logWarn("ECL Asset Loader can recognize only 2D images");
-                return io::file::ReadState::Error;
+                logWarn("ECL UMBF Loader can recognize only 2D images");
+                return acul::io::file::op_state::error;
             }
-            auto image = astl::static_pointer_cast<assets::Image2D>(asset->blocks.front());
+            auto image = acul::static_pointer_cast<umbf::Image2D>(asset->blocks.front());
             images.push_back(*image);
-            return io::file::ReadState::Success;
+            return acul::io::file::op_state::success;
         }
 
-        ILoader *getImporterByPath(const std::filesystem::path &path)
+        ILoader *getImporterByPath(const acul::string &path)
         {
-            switch (getTypeByExt(path.extension().string()))
+            switch (getTypeByExt(acul::io::get_extension(path)))
             {
                 case Type::BMP:
-                    return astl::alloc<BMPLoader>();
+                    return acul::alloc<BMPLoader>();
                 case Type::GIF:
-                    return astl::alloc<GIFLoader>();
+                    return acul::alloc<GIFLoader>();
                 case Type::HDR:
-                    return astl::alloc<HDRLoader>();
+                    return acul::alloc<HDRLoader>();
                 case Type::HEIF:
-                    return astl::alloc<HEIFLoader>();
+                    return acul::alloc<HEIFLoader>();
                 case Type::JPEG:
-                    return astl::alloc<JPEGLoader>();
+                    return acul::alloc<JPEGLoader>();
                 case Type::JPEG2000:
-                    return astl::alloc<JPEG2000Loader>();
+                    return acul::alloc<JPEG2000Loader>();
                 case Type::JPEGXL:
-                    return astl::alloc<JPEGXLLoader>();
+                    return acul::alloc<JPEGXLLoader>();
                 case Type::OpenEXR:
-                    return astl::alloc<OpenEXRLoader>();
+                    return acul::alloc<OpenEXRLoader>();
                 case Type::PNG:
-                    return astl::alloc<PNGLoader>();
+                    return acul::alloc<PNGLoader>();
                 case Type::PBM:
-                    return astl::alloc<PBMLoader>();
+                    return acul::alloc<PBMLoader>();
                 case Type::RAW:
-                    return astl::alloc<RAWLoader>();
+                    return acul::alloc<RAWLoader>();
                 case Type::Targa:
-                    return astl::alloc<TargaLoader>();
+                    return acul::alloc<TargaLoader>();
                 case Type::TIFF:
-                    return astl::alloc<TIFFLoader>();
+                    return acul::alloc<TIFFLoader>();
                 case Type::WebP:
-                    return astl::alloc<WebPLoader>();
-                case Type::Asset:
-                    return astl::alloc<AssetLoader>();
+                    return acul::alloc<WebPLoader>();
+                case Type::UMBF:
+                    return acul::alloc<UMBFLoader>();
                 default:
                     return nullptr;
             }

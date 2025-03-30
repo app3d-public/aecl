@@ -1,8 +1,9 @@
 #pragma once
 
 #include <OpenImageIO/imageio.h>
-#include <astl/enum.hpp>
-#include <astl/scalars.hpp>
+#include <acul/enum.hpp>
+#include <acul/scalars.hpp>
+#include <acul/string/string_view.hpp>
 #include <vulkan/vulkan.hpp>
 
 namespace ecl
@@ -24,7 +25,7 @@ namespace ecl
             using flag_bitmask = std::true_type;
         };
 
-        using FormatFlags = astl::flags<FormatFlagBits>;
+        using FormatFlags = acul::flags<FormatFlagBits>;
 
         struct Format
         {
@@ -85,12 +86,12 @@ namespace ecl
             Targa,
             TIFF,
             WebP,
-            Asset
+            UMBF
         };
 
-        constexpr Type getTypeByExt(std::string_view extension)
+        constexpr Type getTypeByExt(acul::string_view extension)
         {
-            constexpr std::array<std::pair<std::string_view, Type>, 54> extMap = {
+            constexpr std::array<std::pair<acul::string_view, Type>, 54> extMap = {
                 {{".bmp", Type::BMP},      {".gif", Type::GIF},      {".hdr", Type::HDR},    {".heif", Type::HEIF},
                  {".heic", Type::HEIF},    {".avif", Type::HEIF},    {".jpg", Type::JPEG},   {".jpe", Type::JPEG},
                  {".jpeg", Type::JPEG},    {".jif", Type::JPEG},     {".jfif", Type::JPEG},  {".jfi", Type::JPEG},
@@ -104,7 +105,7 @@ namespace ecl
                  {".pef", Type::RAW},      {".raf", Type::RAW},      {".raw", Type::RAW},    {".rwl", Type::RAW},
                  {".rw2", Type::RAW},      {".r3d", Type::RAW},      {".srw", Type::RAW},    {".x3f", Type::RAW},
                  {"tga", Type::Targa},     {".tpic", Type::Targa},   {".tif", Type::TIFF},   {".tiff", Type::TIFF},
-                 {".webp", Type::WebP},    {".a3d", Type::Asset}}};
+                 {".webp", Type::WebP},    {".umia", Type::UMBF}}};
 
             for (const auto &[ext, type] : extMap)
                 if (ext == extension) return type;

@@ -2,12 +2,12 @@
 
 namespace tests
 {
-    bool runTest(const std::filesystem::path &dataDir, const std::filesystem::path &outputDir)
+    bool runTest(const acul::io::path &dataDir, const acul::io::path &outputDir)
     {
         events::Manager e;
         ecl::scene::obj::Importer importer(dataDir / "cube.obj");
         auto state = importer.load(e);
         importer.clear();
-        return state == io::file::ReadState::Success;
+        return state == acul::io::file::op_state::success;
     }
 } // namespace tests

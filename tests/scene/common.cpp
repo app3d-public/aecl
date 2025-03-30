@@ -1,9 +1,10 @@
 #include "common.hpp"
 #include <ecl/image/export.hpp>
+#include <umbf/version.h>
 
 namespace tests
 {
-    void createCubeVerticles(astl::vector<assets::mesh::Vertex> &vertices)
+    void createCubeVerticles(acul::vector<umbf::mesh::Vertex> &vertices)
     {
         vertices.resize(24);
         // Front face
@@ -38,7 +39,7 @@ namespace tests
         vertices[23] = {{-100, -100, -100}, {0, 0}, {0, -1, 0}};
     }
 
-    void createCubeFaces(astl::vector<assets::mesh::IndexedFace> &faces)
+    void createCubeFaces(acul::vector<umbf::mesh::IndexedFace> &faces)
     {
         faces.resize(6);
         faces[0] = {{
@@ -97,12 +98,12 @@ namespace tests
                     6};
     }
 
-    void createObjects(astl::vector<assets::Object> &objects)
+    void createObjects(acul::vector<umbf::Object> &objects)
     {
         objects.emplace_back();
-        auto& cube = objects.front();
+        auto &cube = objects.front();
         cube.name = "cube";
-        auto meshBlock = astl::make_shared<assets::mesh::MeshBlock>();
+        auto meshBlock = acul::make_shared<umbf::mesh::MeshBlock>();
         auto &model = meshBlock->model;
         createCubeVerticles(model.vertices);
         model.indices = {2,  3,  0,  0,  1,  2,  6,  7,  4,  4,  5,  6,  10, 11, 8,  8,  9,  10,
@@ -113,33 +114,36 @@ namespace tests
         cube.meta.push_back(meshBlock);
     }
 
-    void createMaterials(astl::vector<assets::Asset> &materials)
+    void createMaterials(acul::vector<umbf::File> &materials)
     {
         materials.emplace_back();
-        auto mat = astl::make_shared<assets::Material>();
+        auto mat = acul::make_shared<umbf::Material>();
         mat->albedo.textured = true;
-        mat->albedo.textureID = 0;
-        auto meta = astl::make_shared<assets::MaterialInfo>();
+        mat->albedo.texture_id = 0;
+        auto meta = acul::make_shared<umbf::MaterialInfo>();
         meta->name = "ecl:test:mat_e";
         meta->assignments.push_back(0);
         materials.emplace_back();
         auto &asset = materials.back();
-        asset.header.type = assets::Type::Material;
+        asset.header.vendor_sign = UMBF_VENDOR_ID;
+        asset.header.vendor_version = UMBF_VERSION;
+        asset.header.spec_version = UMBF_VERSION;
+        asset.header.type_sign = umbf::sign_block::format::material;
         asset.blocks.push_back(mat);
         asset.blocks.push_back(meta);
         materials.push_back(asset);
     }
 
-    void createGeneratedTexture(assets::Target::Addr &tex, const std::filesystem::path &texDir)
+    void createGeneratedTexture(acul::string &tex, const acul::io::path &texDir)
     {
-        assets::Image2D image;
+        umbf::Image2D image;
         image.imageFormat = vk::Format::eR8G8B8A8Srgb;
         image.bytesPerChannel = 1;
         image.width = 4;
         image.height = 4;
         image.channelCount = 4;
         image.channelNames = {"red", "green", "blue", "alpha"};
-        char *pixels = astl::alloc_n<char>(image.imageSize());
+        char *pixels = acul::alloc_n<char>(image.imageSize());
         u8 color[4] = {255, 120, 80, 255};
         for (int w = 0; w < 4; w++)
         {
@@ -153,10 +157,10 @@ namespace tests
             }
         }
         image.pixels = pixels;
-        tex.url = (texDir / "generated.png").string();
-        ecl::image::PNGExporter exporter(tex.url, image);
-        bool success = exporter.save(1);
-        astl::release(pixels);
-        if (!success) throw std::runtime_error("Failed to save image");
+        tex = texDir / "generated.png";
+        ecl::image::png::Params pp(image);
+        bool success = ecl::image::png::save(tex, pp, 1);
+        acul::release(pixels);
+        if (!success) throw acul::runtime_error("Failed to save image");
     }
 } // namespace tests

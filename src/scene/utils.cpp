@@ -1,5 +1,5 @@
+#include <acul/hash/hashset.hpp>
 #include <ecl/scene/utils.hpp>
-#include <astl/hashset.hpp>
 #include <mapbox/earcut.hpp>
 
 #define isNearlyZero(x) (fabs(x) < 1e-6f)
@@ -8,7 +8,7 @@ namespace ecl
 {
     namespace utils
     {
-        bool isPolygonCCW(const astl::vector<Vertex2D> &polygon)
+        bool isPolygonCCW(const acul::vector<Vertex2D> &polygon)
         {
             f64 sum = 0.0;
             for (size_t i = 0; i < polygon.size(); i++)
@@ -19,10 +19,10 @@ namespace ecl
             return sum > 0;
         }
 
-        using namespace assets::mesh;
+        using namespace umbf::mesh;
 
-        astl::vector<Vertex2D> projectToVertex2D(const IndexedFace &face, const astl::vector<Vertex> &vertices,
-                                                 astl::vector<u32> &vertexIndices)
+        acul::vector<Vertex2D> projectToVertex2D(const IndexedFace &face, const acul::vector<Vertex> &vertices,
+                                                 acul::vector<u32> &vertexIndices)
         {
             glm::vec3 refPoint = vertices[face.vertices[0].vertex].pos;
             glm::vec3 xAxis, yAxis;
@@ -38,9 +38,9 @@ namespace ecl
             xAxis = glm::normalize(xAxis);
             yAxis = glm::normalize(yAxis);
 
-            astl::vector<Vertex2D> projectedPolygon;
+            acul::vector<Vertex2D> projectedPolygon;
             vertexIndices.clear();
-            astl::hashset<u32> localIndices;
+            acul::hashset<u32> localIndices;
             for (const auto &vref : face.vertices)
             {
                 auto [it, inserted] = localIndices.insert(vref.vertex);
@@ -58,10 +58,10 @@ namespace ecl
             return projectedPolygon;
         }
 
-        astl::vector<u32> triangulate(const IndexedFace &face, const astl::vector<Vertex> &vertices)
+        acul::vector<u32> triangulate(const IndexedFace &face, const acul::vector<Vertex> &vertices)
         {
-            astl::vector<u32> resultIndices;
-            astl::vector<u32> vertexIndices;
+            acul::vector<u32> resultIndices;
+            acul::vector<u32> vertexIndices;
 
             if (face.vertices.size() == 3)
             {
@@ -71,7 +71,7 @@ namespace ecl
                 return resultIndices;
             }
 
-            astl::vector<Vertex2D> projectedPolygon = projectToVertex2D(face, vertices, vertexIndices);
+            acul::vector<Vertex2D> projectedPolygon = projectToVertex2D(face, vertices, vertexIndices);
             if (projectedPolygon.empty()) return {};
 
             if (!isPolygonCCW(projectedPolygon))
@@ -80,7 +80,7 @@ namespace ecl
                 std::reverse(vertexIndices.begin(), vertexIndices.end());
             }
 
-            astl::vector<astl::vector<Vertex2D>> polygons = {projectedPolygon};
+            acul::vector<acul::vector<Vertex2D>> polygons = {projectedPolygon};
             for (auto index : mapbox::earcut<u32>(polygons)) resultIndices.push_back(vertexIndices[index]);
             return resultIndices;
         }
@@ -98,8 +98,8 @@ namespace ecl
             }
         };
 
-        void buildBarycentric(astl::vector<bary::Vertex> &barycentric, const IndexedFace &face,
-                              const astl::vector<Vertex> &vertices, const astl::vector<u32> &indices)
+        void buildBarycentric(acul::vector<bary::Vertex> &barycentric, const IndexedFace &face,
+                              const acul::vector<Vertex> &vertices, const acul::vector<u32> &indices)
         {
             static glm::vec3 barycentric_defaults[3] = {{0.0f, 0.0f, 1.0f}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f, 0.0f}};
 

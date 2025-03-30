@@ -5,20 +5,20 @@
 
 namespace tests
 {
-    void createCubeVerticles(astl::vector<assets::mesh::Vertex> &vertices);
+    void createCubeVerticles(acul::vector<umbf::mesh::Vertex> &vertices);
 
-    void createCubeVGroups(astl::vector<assets::mesh::VertexGroup> &vertexGroups);
+    void createCubeVGroups(acul::vector<umbf::mesh::VertexGroup> &vertexGroups);
 
-    void createCubeFaces(astl::vector<assets::mesh::IndexedFace> &faces);
+    void createCubeFaces(acul::vector<umbf::mesh::IndexedFace> &faces);
 
-    void createObjects(astl::vector<assets::Object> &objects);
+    void createObjects(acul::vector<umbf::Object> &objects);
 
-    void createMaterials(astl::vector<assets::Asset> &materials);
+    void createMaterials(acul::vector<umbf::File> &materials);
 
-    inline void createDefaultTexture(assets::Target::Addr &tex, const std::filesystem::path &dataDir)
+    inline void createDefaultTexture(acul::string &tex, const acul::io::path &dataDir)
     {
-        tex.url = (dataDir / "devCheck.jpg").string();
+        tex = (dataDir / "devCheck.jpg").str();
     }
 
-    void createGeneratedTexture(assets::Target::Addr &tex, const std::filesystem::path &texDir);
+    void createGeneratedTexture(acul::string &tex, const acul::io::path &texDir);
 } // namespace tests

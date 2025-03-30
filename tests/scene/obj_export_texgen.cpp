@@ -3,23 +3,23 @@
 
 namespace tests
 {
-    bool runTest(const std::filesystem::path &dataDir, const std::filesystem::path &outputDir)
+    bool runTest(const acul::io::path &dataDir, const acul::io::path &outputDir)
     {
         using namespace ecl::scene;
         obj::Exporter exporter(outputDir / "export_origin.obj");
         exporter.meshFlags =
             MeshExportFlagBits::export_normals | MeshExportFlagBits::export_uv | MeshExportFlagBits::transform_reverseY;
-        exporter.materialFlags = MaterialExportFlagBits::texture_origin;
+        exporter.materialFlags = MaterialExportFlags::texture_origin;
         exporter.objFlags = obj::ObjExportFlagBits::mgp_objects | obj::ObjExportFlagBits::mat_PBR;
 
         createObjects(exporter.objects);
-        auto mat = astl::make_shared<assets::MatRangeAssignAtrr>();
+        auto mat = acul::make_shared<umbf::MatRangeAssignAtrr>();
         mat->matID = 0;
         exporter.objects.front().meta.push_back(mat);
 
         createMaterials(exporter.materials);
 
-        assets::Target::Addr texture;
+        acul::string texture;
         createGeneratedTexture(texture, outputDir / "tex");
         exporter.textures.push_back(texture);
 

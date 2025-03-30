@@ -19,8 +19,8 @@ find_package(PkgConfig)
 pkg_search_module(OPENIMAGEIO REQUIRED openimageio)
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
-    app3d-core
-    app3d-assets
+    ${ACUL_LIB_NAME}
+    umbf
     ${OPENIMAGEIO_LIBRARIES}
 )
 

@@ -1,6 +1,6 @@
 #pragma once
 
-#include <astl/hash.hpp>
+#include <acul/hash/hashmap.hpp>
 #include <emhash/hash_table5.hpp>
 #include <oneapi/tbb/concurrent_unordered_set.h>
 #include "../export.hpp"
@@ -25,12 +25,12 @@ namespace ecl
                 using flag_bitmask = std::true_type;
             };
 
-            using ObjExportFlags = astl::flags<ObjExportFlagBits>;
+            using ObjExportFlags = acul::flags<ObjExportFlagBits>;
 
             struct MaterialRef
             {
-                astl::shared_ptr<assets::MaterialInfo> info;
-                astl::shared_ptr<assets::Material> mat;
+                acul::shared_ptr<umbf::MaterialInfo> info;
+                acul::shared_ptr<umbf::Material> mat;
             };
 
             // OBJ file exporter
@@ -43,7 +43,7 @@ namespace ecl
                  *
                  * @param path The path to the output file.
                  */
-                Exporter(const std::filesystem::path &path) : IExporter(path) {}
+                Exporter(const acul::string &path) : IExporter(path) {}
 
                 /**
                  * Saves the exported scene to the output file.
@@ -58,18 +58,18 @@ namespace ecl
                 emhash5::HashMap<u64, MaterialRef> _matMap;
                 bool _allMaterialsExist = true;
 
-                void writeVertices(assets::mesh::Model &model, const astl::vector<assets::mesh::VertexGroup> &groups,
+                void writeVertices(umbf::mesh::Model &model, const acul::vector<umbf::mesh::VertexGroup> &groups,
                                    std::stringstream &ss);
-                void writeFaces(assets::mesh::MeshBlock *meta, std::ostream &os, const astl::vector<u32> &faces);
-                void writeTriangles(assets::mesh::MeshBlock *meta, std::ostream &os, const astl::vector<u32> &faces,
-                                    const astl::vector<assets::mesh::VertexGroup> &groups);
-                void writeTexture2D(std::ostream &os, const std::string &token, const assets::Target::Addr &tex);
+                void writeFaces(umbf::mesh::MeshBlock *meta, std::ostream &os, const acul::vector<u32> &faces);
+                void writeTriangles(umbf::mesh::MeshBlock *meta, std::ostream &os, const acul::vector<u32> &faces,
+                                    const acul::vector<umbf::mesh::VertexGroup> &groups);
+                void writeTexture2D(std::ostream &os, const std::string &token, const acul::string &tex);
 
-                void writeMaterial(const astl::shared_ptr<assets::MaterialInfo> &matInfo,
-                                   const astl::shared_ptr<assets::Material> &mat, std::ostream &os);
+                void writeMaterial(const acul::shared_ptr<umbf::MaterialInfo> &matInfo,
+                                   const acul::shared_ptr<umbf::Material> &mat, std::ostream &os);
                 void writeMtlLibInfo(std::ofstream &mtlStream, std::stringstream &objStream);
                 void writeMtl(std::ofstream &stream);
-                void writeObject(const assets::Object &object, std::stringstream &objStream);
+                void writeObject(const umbf::Object &object, std::stringstream &objStream);
             };
         } // namespace obj
     } // namespace scene

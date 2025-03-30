@@ -19,1061 +19,356 @@ namespace ecl
          * @param format Vulkan format that determines the bit depth of the source buffer.
          * @return Shared pointer to the dynamically allocated buffer containing the copied data.
          */
-        astl::shared_ptr<void> copySrcBuffer(const void *src, size_t size, vk::Format format);
+        acul::shared_ptr<void> copySrcBuffer(const void *src, size_t size, vk::Format format);
 
-        /**
-         * @brief An abstract class for exporting images
-         *
-         * This class provides a common interface for exporting images in different formats.
-         * It contains methods and fields that can be used by derived classes.
-         */
-        class IExporter
+        struct ExportParams
         {
-        public:
-            IExporter(const std::filesystem::path &path, const astl::vector<assets::Image2D> &images)
-                : _path(path), _images(images)
-            {
-            }
-
-            virtual ~IExporter() = default;
-
-            /**
-             * @brief Set path to exporting file
-             *
-             * @param path The new path to set
-             */
-            void path(const std::filesystem::path &path) { _path = path; }
-
-            /**
-             * @brief Getter for the exporting path
-             *
-             * @return The current path
-             */
-            std::filesystem::path path() const { return _path; }
-
-            /**
-             * @brief Get image subimages
-             *
-             * @return A vector of SubImageInfo objects containing information about the subimages
-             */
-            astl::vector<assets::Image2D> images() const { return _images; }
-
-            virtual bool save(size_t dstBit) = 0;
-
-        protected:
-            std::filesystem::path _path;
-            astl::vector<assets::Image2D> _images;
         };
 
-        class OIIOExporter : public IExporter
+        struct OIIOParams : ExportParams
         {
-        public:
-            OIIOExporter(const std::filesystem::path &path, const astl::vector<assets::Image2D> &images, Format format)
-                : IExporter(path, images), _format(format)
-            {
-            }
-
-            /**
-             * @brief Get output image info
-             *
-             * @return An object containing information about the image format
-             */
-            Format format() { return _format; }
-
-            virtual bool save(size_t dstBit) override
-            {
-                astl::vector<astl::shared_ptr<void>> pixels;
-                return save(dstBit, pixels);
-            }
-
-        protected:
-            Format _format;
-
-            virtual bool save(size_t dstBit, astl::vector<astl::shared_ptr<void>> &pixels) = 0;
+            Format format;
+            OIIOParams(Format format) : format(format) {}
         };
 
-        /**
-         * @brief A class for exporting images in BMP format
-         *
-         * This class inherits from OIIOExporter and provides an implementation for saving images in BMP
-         * format.
-         */
-        class APPLIB_API BMPExporter final : public OIIOExporter
+        namespace bmp
         {
-        public:
-            BMPExporter(const std::filesystem::path &path, const assets::Image2D &image, f32 dpi = 72.0f,
-                        bool dither = false)
-                : OIIOExporter(path, {image},
-                               {FormatFlagBits::bit8 | FormatFlagBits::alpha, vk::Format::eR8G8B8A8Srgb}),
-                  _dpi(dpi),
-                  _dither(dither)
+            struct Params : OIIOParams
             {
-            }
+                umbf::Image2D image;
+                f32 dpi;
+                bool dither;
 
-            /**
-             * Setter for the dpi field
-             * When not a whole number of bytes per channel, this describes the bits per pixel in the file
-             * (16 for R4G4B4, 8 for a 256-color palette image, 4 for a 16-color palette image, 1
-             * for a 2-color palette image).
-             */
-            BMPExporter &dpi(f32 dpi)
-            {
-                _dpi = dpi;
-                return *this;
-            }
+                Params(const umbf::Image2D &image, f32 dpi = 72.0f, bool dither = false)
+                    : OIIOParams({FormatFlagBits::bit8 | FormatFlagBits::alpha, vk::Format::eR8G8B8A8Srgb}),
+                      image(image),
+                      dpi(dpi),
+                      dither(dither)
+                {
+                }
+            };
 
-            /**
-             * Getter for the dpi field
-             * When not a whole number of bytes per channel, this describes the bits per pixel in the file
-             * (16 for R4G4B4, 8 for a 256-color palette image, 4 for a 16-color palette image, 1
-             * for a 2-color palette image).
-             */
-            f32 dpi() const { return _dpi; }
+            APPLIB_API bool save(const acul::string &path, Params &bp);
+        } // namespace bmp
 
-            /**
-             * Setter for the dither field
-             * If nonzero and outputting UINT8 values in the file from a source of higher bit depth,
-             * will add a small amount of random dither to combat the appearance of banding.
-             */
-            BMPExporter &dither(bool dither)
-            {
-                _dither = dither;
-                return *this;
-            }
-
-            /**
-             * Getter for the dither field
-             * If nonzero and outputting UINT8 values in the file from a source of higher bit depth,
-             * will add a small amount of random dither to combat the appearance of banding.
-             */
-            bool dither() const { return _dither; }
-
-            using OIIOExporter::save;
-            bool save(size_t dstBit, astl::vector<astl::shared_ptr<void>> &pixels) override;
-
-        private:
-            f32 _dpi;
-            bool _dither;
-        };
-
-        /**
-         * @brief A class for exporting images in GIF format
-         *
-         * This class inherits from OIIOExporter and provides an implementation for saving images in GIF
-         * format.
-         */
-        class APPLIB_API GIFExporter final : public OIIOExporter
+        namespace gif
         {
-        public:
-            GIFExporter(const std::filesystem::path &path, const astl::vector<assets::Image2D> &images,
-                        bool interlacing = false, int loops = 0, int fps = 0)
-                : OIIOExporter(path, images,
-                               {FormatFlagBits::bit8 | FormatFlagBits::multilayer, vk::Format::eR8G8B8A8Srgb}),
-                  _interlacing(interlacing),
-                  _loops(loops),
-                  _fps(fps)
+            struct Params : OIIOParams
             {
-            }
+                acul::vector<umbf::Image2D> images;
+                bool interlacing;
+                int loops;
+                int fps;
 
-            /**
-             * @brief Specifies if image is interlaced (0 or 1).
-             */
-            GIFExporter &interlacing(bool interlacing)
-            {
-                _interlacing = interlacing;
-                return *this;
-            }
+                Params(const acul::vector<umbf::Image2D> &images, bool interlacing = false, int loops = 0, int fps = 0)
+                    : OIIOParams({FormatFlagBits::bit8 | FormatFlagBits::multilayer, vk::Format::eR8G8B8A8Srgb}),
+                      images(images),
+                      interlacing(interlacing),
+                      loops(loops),
+                      fps(fps)
+                {
+                }
+            };
 
-            /**
-             * @brief Is image interlaced (0 or 1).
-             */
-            bool interlacing() const { return _interlacing; }
+            APPLIB_API bool save(const acul::string &path, Params &gp);
+        } // namespace gif
 
-            /**
-             * @brief Specifies the number of loops
-             */
-            GIFExporter &loops(int loops)
-            {
-                _loops = loops;
-                return *this;
-            }
-
-            /**
-             * @brief Get the loops count
-             */
-            int loops() const { return _loops; }
-
-            /**
-             * @brief Specifies the number of frames per second
-             */
-            GIFExporter &fps(int fps)
-            {
-                _fps = fps;
-                return *this;
-            }
-
-            /**
-             * @brief Get the fps count
-             */
-            int fps() const { return _fps; }
-
-            using OIIOExporter::save;
-            bool save(size_t dstBit, astl::vector<astl::shared_ptr<void>> &pixels) override;
-
-        private:
-            bool _interlacing;
-            int _loops;
-            int _fps;
-        };
-
-        /**
-         * @brief A class for exporting images in HDR (RGBE) format
-         *
-         * This class inherits from OIIOExporter and provides an implementation for saving images in HDR
-         * format.
-         */
-        class APPLIB_API HDRExporter final : public OIIOExporter
+        namespace hdr
         {
-        public:
-            HDRExporter(const std::filesystem::path &path, const assets::Image2D &image)
-                : OIIOExporter(path, {image},
-                               {FormatFlagBits::bit16 | FormatFlagBits::bit32, vk::Format::eUndefined,
-                                vk::Format::eR16G16B16A16Sfloat, vk::Format::eR32G32B32A32Sfloat})
+            struct Params : OIIOParams
             {
-            }
+                umbf::Image2D image;
 
-            using OIIOExporter::save;
-            bool save(size_t dstBit, astl::vector<astl::shared_ptr<void>> &pixels) override;
-        };
+                Params(const umbf::Image2D &image)
+                    : OIIOParams({FormatFlagBits::bit32, vk::Format::eUndefined, vk::Format::eUndefined,
+                                  vk::Format::eR32G32B32A32Sfloat}),
+                      image(image)
+                {
+                }
+            };
 
-        /**
-         * @brief A class for exporting images in HEIF format
-         *
-         * This class inherits from OIIOExporter and provides an implementation for saving images in HEIF
-         * format.
-         */
-        class APPLIB_API HEIFExporter final : public OIIOExporter
+            APPLIB_API bool save(const acul::string &path, Params &hp);
+        } // namespace hdr
+
+        namespace heif
         {
-        public:
-            HEIFExporter(const std::filesystem::path &path, const assets::Image2D &image, int compression = 100)
-                : OIIOExporter(path, {image},
-                               {FormatFlagBits::bit8 | FormatFlagBits::alpha | FormatFlagBits::multilayer,
-                                vk::Format::eR8G8B8A8Srgb}),
-                  _compression(compression)
+            struct Params : OIIOParams
             {
-            }
+                umbf::Image2D image;
+                int compression; // Quality can be 1-100, with 100 meaning lossless
 
-            /**
-             * Specifies the compression level
-             * Quality can be 1-100, with 100 meaning lossless
-             */
-            HEIFExporter &compression(int compression)
-            {
-                _compression = compression;
-                return *this;
-            }
+                Params(const umbf::Image2D &image, int compression = 100)
+                    : OIIOParams({FormatFlagBits::bit8 | FormatFlagBits::alpha | FormatFlagBits::multilayer,
+                                  vk::Format::eR8G8B8A8Srgb}),
+                      image(image),
+                      compression(compression)
+                {
+                }
+            };
 
-            // Get the compression level
-            int compression() const { return _compression; }
+            APPLIB_API bool save(const acul::string &path, Params &hp);
+        } // namespace heif
 
-            using OIIOExporter::save;
-            bool save(size_t dstBit, astl::vector<astl::shared_ptr<void>> &pixels) override;
-
-        private:
-            int _compression;
-        };
-
-        /**
-         * @brief A class that exports an image in JPEG format.
-         */
-        class APPLIB_API JPEGExporter final : public OIIOExporter
+        namespace jpeg
         {
-        public:
-            JPEGExporter(const std::filesystem::path &path, const assets::Image2D &image, f32 dpi = 72.0f,
-                         bool dither = false, bool progressive = false, int compression = 100,
-                         const std::string &appName = "")
-                : OIIOExporter(path, {image}, {FormatFlagBits::bit8, vk::Format::eR8G8B8A8Srgb}),
-                  _dpi(dpi),
-                  _dither(dither),
-                  _progressive(progressive),
-                  _compression(compression),
-                  _appName(appName)
+            struct Params : OIIOParams
             {
-            }
+                umbf::Image2D image;
+                f32 dpi;
+                bool dither;
+                bool progressive;
+                int compression;
+                acul::string appName;
 
-            using OIIOExporter::save;
-            bool save(size_t dstBit, astl::vector<astl::shared_ptr<void>> &pixels) override;
+                Params(const umbf::Image2D &image, f32 dpi = 72.0f, bool dither = false, bool progressive = false,
+                       int compression = 100, const acul::string &appName = {})
+                    : OIIOParams({FormatFlagBits::bit8, vk::Format::eR8G8B8A8Srgb}),
+                      image(image),
+                      dpi(dpi),
+                      dither(dither),
+                      progressive(progressive),
+                      compression(compression),
+                      appName(appName)
+                {
+                }
+            };
 
-            /**
-             * @brief Sets the dots per inch of the image.
-             * @param dpi A float representing the dots per inch of the image.
-             */
-            JPEGExporter &dpi(f32 dpi)
-            {
-                _dpi = dpi;
-                return *this;
-            }
+            APPLIB_API bool save(const acul::string &path, Params &jp);
+        } // namespace jpeg
 
-            /**
-             * @brief Returns the dots per inch of the image.
-             * @return A float representing the dots per inch of the image.
-             */
-            f32 dpi() const { return _dpi; }
-
-            /**
-             * @brief Sets whether to use dithering in the exported image.
-             * @param dither A boolean representing whether to use dithering in the exported image.
-             */
-            JPEGExporter &dither(bool dither)
-            {
-                _dither = dither;
-                return *this;
-            }
-
-            /**
-             * @brief Returns whether to use dithering in the exported image.
-             * @return A boolean representing whether to use dithering in the exported image.
-             */
-            bool dither() const { return _dither; }
-
-            /**
-             * @brief Sets whether to use progressive compression in the exported image.
-             * @param progressive A boolean representing whether to use progressive compression in the exported
-             * image.
-             */
-            JPEGExporter &progressive(bool progressive)
-            {
-                _progressive = progressive;
-                return *this;
-            }
-
-            /**
-             * @brief Returns whether to use progressive compression in the exported image.
-             * @return A boolean representing whether to use progressive compression in the exported image.
-             */
-            bool progressive() const { return _progressive; }
-
-            /**
-             * @brief Sets the compression level of the exported image. Quality can be 1-100,
-             * with 100 meaning lossless.
-             * @param compression An integer representing the compression level of the exported image.
-             */
-            JPEGExporter &compression(int compression)
-            {
-                _compression = compression;
-                return *this;
-            }
-
-            /**
-             * @brief Returns the compression level of the exported image.
-             * @return An integer representing the compression level of the exported image.
-             */
-            int compression() const { return _compression; }
-
-            /**
-             * @brief Sets the name of the application that is exporting the image.
-             * @param appName A string representing the name of the application that is exporting the image.
-             */
-            JPEGExporter &appName(const std::string &appName)
-            {
-                _appName = appName;
-                return *this;
-            }
-
-            /**
-             * @brief Returns the name of the application that is exporting the image.
-             * @return A string representing the name of the application that is exporting the image.
-             */
-            const std::string &appName() const { return _appName; }
-
-        private:
-            f32 _dpi;
-            bool _dither;
-            bool _progressive;
-            int _compression;
-            std::string _appName;
-        };
-
-        /**
-         * @brief A class that exports an image in JPEG2000 format.
-         */
-        class APPLIB_API JPEG2000Exporter final : public OIIOExporter
+        namespace jpeg2000
         {
-        public:
-            /**
-             * @brief Constructor for the JPEG2000Exporter class.
-             * @param path The file path where to save the exported image.
-             * @param image An object representing the subimage to be exported.
-             * @param unassociatedAlpha Whether to use unassociated alpha in the exported image.
-             * @param dither Whether to use dithering in the exported image.
-             */
-            JPEG2000Exporter(const std::filesystem::path &path, const assets::Image2D &image,
-                             bool unassociatedAlpha = false, bool dither = false)
-                : OIIOExporter(path, {image},
-                               {FormatFlagBits::bit8 | FormatFlagBits::bit16 | FormatFlagBits::alpha,
-                                vk::Format::eR8G8B8A8Srgb, vk::Format::eR16G16B16A16Uint}),
-                  _unassociatedAlpha(unassociatedAlpha),
-                  _dither(dither)
+            struct Params : OIIOParams
             {
-            }
+                umbf::Image2D image;
+                bool unassociatedAlpha;
+                bool dither;
 
-            /**
-             * @brief Sets whether to use unassociated alpha in the exported image.
-             * @param unassociatedAlpha A boolean representing whether to use unassociated alpha in the exported
-             * image.
-             */
-            JPEG2000Exporter &unassociatedAlpha(bool unassociatedAlpha)
-            {
-                _unassociatedAlpha = unassociatedAlpha;
-                return *this;
-            }
+                Params(const umbf::Image2D &image, bool unassociatedAlpha = false, bool dither = false)
+                    : OIIOParams({FormatFlagBits::bit8 | FormatFlagBits::bit16 | FormatFlagBits::alpha,
+                                  vk::Format::eR8G8B8A8Srgb, vk::Format::eR16G16B16A16Uint}),
+                      image(image),
+                      unassociatedAlpha(unassociatedAlpha),
+                      dither(dither)
+                {
+                }
+            };
 
-            /**
-             * @brief Returns whether to use unassociated alpha in the exported image.
-             * @return A boolean representing whether to use unassociated alpha in the exported image.
-             */
-            bool unassociatedAlpha() const { return _unassociatedAlpha; }
+            APPLIB_API bool save(const acul::string &path, Params &jp, u8 dstBit);
+        } // namespace jpeg2000
 
-            /**
-             * @brief Sets whether to use dithering in the exported image.
-             * @param dither A boolean representing whether to use dithering in the exported image.
-             */
-            JPEG2000Exporter &dither(bool dither)
-            {
-                _dither = dither;
-                return *this;
-            }
-
-            /**
-             * @brief Returns whether to use dithering in the exported image.
-             * @return A boolean representing whether to use dithering in the exported image.
-             */
-            bool dither() const { return _dither; }
-
-            using OIIOExporter::save;
-            bool save(size_t dstBit, astl::vector<astl::shared_ptr<void>> &pixels) override;
-
-        private:
-            bool _unassociatedAlpha;
-            bool _dither;
-        };
-
-        class APPLIB_API JPEGXLExporter final : public OIIOExporter
+        namespace jpegXL
         {
-        public:
-            /**
-             * @brief Constructor for the JPEGXLExporter class.
-             * @param path The file path where to save the exported image.
-             * @param image An object representing the subimage to be exported.
-             */
-            JPEGXLExporter(const std::filesystem::path &path, const assets::Image2D &image)
-                : OIIOExporter(path, {image},
-                               {FormatFlagBits::bit8 | FormatFlagBits::bit16, vk::Format::eR8G8B8A8Srgb,
-                                vk::Format::eR16G16B16A16Uint})
+            struct Params : OIIOParams
             {
-            }
+                umbf::Image2D image;
 
-            using OIIOExporter::save;
-            bool save(size_t dstBit, astl::vector<astl::shared_ptr<void>> &pixels) override;
-        };
+                Params(const umbf::Image2D &image)
+                    : OIIOParams({FormatFlagBits::bit8 | FormatFlagBits::bit16, vk::Format::eR8G8B8A8Srgb,
+                                  vk::Format::eR16G16B16A16Uint}),
+                      image(image)
+                {
+                }
+            };
 
-        /**
-         * @brief A class that exports an image in OpenEXR format.
-         */
-        class APPLIB_API OpenEXRExporter final : public OIIOExporter
+            APPLIB_API bool save(const acul::string &path, Params &jp, u8 dstBit);
+        } // namespace jpegXL
+
+        namespace openEXR
         {
-        public:
-            /**
-             * @brief Constructor for the EXRExporter class.
-             * @param path The file path where to save the exported image.
-             * @param images A vector of objects containing information about the subimages
-             * @param compression The image comression. Can be the one of:
-             * "none", "rle", "zip", "zips", "piz", "pxr24", "b44", "b44a",
-             * "dwaa", or "dwab". If the writer receives a request for a compression type
-             * it does not recognize or is not supported by the version of OpenEXR on the system,
-             * it will use "zip" by default. For "dwaa" and "dwab", the dwaCompressionLevel
-             * may be optionally appended to the compression name after a colon, like this: "dwaa:200".
-             * (The default DWA compression value is 45.) For "zip" and "zips" compression,
-             * a level from 1 to 9 may be appended (the default is "zip:4"),
-             * but note that this is only honored when building against OpenEXR 3.1.3 or later.
-             */
-            OpenEXRExporter(const std::filesystem::path &path, const astl::vector<assets::Image2D> &images,
-                            const std::string &compression = "none")
-                : OIIOExporter(path, images,
-                               {FormatFlagBits::bit16 | FormatFlagBits::bit32 | FormatFlagBits::alpha |
-                                    FormatFlagBits::multilayer,
-                                vk::Format::eUndefined, vk::Format::eR16G16B16A16Sfloat,
-                                vk::Format::eR32G32B32A32Sfloat}),
-                  _compression(compression)
+            struct Params : OIIOParams
             {
-            }
+                const acul::vector<umbf::Image2D> &images;
+                /*
+                 * The image comression. Can be the one of:
+                 * "none", "rle", "zip", "zips", "piz", "pxr24", "b44", "b44a",
+                 * "dwaa", or "dwab". If the writer receives a request for a compression type
+                 * it does not recognize or is not supported by the version of OpenEXR on the system,
+                 * it will use "zip" by default. For "dwaa" and "dwab", the dwaCompressionLevel
+                 * may be optionally appended to the compression name after a colon, like this: "dwaa:200".
+                 * (The default DWA compression value is 45.) For "zip" and "zips" compression,
+                 * a level from 1 to 9 may be appended (the default is "zip:4"),
+                 * but note that this is only honored when building against OpenEXR 3.1.3 or later.
+                 */
+                acul::string compression;
 
-            /**
-             * @brief Sets the compression level of the exported image. See the constructor notes.
-             * @param compression An integer representing the compression level of the exported image.
-             */
-            OpenEXRExporter &compression(const std::string &compression)
-            {
-                _compression = compression;
-                return *this;
-            }
+                Params(const acul::vector<umbf::Image2D> &images, const acul::string &compression = "none")
+                    : OIIOParams({FormatFlagBits::bit16 | FormatFlagBits::bit32 | FormatFlagBits::alpha |
+                                      FormatFlagBits::multilayer,
+                                  vk::Format::eUndefined, vk::Format::eR16G16B16A16Sfloat,
+                                  vk::Format::eR32G32B32A32Sfloat}),
+                      images(images),
+                      compression(compression)
+                {
+                }
+            };
 
-            /**
-             * @brief Returns the compression level of the exported image.
-             * @return An string representing the compression level of the exported image.
-             * See the constructor notes.
-             */
-            std::string compression() const { return _compression; }
-
-            using OIIOExporter::save;
-            bool save(size_t dstBit, astl::vector<astl::shared_ptr<void>> &pixels) override;
-
-        private:
-            std::string _compression;
-        };
-
-        /**
-         * @brief A class that exports an image in PNG format.
-         */
-        class APPLIB_API PNGExporter final : public OIIOExporter
+            APPLIB_API bool save(const acul::string &path, Params &op, u8 dstBit);
+        } // namespace openEXR
+        namespace png
         {
-        public:
-            /**
-             * @brief Constructor for the PNGxporter class.
-             * @param path The file path where to save the exported image.
-             * @param image An object representing the subimage to be exported.
-             * @param dpi The dots per inch of the image.
-             * @param dither Whether to use dithering in the exported image.
-             * @param compression Compression level for zip/deflate compression,
-             * on a scale from 0 (fastest, minimal compression) to 9 (slowest, maximal compression).
-             * The default is 6. PNG compression is always lossless.
-             * @param filter Controls the “row filters” that prepare the image for optimal compression.
-             * The default is 0 (PNG_NO_FILTERS), but other values
-             * (which may be “or-ed” or summed to combine their effects) are 8 (PNG_FILTER_NONE),
-             * 16 (PNG_FILTER_SUB), 32 (PNG_FILTER_UP), 64 (PNG_FILTER_AVG), or 128 (PNG_FILTER_PAETH).
-             * @param unassociatedAlpha Whether to use unassociated alpha in the exported image.
-             */
-            PNGExporter(const std::filesystem::path &path, const assets::Image2D &image, f32 dpi = 72.0f,
-                        bool dither = false, int compression = 6, int filter = 0, bool unassociatedAlpha = false)
-                : OIIOExporter(path, {image},
-                               {FormatFlagBits::bit8 | FormatFlagBits::bit16 | FormatFlagBits::alpha,
-                                vk::Format::eR8G8B8A8Srgb, vk::Format::eR16G16B16A16Uint}),
-                  _dpi(dpi),
-                  _dither(dither),
-                  _compression(compression),
-                  _filter(filter),
-                  _unassociatedAlpha(unassociatedAlpha)
+            struct Params : OIIOParams
             {
-            }
+                umbf::Image2D image;
+                f32 dpi;
+                bool dither;
+                /*   Compression level for zip/deflate compression,
+                 * on a scale from 0 (fastest, minimal compression) to 9 (slowest, maximal compression).
+                 * The default is 6. PNG compression is always lossless.
+                 * @param filter Controls the “row filters” that prepare the image for optimal compression.
+                 * The default is 0 (PNG_NO_FILTERS), but other values
+                 * (which may be “or-ed” or summed to combine their effects) are 8 (PNG_FILTER_NONE),
+                 * 16 (PNG_FILTER_SUB), 32 (PNG_FILTER_UP), 64 (PNG_FILTER_AVG), or 128 (PNG_FILTER_PAETH).
+                 * @param unassociatedAlpha Whether to use unassociated alpha in the exported image.
+                 */
+                int compression;
+                int filter;
+                bool unassociatedAlpha;
 
-            /**
-             * @brief Sets the dots per inch of the image.
-             * @param dpi A float representing the dots per inch of the image.
-             */
-            PNGExporter &dpi(f32 dpi)
-            {
-                _dpi = dpi;
-                return *this;
-            }
+                Params(const umbf::Image2D &image, f32 dpi = 72.0f, bool dither = false, int compression = 6,
+                       int filter = 0, bool unassociatedAlpha = false)
+                    : OIIOParams({FormatFlagBits::bit8 | FormatFlagBits::bit16 | FormatFlagBits::alpha,
+                                  vk::Format::eR8G8B8A8Srgb, vk::Format::eR16G16B16A16Uint}),
+                      image(image),
+                      dpi(dpi),
+                      dither(dither),
+                      compression(compression),
+                      filter(filter),
+                      unassociatedAlpha(unassociatedAlpha)
+                {
+                }
+            };
 
-            /**
-             * @brief Returns the dots per inch of the image.
-             * @return A float representing the dots per inch of the image.
-             */
-            f32 dpi() const { return _dpi; }
+            APPLIB_API bool save(const acul::string &path, Params &pp, u8 dstBit);
+        } // namespace png
 
-            /**
-             * @brief Sets whether to use dithering in the exported image.
-             * @param dither A boolean representing whether to use dithering in the exported image.
-             */
-            PNGExporter &dither(bool dither)
-            {
-                _dither = dither;
-                return *this;
-            }
-
-            /**
-             * @brief Returns whether to use dithering in the exported image.
-             * @return A boolean representing whether to use dithering in the exported image.
-             */
-            bool dither() const { return _dither; }
-
-            /**
-             * @brief Sets the compression level for zip/deflate compression.
-             * @param compression An integer representing the compression level on a scale from 0 (fastest,
-             * minimal compression) to 9 (slowest, maximal compression).
-             */
-            PNGExporter &compression(int compression)
-            {
-                _compression = compression;
-                return *this;
-            }
-
-            /**
-             * @brief Returns the compression level of the exported image.
-             * @return An integer representing the compression level of the exported image.
-             */
-            int compression() const { return _compression; }
-
-            /**
-             * @brief Sets the row filters that prepare the image for optimal compression.
-             * @param filter An integer representing the row filters, which may be "or-ed" or summed to combine
-             * their effects.
-             */
-            PNGExporter &filter(int filter)
-            {
-                _filter = filter;
-                return *this;
-            }
-
-            /**
-             * @brief Returns the row filters that prepare the image for optimal compression.
-             * @return An integer representing the row filters of the exported image.
-             */
-            int filter() const { return _filter; }
-
-            /**
-             * @brief Sets whether to use unassociated alpha in the exported image.
-             * @param unassociatedAlpha A boolean representing whether to use unassociated alpha in the exported
-             * image.
-             */
-            PNGExporter &unassociatedAlpha(bool unassociatedAlpha)
-            {
-                _unassociatedAlpha = unassociatedAlpha;
-                return *this;
-            }
-
-            /**
-             * @brief Returns whether to use unassociated alpha in the exported image.
-             * @return A boolean representing whether to use unassociated alpha in the exported image.
-             */
-            bool unassociatedAlpha() const { return _unassociatedAlpha; }
-
-            using OIIOExporter::save;
-            bool save(size_t dstBit, astl::vector<astl::shared_ptr<void>> &pixels) override;
-
-        private:
-            f32 _dpi;
-            bool _dither;
-            int _compression;
-            int _filter;
-            bool _unassociatedAlpha;
-        };
-
-        /**
-         * @brief A class that exports an image in PNM/PBM format.
-         */
-        class APPLIB_API PNMExporter final : public OIIOExporter
+        namespace pnm
         {
-        public:
-            /**
-             * @brief Constructor for the PNMExporter class.
-             * @param path The file path where to save the exported image.
-             * @param image An object representing the subimage to be exported.
-             * @param binary Save as binary file (PBM)
-             * @param dither Whether to use dithering in the exported image.
-             */
-            PNMExporter(const std::filesystem::path &path, const assets::Image2D &image, bool binary = false,
-                        bool dither = false)
-                : OIIOExporter(path, {image}, {FormatFlagBits::bit8, vk::Format::eR8G8B8A8Srgb}),
-                  _binary(binary),
-                  _dither(dither)
+            struct Params : OIIOParams
             {
-            }
+                umbf::Image2D image;
+                bool binary;
+                bool dither;
 
-            /**
-             * @brief Is exporting image in binary format.
-             * @return A boolean representing whether the image is in binary format.
-             */
-            bool binary() const { return _binary; }
+                Params(const umbf::Image2D &image, bool binary = false, bool dither = false)
+                    : OIIOParams({FormatFlagBits::bit8, vk::Format::eR8G8B8A8Srgb}),
+                      image(image),
+                      binary(binary),
+                      dither(dither)
+                {
+                }
+            };
 
-            /**
-             * @brief Sets whether to use dithering in the exported image.
-             * @param dither A boolean representing whether to use dithering in the exported image.
-             */
-            PNMExporter &binary(bool binary)
-            {
-                _binary = binary;
-                return *this;
-            }
+            APPLIB_API bool save(const acul::string &path, Params &pp);
+        } // namespace pnm
 
-            /**
-             * @brief Returns whether to use dithering in the exported image.
-             * @return A boolean representing whether to use dithering in the exported image.
-             */
-            bool dither() const { return _dither; }
-
-            /**
-             * @brief Sets whether to use dithering in the exported image.
-             * @param dither A boolean representing whether to use dithering in the exported image.
-             */
-            PNMExporter &dither(bool dither)
-            {
-                _dither = dither;
-                return *this;
-            }
-
-            using OIIOExporter::save;
-            bool save(size_t dstBit, astl::vector<astl::shared_ptr<void>> &pixels) override;
-
-        private:
-            bool _binary;
-            bool _dither;
-        };
-
-        /**
-         * @brief A class that exports an image in Targa format.
-         */
-        class APPLIB_API TargaExporter final : public OIIOExporter
+        namespace targa
         {
-        public:
-            /**
-             * @brief Constructor for the TargaExporter class.
-             * @param path The file path where to save the exported image.
-             * @param image An object representing the subimage to be exported.
-             * @param dither Whether to use dithering in the exported image.
-             * @param compression Compression level for the exporting image.
-             * Values of none and rle are supported. The default is RLE.
-             * @param appName The name of the application that created the image.
-             */
-            TargaExporter(const std::filesystem::path &path, const assets::Image2D &image, bool dither = false,
-                          const std::string &compression = "rle", const std::string &appName = "")
-                : OIIOExporter(
-                      path, {image},
-                      {FormatFlagBits::bit8 | FormatFlagBits::bit16 | FormatFlagBits::alpha | FormatFlagBits::readOnly,
-                       vk::Format::eR8G8B8A8Srgb, vk::Format::eR16G16B16A16Uint}),
-                  _dither(dither),
-                  _compression(compression),
-                  _appName(appName)
+            struct Params : OIIOParams
             {
-            }
+                umbf::Image2D image;
+                bool dither;
+                // Compression level for the exporting image.
+                // Values of none and rle are supported. The default is RLE.
+                acul::string compression;
+                acul::string appName;
+                // Meaning of any alpha channel (0 = none; 1 = undefined, ignore; 2 = undefined, preserve; 3 = useful
+                // unassociated alpha; 4 = useful associated alpha / premultiplied color).
+                int alphaType;
 
-            /**
-             * @brief Sets whether to use dithering in the exported image.
-             * @param dither A boolean representing whether to use dithering in the exported image.
-             */
-            TargaExporter &appName(const std::string &appName)
-            {
-                _appName = appName;
-                return *this;
-            }
+                Params(const umbf::Image2D &image, bool dither = false, const acul::string &compression = "rle",
+                       const acul::string &appName = {}, int alphaType = 4)
+                    : OIIOParams({FormatFlagBits::bit8 | FormatFlagBits::bit16 | FormatFlagBits::alpha |
+                                      FormatFlagBits::readOnly,
+                                  vk::Format::eR8G8B8A8Srgb, vk::Format::eR16G16B16A16Uint}),
+                      image(image),
+                      dither(dither),
+                      compression(compression),
+                      appName(appName),
+                      alphaType(alphaType)
+                {
+                }
+            };
 
-            /**
-             * @brief Gets the name of the application that created the image.
-             */
-            std::string appName() const { return _appName; }
+            APPLIB_API bool save(const acul::string &path, Params &tp, u8 dstBit);
+        } // namespace targa
 
-            /**
-             * @brief Set compression level for the exporting image.
-             * @param compression Compression level for the exporting image.
-             * For more details see the constructor description.
-             */
-            TargaExporter &compression(const std::string &compression)
-            {
-                _compression = compression;
-                return *this;
-            }
-
-            /**
-             * @brief Gets compression level for the exporting image.
-             * @return Compression level for the exporting image.
-             */
-            std::string compression() const { return _compression; }
-
-            /**
-             * @brief Sets whether to use dithering in the exported image.
-             * @param dither A boolean representing whether to use dithering in the exported image.
-             */
-            TargaExporter &dither(bool dither)
-            {
-                _dither = dither;
-                return *this;
-            }
-
-            /**
-             * @brief Returns whether to use dithering in the exported image.
-             * @return A boolean representing whether to use dithering in the exported image.
-             **/
-            bool dither() const { return _dither; }
-
-            using OIIOExporter::save;
-            bool save(size_t dstBit, astl::vector<astl::shared_ptr<void>> &pixels) override;
-
-        private:
-            bool _dither;
-            std::string _compression;
-            std::string _appName;
-        };
-
-        /**
-         * @brief A class that exports an image in TIFF format.
-         */
-        class APPLIB_API TIFFExporter final : public OIIOExporter
+        namespace tiff
         {
-        public:
-            /**
-             * @brief Constructor for the TIFFExporter class.
-             * @param path The file path where to save the exported image.
-             * @param images A vector of objects representing the subimages to be
-             * exported.
-             * @param unassociatedAlpha A boolean representing whether to use unassociated alpha in the exported
-             * image.
-             * @param dither A boolean representing whether to use dithering in the exported image.
-             * @param zipquality An integer representing the quality level for ZIP compression.
-             * A time-vs-space knob for zip compression, ranging from 1-9 (default is 6).
-             * Higher means compress to less space, but taking longer to do so.
-             * It is strictly a time vs space tradeoff, the visual image quality is identical (lossless)
-             * no matter what the setting.
-             * @param forceBigTIFF A boolean representing whether to force the use of BigTIFF format
-             * that allows files to be more than 4 GB (default: 0).
-             * @param appName A string representing the name of the application creating the TIFF file.
-             * @param dpi A float representing the dots per inch of the image.
-             * @param compression A string representing the compression algorithm to be used for the exported
-             * image.
-             */
-            TIFFExporter(const std::filesystem::path &path, const astl::vector<assets::Image2D> &images,
-                         bool unassociatedAlpha = false, bool dither = false, int zipquality = 6,
-                         bool forceBigTIFF = false, const std::string &appName = "", f32 dpi = 72.0f,
-                         const std::string &compression = "none")
-                : OIIOExporter(path, images,
-                               {FormatFlagBits::bit8 | FormatFlagBits::bit16 | FormatFlagBits::bit32 |
-                                    FormatFlagBits::alpha | FormatFlagBits::multilayer,
-                                vk::Format::eR8G8B8A8Srgb, vk::Format::eR16G16B16A16Uint,
-                                vk::Format::eR32G32B32A32Sfloat}),
-                  _unassociatedAlpha(unassociatedAlpha),
-                  _dither(dither),
-                  _zipquality(zipquality),
-                  _forceBigTIFF(forceBigTIFF),
-                  _appName(appName),
-                  _dpi(dpi),
-                  _compression(compression)
+            struct Params : OIIOParams
             {
-            }
+                acul::vector<umbf::Image2D> images;
+                bool unassociatedAlpha;
+                bool dither;
+                /* An integer representing the quality level for ZIP compression.
+                 * A time-vs-space knob for zip compression, ranging from 1-9 (default is 6).
+                 * Higher means compress to less space, but taking longer to do so.
+                 * It is strictly a time vs space tradeoff, the visual image quality is identical (lossless)
+                 * no matter what the setting.
+                 */
+                int zipquality;
+                // A boolean representing whether to force the use of BigTIFF format that allows files to be more than
+                // 4 GB (default: 0).
+                bool forceBigTIFF;
+                f32 dpi;
+                // A string representing the compression algorithm to be used for the exported image.
+                acul::string compression;
 
-            /**
-             * @brief Sets whether to use unassociated alpha in the exported image.
-             * @param unassociatedAlpha A boolean representing whether to use unassociated alpha in the exported
-             * image.
-             */
-            TIFFExporter &unassociatedAlpha(bool unassociatedAlpha)
-            {
-                _unassociatedAlpha = unassociatedAlpha;
-                return *this;
-            }
+                Params(const acul::vector<umbf::Image2D> &images, bool unassociatedAlpha = false, bool dither = false,
+                       int zipquality = 6, bool forceBigTIFF = false, const acul::string &appName = {}, f32 dpi = 72.0f,
+                       const acul::string &compression = "none")
+                    : OIIOParams({FormatFlagBits::bit8 | FormatFlagBits::bit16 | FormatFlagBits::bit32 |
+                                      FormatFlagBits::alpha | FormatFlagBits::multilayer,
+                                  vk::Format::eR8G8B8A8Srgb, vk::Format::eR16G16B16A16Uint,
+                                  vk::Format::eR32G32B32A32Sfloat}),
+                      images(images),
+                      unassociatedAlpha(unassociatedAlpha),
+                      dither(dither),
+                      zipquality(zipquality),
+                      forceBigTIFF(forceBigTIFF),
+                      dpi(dpi),
+                      compression(compression)
+                {
+                }
+            };
 
-            /**
-             * @brief Returns whether to use unassociated alpha in the exported image.
-             * @return A boolean representing whether to use unassociated alpha in the exported image.
-             */
-            bool unassociatedAlpha() const { return _unassociatedAlpha; }
+            APPLIB_API bool save(const acul::string &path, Params &tp, u8 dstBit);
+        } // namespace tiff
 
-            /**
-             * @brief Sets the name of the application creating the TIFF file.
-             * @param appName A string representing the name of the application creating the TIFF file.
-             */
-            TIFFExporter &appName(const std::string &appName)
-            {
-                _appName = appName;
-                return *this;
-            }
-
-            /**
-             * @brief Returns the name of the application creating the TIFF file.
-             * @return A string representing the name of the application creating the TIFF file.
-             */
-            std::string appName() const { return _appName; }
-
-            /**
-             * @brief Sets the compression algorithm to be used for the exported image.
-             * @param compression A string representing the compression algorithm to be used for the exported
-             * image.
-             */
-            TIFFExporter &compression(const std::string &compression)
-            {
-                _compression = compression;
-                return *this;
-            }
-
-            /**
-             * @brief Returns the compression algorithm to be used for the exported image.
-             * @return A string representing the compression algorithm to be used for the exported image.
-             */
-            std::string compression() const { return _compression; }
-
-            /**
-             * @brief Sets whether to use dithering in the exported image.
-             * @param dither A boolean representing whether to use dithering in the exported image.
-             */
-            TIFFExporter &dither(bool dither)
-            {
-                _dither = dither;
-                return *this;
-            }
-
-            /**
-             * @brief Returns whether to use dithering in the exported image.
-             * @return A boolean representing whether to use dithering in the exported image.
-             */
-            bool dither() const { return _dither; }
-
-            /**
-             * @brief Sets the quality level for ZIP compression.
-             * @param zipquality An integer representing the quality level for ZIP compression.
-             * For more details see the constructor description.
-             */
-            TIFFExporter &zipquality(int zipquality)
-            {
-                _zipquality = zipquality;
-                return *this;
-            }
-
-            /**
-             * @brief Returns the quality level for ZIP compression.
-             * @return An integer representing the quality level for ZIP compression.
-             */
-            int zipquality() const { return _zipquality; }
-
-            /**
-             * @brief Sets whether to force the use of BigTIFF format.
-             * @param forceBigTIFF A boolean representing whether to force the use of BigTIFF format.
-             */
-            TIFFExporter &forceBigTIFF(bool forceBigTIFF)
-            {
-                _forceBigTIFF = forceBigTIFF;
-                return *this;
-            }
-
-            /**
-             * @brief Returns whether to force the use of BigTIFF format.
-             * @return A boolean representing whether to force the use of BigTIFF format.
-             */
-            bool forceBigTIFF() const { return _forceBigTIFF; }
-
-            /**
-             * @brief Sets the dots per inch of the image.
-             * @param dpi A float representing the dots per inch of the image.
-             */
-            TIFFExporter &dpi(f32 dpi)
-            {
-                _dpi = dpi;
-                return *this;
-            }
-
-            /**
-             * @brief Returns the dots per inch of the image.
-             * @return A float representing the dots per inch of the image.
-             */
-            f32 dpi() const { return _dpi; }
-
-            using OIIOExporter::save;
-            bool save(size_t dstBit, astl::vector<astl::shared_ptr<void>> &pixels) override;
-
-        private:
-            bool _unassociatedAlpha;
-            bool _dither;
-            int _zipquality;
-            bool _forceBigTIFF;
-            std::string _appName;
-            f32 _dpi;
-            std::string _compression;
-        };
-
-        /**
-         * @brief A class that exports an image in WebP format.
-         */
-        class APPLIB_API WebPExporter final : public OIIOExporter
+        namespace webp
         {
-        public:
-            /**
-             * @brief Constructor for the WebPExporter class.
-             * @param path The file path where to save the exported image.
-             * @param subimage An object of class SubImageInfo representing the subimage to be exported.
-             * @param dither A boolean representing whether to use dithering in the exported image.
-             */
-            WebPExporter(const std::filesystem::path &path, const assets::Image2D &image, bool dither = false)
-                : OIIOExporter(path, {image},
-                               {FormatFlagBits::bit8 | FormatFlagBits::alpha, vk::Format::eR8G8B8A8Srgb}),
-                  _dither(dither)
+            struct Params : OIIOParams
             {
-            }
+                umbf::Image2D image;
+                bool dither;
 
-            /**
-             * @brief Sets whether to use dithering in the exported image.
-             * @param dither A boolean representing whether to use dithering in the exported image.
-             */
-            WebPExporter &dither(bool dither)
-            {
-                _dither = dither;
-                return *this;
-            }
+                Params(const umbf::Image2D &image, bool dither = false)
+                    : OIIOParams({FormatFlagBits::bit8 | FormatFlagBits::alpha, vk::Format::eR8G8B8A8Srgb}),
+                      image(image),
+                      dither(dither)
+                {
+                }
+            };
 
-            /**
-             * @brief Returns whether to use dithering in the exported image.
-             * @return A boolean representing whether to use dithering in the exported image.
-             **/
-            bool dither() const { return _dither; }
+            APPLIB_API bool save(const acul::string &path, Params &wp);
+        } // namespace webp
 
-            using OIIOExporter::save;
-            bool save(size_t dstBit, astl::vector<astl::shared_ptr<void>> &pixels) override;
-
-        private:
-            bool _dither;
-        };
-
-        class APPLIB_API AssetExporter final : public IExporter
+        namespace umbf
         {
-        public:
-            AssetExporter(const std::filesystem::path &path, const assets::Image2D &image, int compression = 5,
-                          u32 checksum = 0)
-                : IExporter(path, {image})
+            using ::umbf::File;
+            using ::umbf::Image2D;
+
+            struct Params : ExportParams
             {
-            }
+                umbf::Image2D image;
+                int compression;
+                u32 checksum;
+            };
 
-            /**
-             * @brief Sets the compression level for the exported image.
-             * @param compression An integer representing the compression level for the exported image.
-             * If the compression level is not set, the default compression level is 5.
-             * If the compression equals 0, the image will not be compressed.
-             * You can use ZSTD compression levels to adjust the compression ratio and speed according to your
-             * requirements. The ZSTD library supports compression levels from 1 to 22.
-             */
-            AssetExporter &compression(int compression)
-            {
-                _compression = compression;
-                return *this;
-            }
+            APPLIB_API bool save(const acul::string &path, Params &up, u8 dstBit);
+        } // namespace umbf
 
-            /**
-             * @brief Returns the compression level for the exported image.
-             * @return An integer representing the compression level for the exported image.
-             */
-            int compression() const { return _compression; }
-
-            /**
-             * @brief Sets the checksum for the exported image.
-             * @param checksum An u32 value representing the checksum for the exported image.
-             * If the checksum is not set, the checksum will not be set in the image.
-             */
-            AssetExporter &checksum(u32 checksum)
-            {
-                _checksum = checksum;
-                return *this;
-            }
-
-            /**
-             * @brief Returns the checksum for the exported image.
-             * @return An u32 value representing the checksum for the exported image.
-             */
-            u32 checksum() const { return _checksum; }
-
-            virtual bool save(size_t dstBit) override;
-
-        private:
-            int _compression;
-            u32 _checksum;
-        };
-
-        inline bool isImageEquals(const assets::Image2D &image, Format srcFormat, vk::Format dstFormat)
+        inline bool isImageEquals(const umbf::Image2D &image, Format srcFormat, vk::Format dstFormat)
         {
             if (image.channelCount != 3 && !((srcFormat.flags & FormatFlagBits::alpha) && image.channelCount == 4))
                 return false;

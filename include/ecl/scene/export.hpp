@@ -1,7 +1,7 @@
 #pragma once
 
+#include <acul/enum.hpp>
 #include <assets/asset.hpp>
-#include <astl/enum.hpp>
 
 namespace ecl
 {
@@ -25,38 +25,34 @@ namespace ecl
             using flag_bitmask = std::true_type;
         };
 
-        using MeshExportFlags = astl::flags<MeshExportFlagBits>;
+        using MeshExportFlags = acul::flags<MeshExportFlagBits>;
 
-        struct MaterialExportFlagBits
+        namespace MaterialExportFlags
         {
-            enum enum_type
+            enum
             {
-                none = 0x0,           // Do not export materials
-                texture_none = 0x1,   // Do not export textures
-                texture_origin = 0x2, // As present in the material manager (external references)
-                texture_copyToLocal =
-                    0x4 // Create "tex" folder and copy textures there (keeping them external, but local)
+                none,               // Do not export materials
+                texture_none,       // Do not export textures
+                texture_origin,     // As present in the material manager (external references)
+                texture_copyToLocal // Create "tex" folder and copy textures there (keeping them external, but local)
             };
-            using flag_bitmask = std::true_type;
         };
-
-        using MaterialExportFlags = astl::flags<MaterialExportFlagBits>;
 
         class IExporter
         {
         public:
-            std::filesystem::path path;
+            acul::string path;
             MeshExportFlags meshFlags;
-            MaterialExportFlags materialFlags;
-            astl::vector<assets::Object> objects;
-            astl::vector<assets::Asset> materials;
-            astl::vector<assets::Target::Addr> textures;
+            int materialFlags;
+            acul::vector<umbf::Object> objects;
+            acul::vector<umbf::File> materials;
+            acul::vector<acul::string> textures;
 
             /**
              * @brief Create a scene exporter
              * @param filename Name of the file
              **/
-            IExporter(const std::filesystem::path &path) : path(path) {}
+            IExporter(const acul::string &path) : path(path) {}
 
             virtual ~IExporter() = default;
 

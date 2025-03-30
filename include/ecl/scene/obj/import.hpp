@@ -26,7 +26,7 @@ namespace ecl
             // MTL Texture parameters
             struct TextureOption
             {
-                std::string path; // Path to the texture
+                acul::string path; // Path to the texture
                 /**
                  * @brief The blendu option turns texture blending in the horizontal direction
                     (u direction) on or off.  The default is on.
@@ -180,7 +180,7 @@ namespace ecl
                  **/
                 char imfchan{0};
 
-                std::string type;
+                acul::string type;
             };
 
             struct ColorOption
@@ -200,7 +200,7 @@ namespace ecl
                 /**
                  * @brief Material name
                  */
-                std::string name;
+                acul::string name;
 
                 /**
                  * @brief Specifies ambient color, to account for light that is scattered about
@@ -307,10 +307,10 @@ namespace ecl
                 oneapi::tbb::concurrent_vector<Line<glm::vec3>> v;
                 oneapi::tbb::concurrent_vector<Line<glm::vec2>> vt;
                 oneapi::tbb::concurrent_vector<Line<glm::vec3>> vn;
-                oneapi::tbb::concurrent_vector<Line<astl::vector<glm::ivec3> *>> f;
-                oneapi::tbb::concurrent_vector<Line<std::string>> g;
-                std::string mtllib;
-                oneapi::tbb::concurrent_vector<Line<std::string>> useMtl;
+                oneapi::tbb::concurrent_vector<Line<acul::vector<glm::ivec3> *>> f;
+                oneapi::tbb::concurrent_vector<Line<acul::string>> g;
+                acul::string mtllib;
+                oneapi::tbb::concurrent_vector<Line<acul::string>> useMtl;
             };
 
             /**
@@ -318,7 +318,7 @@ namespace ecl
              * @param line The line to parse
              * @param i The line number
              */
-            void parseLine(ParseIndexed &buffer, const std::string_view &line, int i);
+            void parseLine(ParseIndexed &buffer, const acul::string_view &line, int i);
 
             /**
              * @brief Parses a line from a MTL file and updates the list of materials.
@@ -328,7 +328,7 @@ namespace ecl
              * @param matIndex The current material index.
              * @param lineIndex The index of the line being parsed.
              */
-            void parseMTLline(const std::string_view &line, astl::vector<Material> &materials, int &matIndex,
+            void parseMTLline(const acul::string_view &line, acul::vector<Material> &materials, int &matIndex,
                               int lineIndex);
 
             /**
@@ -371,9 +371,8 @@ namespace ecl
              * @param materials The Dst materials list.
              * @param textures The Dst texture list.
              */
-            void convertToMaterials(std::filesystem::path basePath, const astl::vector<Material> &mtlMatList,
-                                    astl::vector<assets::MaterialInfo> &materials,
-                                    astl::vector<assets::Image2D> &textures);
+            void convertToMaterials(const acul::io::path &basePath, const acul::vector<Material> &mtlMatList,
+                                    acul::vector<umbf::MaterialInfo> &materials, acul::vector<umbf::Image2D> &textures);
 
             /**
              * @brief Load the scene
@@ -382,13 +381,13 @@ namespace ecl
             class APPLIB_API Importer : public ILoader
             {
             public:
-                Importer(const std::filesystem::path &filename) : ILoader(filename){};
+                Importer(const acul::string &filename) : ILoader(filename) {};
 
                 /**
                  * @brief Load the scene
                  * @return True if the scene was loaded
                  **/
-                io::file::ReadState load(events::Manager &e) override;
+                acul::io::file::op_state load(events::Manager &e) override;
             };
         } // namespace obj
     } // namespace scene

@@ -1,39 +1,41 @@
+#include <acul/log.hpp>
 #include <assets/utils.hpp>
-#include <core/log.hpp>
 #include <ecl/image/export.hpp>
-#include <memory>
+#include <umbf/version.h>
 
 namespace ecl
 {
     namespace image
     {
-        astl::shared_ptr<void> copySrcBuffer(const void *src, size_t size, vk::Format format)
+        using ::umbf::utils::convertImage;
+
+        acul::shared_ptr<void> copySrcBuffer(const void *src, size_t size, vk::Format format)
         {
             switch (format)
             {
                 case vk::Format::eR8G8B8A8Srgb:
                 {
-                    astl::shared_ptr<u8[]> copy(size);
-                    std::memcpy(copy.get(), src, size * sizeof(u8));
+                    acul::shared_ptr<u8[]> copy(size);
+                    memcpy(copy.get(), src, size * sizeof(u8));
                     return copy;
                 }
                 case vk::Format::eR16G16B16A16Uint:
                 {
-                    astl::shared_ptr<u16[]> copy(size);
-                    std::memcpy(copy.get(), src, size * sizeof(u16));
+                    acul::shared_ptr<u16[]> copy(size);
+                    memcpy(copy.get(), src, size * sizeof(u16));
                     return copy;
                 }
                 case vk::Format::eR32G32B32A32Uint:
                 {
-                    astl::shared_ptr<u32[]> copy(size);
-                    std::memcpy(copy.get(), src, size * sizeof(u32));
+                    acul::shared_ptr<u32[]> copy(size);
+                    memcpy(copy.get(), src, size * sizeof(u32));
                     return copy;
                 }
                 case vk::Format::eR16G16B16A16Sfloat:
                 case vk::Format::eR32G32B32A32Sfloat:
                 {
-                    astl::shared_ptr<float[]> copy(size);
-                    std::memcpy(copy.get(), src, size * sizeof(float));
+                    acul::shared_ptr<float[]> copy(size);
+                    memcpy(copy.get(), src, size * sizeof(float));
                     return copy;
                 }
                 default:
@@ -41,22 +43,20 @@ namespace ecl
             }
         }
 
-        bool BMPExporter::save(size_t dstBit, astl::vector<astl::shared_ptr<void>> &pixels)
+        bool bmp::save(const acul::string &path, Params &bp)
         {
-            assert(dstBit == 1);
-            pixels.resize(1);
-            assets::Image2D image = _images[0];
-            astl::shared_ptr<void> copy = copySrcBuffer(image.pixels, image.imageSize(), image.imageFormat);
+            auto &image = bp.image;
+            auto copy = copySrcBuffer(image.pixels, image.imageSize(), image.imageFormat);
             image.pixels = copy.get();
-            if (!isImageEquals(image, _format, vk::Format::eR8G8B8A8Srgb))
-                assets::utils::convertImage(image, vk::Format::eR8G8B8A8Srgb, image.channelCount > 3 ? 4 : 3);
-            pixels.emplace_back(copy);
-            std::unique_ptr<OIIO::ImageOutput> out = OIIO::ImageOutput::create(_path.string());
+            if (!isImageEquals(image, bp.format, vk::Format::eR8G8B8A8Srgb))
+                convertImage(image, vk::Format::eR8G8B8A8Srgb, image.channelCount > 3 ? 4 : 3);
+            auto *pPath = path.c_str();
+            std::unique_ptr<OIIO::ImageOutput> out = OIIO::ImageOutput::create(pPath);
             OIIO::ImageSpec spec(image.width, image.height, image.channelCount, OIIO::TypeDesc::UINT8);
-            spec.attribute("XResolution", _dpi);
-            spec.attribute("YResolution", _dpi);
-            if (_dither) spec.attribute("oiio:dither", 1);
-            if (!out->open(_path, spec) || !out->write_image(OIIO::TypeDesc::UINT8, copy.get()))
+            spec.attribute("XResolution", bp.dpi);
+            spec.attribute("YResolution", bp.dpi);
+            if (bp.dither) spec.attribute("oiio:dither", 1);
+            if (!out->open(pPath, spec) || !out->write_image(OIIO::TypeDesc::UINT8, copy.get()))
             {
                 logError("%s", out->geterror().c_str());
                 return false;
@@ -64,33 +64,33 @@ namespace ecl
             return out->close();
         }
 
-        bool GIFExporter::save(size_t dstBit, astl::vector<astl::shared_ptr<void>> &pixels)
+        bool gif::save(const acul::string &path, Params &gp)
         {
-            assert(dstBit == 1);
-            pixels.resize(_images.size());
-            std::unique_ptr<OIIO::ImageOutput> out = OIIO::ImageOutput::create(_path.string());
-            astl::vector<OIIO::ImageSpec> specs;
+            acul::vector<acul::shared_ptr<void>> pixels(gp.images.size());
+            auto *pPath = path.c_str();
+            std::unique_ptr<OIIO::ImageOutput> out = OIIO::ImageOutput::create(pPath);
+            acul::vector<OIIO::ImageSpec> specs;
 
-            for (assets::Image2D image : _images)
+            for (auto &image : gp.images)
             {
-                astl::shared_ptr<void> copy = copySrcBuffer(image.pixels, image.imageSize(), image.imageFormat);
+                acul::shared_ptr<void> copy = copySrcBuffer(image.pixels, image.imageSize(), image.imageFormat);
                 image.pixels = copy.get();
 
-                if (!isImageEquals(image, _format, vk::Format::eR8G8B8A8Srgb))
-                    assets::utils::convertImage(image, vk::Format::eR8G8B8A8Srgb, 3);
+                if (!isImageEquals(image, gp.format, vk::Format::eR8G8B8A8Srgb))
+                    convertImage(image, vk::Format::eR8G8B8A8Srgb, 3);
                 pixels.emplace_back(copy);
                 OIIO::ImageSpec spec(image.width, image.height, 3, OIIO::TypeDesc::UINT8);
-                if (_interlacing) spec.attribute("gif:Interlacing", 1);
-                if (_images.size() > 1)
+                if (gp.interlacing) spec.attribute("gif:Interlacing", 1);
+                if (gp.images.size() > 1)
                 {
-                    spec.attribute("oiio:LoopCount", _loops);
+                    spec.attribute("oiio:LoopCount", gp.loops);
                     spec.attribute("oiio:Movie", 1);
-                    spec.attribute("gif:FPS", _fps);
+                    spec.attribute("gif:FPS", gp.fps);
                 }
                 specs.push_back(spec);
             }
 
-            if (!out->open(_path, specs.size(), specs.data()))
+            if (!out->open(pPath, specs.size(), specs.data()))
             {
                 logError("%s", out->geterror().c_str());
                 return false;
@@ -100,7 +100,7 @@ namespace ecl
             {
                 if (i > 0)
                 {
-                    if (!out->open(_path, specs[i], OIIO::ImageOutput::AppendSubimage))
+                    if (!out->open(pPath, specs[i], OIIO::ImageOutput::AppendSubimage))
                     {
                         logError("%s", out->geterror().c_str());
                         return false;
@@ -115,19 +115,15 @@ namespace ecl
             return out->close();
         }
 
-        bool HDRExporter::save(size_t dstBit, astl::vector<astl::shared_ptr<void>> &pixels)
+        bool hdr::save(const acul::string &path, Params &hp)
         {
-            assert(dstBit == 4);
-            pixels.resize(1);
-            assets::Image2D image = _images[0];
-            astl::shared_ptr<void> copy = copySrcBuffer(image.pixels, image.imageSize(), image.imageFormat);
-            image.pixels = copy.get();
-            if (!isImageEquals(image, _format, vk::Format::eR32G32B32A32Sfloat))
-                assets::utils::convertImage(image, vk::Format::eR32G32B32A32Sfloat, 3);
-            pixels.emplace_back(copy);
-            std::unique_ptr<OIIO::ImageOutput> out = OIIO::ImageOutput::create(_path.string());
-            OIIO::ImageSpec spec(image.width, image.height, 3, OIIO::TypeDesc::FLOAT);
-            if (!out->open(_path, spec) || !out->write_image(OIIO::TypeDesc::FLOAT, copy.get()))
+            acul::shared_ptr<void> copy = copySrcBuffer(hp.image.pixels, hp.image.imageSize(), hp.image.imageFormat);
+            hp.image.pixels = copy.get();
+            if (!isImageEquals(hp.image, hp.format, vk::Format::eR32G32B32A32Sfloat))
+                convertImage(hp.image, vk::Format::eR32G32B32A32Sfloat, 3);
+            std::unique_ptr<OIIO::ImageOutput> out = OIIO::ImageOutput::create(path.c_str());
+            OIIO::ImageSpec spec(hp.image.width, hp.image.height, 3, OIIO::TypeDesc::FLOAT);
+            if (!out->open(path.c_str(), spec) || !out->write_image(OIIO::TypeDesc::FLOAT, copy.get()))
             {
                 logError("%s", out->geterror().c_str());
                 return false;
@@ -135,21 +131,20 @@ namespace ecl
             return out->close();
         }
 
-        bool HEIFExporter::save(size_t dstBit, astl::vector<astl::shared_ptr<void>> &pixels)
+        bool heif::save(const acul::string &path, Params &hp)
         {
-            assert(dstBit == 1);
-            assets::Image2D image = _images[0];
+            umbf::Image2D image = hp.image;
             int dstChannels = image.channelCount > 3 ? 4 : 3;
-            pixels.resize(1);
-            astl::shared_ptr<void> copy = copySrcBuffer(image.pixels, image.imageSize(), image.imageFormat);
+            acul::shared_ptr<void> copy = copySrcBuffer(image.pixels, image.imageSize(), image.imageFormat);
             image.pixels = copy.get();
-            if (!isImageEquals(image, _format, vk::Format::eR8G8B8A8Srgb))
-                assets::utils::convertImage(image, vk::Format::eR8G8B8A8Srgb, dstChannels);
-            pixels.emplace_back(copy);
-            std::unique_ptr<OIIO::ImageOutput> out = OIIO::ImageOutput::create(_path.string());
+            if (!isImageEquals(image, hp.format, vk::Format::eR8G8B8A8Srgb))
+                convertImage(image, vk::Format::eR8G8B8A8Srgb, dstChannels);
+            auto *pPath = path.c_str();
+            std::unique_ptr<OIIO::ImageOutput> out = OIIO::ImageOutput::create(pPath);
             OIIO::ImageSpec spec(image.width, image.height, dstChannels, OIIO::TypeDesc::UINT8);
-            spec.attribute("Compression", "heic:" + std::to_string(_compression));
-            if (!out->open(_path, spec) || !out->write_image(OIIO::TypeDesc::UINT8, copy.get()))
+            auto comp_attr = acul::format("heic:%d", hp.compression);
+            spec.attribute("Compression", comp_attr.c_str());
+            if (!out->open(pPath, spec) || !out->write_image(OIIO::TypeDesc::UINT8, copy.get()))
             {
                 logError("%s", out->geterror().c_str());
                 return false;
@@ -157,27 +152,25 @@ namespace ecl
             return out->close();
         }
 
-        bool JPEGExporter::save(size_t dstBit, astl::vector<astl::shared_ptr<void>> &pixels)
+        bool jpeg::save(const acul::string &path, Params &jp)
         {
-            assert(dstBit == 1);
-            pixels.resize(1);
-            assets::Image2D image = _images[0];
-            astl::shared_ptr<void> copy = copySrcBuffer(image.pixels, image.imageSize(), image.imageFormat);
+            umbf::Image2D image = jp.image;
+            acul::shared_ptr<void> copy = copySrcBuffer(image.pixels, image.imageSize(), image.imageFormat);
             image.pixels = copy.get();
-            if (!isImageEquals(image, _format, vk::Format::eR8G8B8A8Srgb))
-                assets::utils::convertImage(image, vk::Format::eR8G8B8A8Srgb, 3);
-            pixels.emplace_back(copy);
-            std::unique_ptr<OIIO::ImageOutput> out = OIIO::ImageOutput::create(_path.string());
+            if (!isImageEquals(image, jp.format, vk::Format::eR8G8B8A8Srgb))
+                convertImage(image, vk::Format::eR8G8B8A8Srgb, 3);
+            auto *pPath = path.c_str();
+            std::unique_ptr<OIIO::ImageOutput> out = OIIO::ImageOutput::create(pPath);
             OIIO::ImageSpec spec(image.width, image.height, 3, OIIO::TypeDesc::UINT8);
-            spec.attribute("XResolution", _dpi);
-            spec.attribute("YResolution", _dpi);
+            spec.attribute("XResolution", jp.dpi);
+            spec.attribute("YResolution", jp.dpi);
             spec.attribute("ResolutionUnit", "in");
-            spec.attribute("Compression", "jpeg:" + std::to_string(_compression));
-            if (_dither) spec.attribute("oiio:dither", 1);
-            if (_progressive) spec.attribute("jpeg:progressive", 1);
+            spec.attribute("Compression", "jpeg:" + std::to_string(jp.compression));
+            if (jp.dither) spec.attribute("oiio:dither", 1);
+            if (jp.progressive) spec.attribute("jpeg:progressive", 1);
             spec.attribute("oiio:ColorSpace", "sRGB");
-            spec.attribute("Software", _appName);
-            if (!out->open(_path, spec) || !out->write_image(OIIO::TypeDesc::UINT8, copy.get()))
+            spec.attribute("Software", jp.appName.c_str());
+            if (!out->open(pPath, spec) || !out->write_image(OIIO::TypeDesc::UINT8, copy.get()))
             {
                 logError("%s", out->geterror().c_str());
                 return false;
@@ -185,24 +178,23 @@ namespace ecl
             return out->close();
         }
 
-        bool JPEG2000Exporter::save(size_t dstBit, astl::vector<astl::shared_ptr<void>> &pixels)
+        bool jpeg2000::save(const acul::string &path, Params &jp, u8 dstBit)
         {
             assert(dstBit == 1 || dstBit == 2);
-            assets::Image2D image = _images[0];
+            umbf::Image2D image = jp.image;
             int dstChannels = image.channelCount > 3 ? 4 : 3;
-            const vk::Format dstFormat = getFormatByBit(dstBit, _format);
-            pixels.resize(1);
-            astl::shared_ptr<void> copy = copySrcBuffer(image.pixels, image.imageSize(), image.imageFormat);
+            const vk::Format dstFormat = getFormatByBit(dstBit, jp.format);
+            acul::shared_ptr<void> copy = copySrcBuffer(image.pixels, image.imageSize(), image.imageFormat);
             image.pixels = copy.get();
-            if (!isImageEquals(image, _format, dstFormat)) assets::utils::convertImage(image, dstFormat, dstChannels);
-            pixels.emplace_back(copy);
-            std::unique_ptr<OIIO::ImageOutput> out = OIIO::ImageOutput::create(_path.string());
+            if (!isImageEquals(image, jp.format, dstFormat)) convertImage(image, dstFormat, dstChannels);
+            auto *pPath = path.c_str();
+            std::unique_ptr<OIIO::ImageOutput> out = OIIO::ImageOutput::create(pPath);
             const OIIO::TypeDesc dstType = vkFormatToOIIO(dstFormat);
             OIIO::ImageSpec spec(image.width, image.height, dstChannels, dstType);
-            if (_unassociatedAlpha) spec.attribute("oiio:UnassociatedAlpha", 1);
-            if (_dither) spec.attribute("oiio:dither", 1);
+            if (jp.unassociatedAlpha) spec.attribute("oiio:UnassociatedAlpha", 1);
+            if (jp.dither) spec.attribute("oiio:dither", 1);
             spec.attribute("oiio:ColorSpace", "sRGB");
-            if (!out->open(_path, spec) || !out->write_image(dstType, copy.get()))
+            if (!out->open(pPath, spec) || !out->write_image(dstType, copy.get()))
             {
                 logError("%s", out->geterror().c_str());
                 return false;
@@ -210,22 +202,21 @@ namespace ecl
             return out->close();
         }
 
-        bool JPEGXLExporter::save(size_t dstBit, astl::vector<astl::shared_ptr<void>> &pixels)
+        bool jpegXL::save(const acul::string &path, Params &jp, u8 dstBit)
         {
             assert(dstBit == 1 || dstBit == 2);
-            assets::Image2D image = _images[0];
+            umbf::Image2D image = jp.image;
             int dstChannels = image.channelCount > 3 ? 4 : 3;
-            const vk::Format dstFormat = getFormatByBit(dstBit, _format);
-            pixels.resize(1);
-            astl::shared_ptr<void> copy = copySrcBuffer(image.pixels, image.imageSize(), image.imageFormat);
+            const vk::Format dstFormat = getFormatByBit(dstBit, jp.format);
+            acul::shared_ptr<void> copy = copySrcBuffer(image.pixels, image.imageSize(), image.imageFormat);
             image.pixels = copy.get();
-            if (!isImageEquals(image, _format, dstFormat)) assets::utils::convertImage(image, dstFormat, dstChannels);
-            pixels.emplace_back(copy);
-            std::unique_ptr<OIIO::ImageOutput> out = OIIO::ImageOutput::create(_path.string());
+            if (!isImageEquals(image, jp.format, dstFormat)) convertImage(image, dstFormat, dstChannels);
+            auto *pPath = path.c_str();
+            std::unique_ptr<OIIO::ImageOutput> out = OIIO::ImageOutput::create(pPath);
             const OIIO::TypeDesc dstType = vkFormatToOIIO(dstFormat);
             OIIO::ImageSpec spec(image.width, image.height, dstChannels, dstType);
             spec.attribute("oiio:ColorSpace", "sRGB");
-            if (!out->open(_path, spec) || !out->write_image(dstType, copy.get()))
+            if (!out->open(pPath, spec) || !out->write_image(dstType, copy.get()))
             {
                 logError("%s", out->geterror().c_str());
                 return false;
@@ -233,27 +224,27 @@ namespace ecl
             return out->close();
         }
 
-        bool OpenEXRExporter::save(size_t dstBit, astl::vector<astl::shared_ptr<void>> &pixels)
+        bool openEXR::save(const acul::string &path, Params &op, u8 dstBit)
         {
             assert(dstBit == 2 || dstBit == 4);
-            pixels.resize(_images.size());
-            std::unique_ptr<OIIO::ImageOutput> out = OIIO::ImageOutput::create(_path.string());
-            astl::vector<OIIO::ImageSpec> specs;
-            const vk::Format dstFormat = getFormatByBit(dstBit, _format);
+            acul::vector<acul::shared_ptr<void>> pixels(op.images.size());
+            auto *pPath = path.c_str();
+            std::unique_ptr<OIIO::ImageOutput> out = OIIO::ImageOutput::create(pPath);
+            acul::vector<OIIO::ImageSpec> specs;
+            const vk::Format dstFormat = getFormatByBit(dstBit, op.format);
             const OIIO::TypeDesc dstType = vkFormatToOIIO(dstFormat);
             u16 maxWidth = 0, maxHeight = 0;
-            for (const auto &image : _images)
+            for (const auto &image : op.images)
             {
                 maxWidth = std::max(maxWidth, image.width);
                 maxHeight = std::max(maxHeight, image.height);
             }
 
-            for (assets::Image2D image : _images)
+            for (umbf::Image2D image : op.images)
             {
-                astl::shared_ptr<void> copy = copySrcBuffer(image.pixels, image.imageSize(), image.imageFormat);
+                acul::shared_ptr<void> copy = copySrcBuffer(image.pixels, image.imageSize(), image.imageFormat);
                 image.pixels = copy.get();
-                if (!isImageEquals(image, _format, dstFormat))
-                    assets::utils::convertImage(image, dstFormat, image.channelCount);
+                if (!isImageEquals(image, op.format, dstFormat)) convertImage(image, dstFormat, image.channelCount);
                 pixels.emplace_back(copy);
                 OIIO::ImageSpec spec(image.width, image.height, image.channelCount, dstType);
                 OIIO::ROI fullROI(0, maxWidth, 0, maxHeight);
@@ -261,11 +252,11 @@ namespace ecl
                 spec.full_y = fullROI.ybegin;
                 spec.full_width = fullROI.width();
                 spec.full_height = fullROI.height();
-                spec.attribute("compression", _compression);
+                spec.attribute("compression", op.compression.c_str());
                 specs.push_back(spec);
             }
 
-            if (!out->open(_path, specs.size(), specs.data()))
+            if (!out->open(pPath, specs.size(), specs.data()))
             {
                 logError("%s", out->geterror().c_str());
                 return false;
@@ -275,7 +266,7 @@ namespace ecl
             {
                 if (i > 0)
                 {
-                    if (!out->open(_path, specs[i], OIIO::ImageOutput::AppendSubimage))
+                    if (!out->open(pPath, specs[i], OIIO::ImageOutput::AppendSubimage))
                     {
                         logError("%s", out->geterror().c_str());
                         return false;
@@ -290,31 +281,29 @@ namespace ecl
             return out->close();
         }
 
-        bool PNGExporter::save(size_t dstBit, astl::vector<astl::shared_ptr<void>> &pixels)
+        bool png::save(const acul::string &path, Params &pp, u8 dstBit)
         {
             assert(dstBit == 1 || dstBit == 2);
-            pixels.resize(1);
-            const vk::Format dstFormat = getFormatByBit(dstBit, _format);
+            const vk::Format dstFormat = getFormatByBit(dstBit, pp.format);
             const OIIO::TypeDesc dstType = vkFormatToOIIO(dstFormat);
-            assets::Image2D image = _images[0];
+            umbf::Image2D image = pp.image;
             int dstChannels = image.channelCount > 3 ? 4 : 3;
-            astl::shared_ptr<void> copy = copySrcBuffer(image.pixels, image.imageSize(), image.imageFormat);
+            acul::shared_ptr<void> copy = copySrcBuffer(image.pixels, image.imageSize(), image.imageFormat);
             image.pixels = copy.get();
-            if (!isImageEquals(image, _format, dstFormat)) assets::utils::convertImage(image, dstFormat, dstChannels);
-            pixels.emplace_back(copy);
-
-            std::unique_ptr<OIIO::ImageOutput> out = OIIO::ImageOutput::create(_path.string());
+            if (!isImageEquals(image, pp.format, dstFormat)) convertImage(image, dstFormat, dstChannels);
+            auto *pPath = path.c_str();
+            std::unique_ptr<OIIO::ImageOutput> out = OIIO::ImageOutput::create(pPath);
             OIIO::ImageSpec spec(image.width, image.height, dstChannels, dstType);
-            spec.attribute("XResolution", _dpi);
-            spec.attribute("YResolution", _dpi);
+            spec.attribute("XResolution", pp.dpi);
+            spec.attribute("YResolution", pp.dpi);
             spec.attribute("ResolutionUnit", "in");
-            spec.attribute("png:compressionLevel", _compression);
-            spec.attribute("png:filter", _filter);
-            if (_dither) spec.attribute("oiio:dither", 1);
+            spec.attribute("png:compressionLevel", pp.compression);
+            spec.attribute("png:filter", pp.filter);
+            if (pp.dither) spec.attribute("oiio:dither", 1);
             spec.attribute("oiio:ColorSpace", "sRGB");
-            if (_unassociatedAlpha) spec.attribute("oiio:UnassociatedAlpha", 1);
-            assert(pixels.size() > 0);
-            if (!out->open(_path, spec) || !out->write_image(dstType, copy.get()))
+            if (pp.unassociatedAlpha) spec.attribute("oiio:UnassociatedAlpha", 1);
+            assert(image.pixels);
+            if (!out->open(pPath, spec) || !out->write_image(dstType, copy.get()))
             {
                 logError("%s", out->geterror().c_str());
                 return false;
@@ -322,21 +311,19 @@ namespace ecl
             return out->close();
         }
 
-        bool PNMExporter::save(size_t dstBit, astl::vector<astl::shared_ptr<void>> &pixels)
+        bool pnm::save(const acul::string &path, Params &pp)
         {
-            assert(dstBit == 1);
-            pixels.resize(1);
-            assets::Image2D image = _images[0];
-            astl::shared_ptr<void> copy = copySrcBuffer(image.pixels, image.imageSize(), image.imageFormat);
+            umbf::Image2D image = pp.image;
+            acul::shared_ptr<void> copy = copySrcBuffer(image.pixels, image.imageSize(), image.imageFormat);
             image.pixels = copy.get();
-            if (!isImageEquals(image, _format, vk::Format::eR8G8B8A8Srgb))
-                assets::utils::convertImage(image, vk::Format::eR8G8B8A8Srgb, 3);
-            pixels.emplace_back(copy);
-            std::unique_ptr<OIIO::ImageOutput> out = OIIO::ImageOutput::create(_path.string());
+            if (!isImageEquals(image, pp.format, vk::Format::eR8G8B8A8Srgb))
+                convertImage(image, vk::Format::eR8G8B8A8Srgb, 3);
+            auto *pPath = path.c_str();
+            std::unique_ptr<OIIO::ImageOutput> out = OIIO::ImageOutput::create(pPath);
             OIIO::ImageSpec spec(image.width, image.height, 3, OIIO::TypeDesc::UINT8);
-            if (_binary) spec.attribute("pnm:binary", 1);
-            if (_dither) spec.attribute("oiio:dither", 1);
-            if (!out->open(_path, spec) || !out->write_image(OIIO::TypeDesc::UINT8, copy.get()))
+            if (pp.binary) spec.attribute("pnm:binary", 1);
+            if (pp.dither) spec.attribute("oiio:dither", 1);
+            if (!out->open(pPath, spec) || !out->write_image(OIIO::TypeDesc::UINT8, copy.get()))
             {
                 logError("%s", out->geterror().c_str());
                 return false;
@@ -344,24 +331,25 @@ namespace ecl
             return out->close();
         }
 
-        bool TargaExporter::save(size_t dstBit, astl::vector<astl::shared_ptr<void>> &pixels)
+        bool targa::save(const acul::string &path, Params &tp, u8 dstBit)
         {
             assert(dstBit == 1);
-            pixels.resize(1);
-            assets::Image2D image = _images[0];
+            umbf::Image2D image = tp.image;
             int dstChannels = image.channelCount > 3 ? 4 : 3;
-            astl::shared_ptr<void> copy = copySrcBuffer(image.pixels, image.imageSize(), image.imageFormat);
+            acul::shared_ptr<void> copy = copySrcBuffer(image.pixels, image.imageSize(), image.imageFormat);
             image.pixels = copy.get();
-            if (!isImageEquals(image, _format, vk::Format::eR8G8B8A8Srgb))
-                assets::utils::convertImage(image, vk::Format::eR8G8B8A8Srgb, dstChannels);
-            pixels.emplace_back(copy);
-            std::unique_ptr<OIIO::ImageOutput> out = OIIO::ImageOutput::create(_path.string());
+            if (!isImageEquals(image, tp.format, vk::Format::eR8G8B8A8Srgb))
+                convertImage(image, vk::Format::eR8G8B8A8Srgb, dstChannels);
+            auto *pPath = path.c_str();
+            std::unique_ptr<OIIO::ImageOutput> out = OIIO::ImageOutput::create(pPath);
             OIIO::ImageSpec spec(image.width, image.height, dstChannels, OIIO::TypeDesc::UINT8);
-            spec.attribute("targa:compression", _compression);
-            spec.attribute("Software", _appName);
+            spec.attribute("targa:compression", tp.compression.c_str());
+            spec.attribute("targa:alpha_type", tp.alphaType);
+            spec.attribute("Software", tp.appName.c_str());
+            spec.attribute("oiio:BitsPerSample", dstBit * 8);
             spec.attribute("oiio:ColorSpace", "sRGB");
-            if (_dither) spec.attribute("oiio:dither", 1);
-            if (!out->open(_path, spec) || !out->write_image(OIIO::TypeDesc::UINT8, copy.get()))
+            if (tp.dither) spec.attribute("oiio:dither", 1);
+            if (!out->open(pPath, spec) || !out->write_image(OIIO::TypeDesc::UINT8, copy.get()))
             {
                 logError("%s", out->geterror().c_str());
                 return false;
@@ -369,35 +357,34 @@ namespace ecl
             return out->close();
         }
 
-        bool TIFFExporter::save(size_t dstBit, astl::vector<astl::shared_ptr<void>> &pixels)
+        bool tiff::save(const acul::string &path, Params &tp, u8 dstBit)
         {
-            std::unique_ptr<OIIO::ImageOutput> out = OIIO::ImageOutput::create(_path.string());
-            astl::vector<OIIO::ImageSpec> specs;
-            pixels.resize(_images.size());
-            const vk::Format dstFormat = getFormatByBit(dstBit, _format);
+            auto *pPath = path.c_str();
+            std::unique_ptr<OIIO::ImageOutput> out = OIIO::ImageOutput::create(pPath);
+            acul::vector<OIIO::ImageSpec> specs;
+            acul::vector<acul::shared_ptr<void>> pixels(tp.images.size());
+            const vk::Format dstFormat = getFormatByBit(dstBit, tp.format);
             const OIIO::TypeDesc dstType = vkFormatToOIIO(dstFormat);
 
-            for (assets::Image2D image : _images)
+            for (umbf::Image2D image : tp.images)
             {
-                astl::shared_ptr<void> copy = copySrcBuffer(image.pixels, image.imageSize(), image.imageFormat);
+                acul::shared_ptr<void> copy = copySrcBuffer(image.pixels, image.imageSize(), image.imageFormat);
                 image.pixels = copy.get();
-                if (!isImageEquals(image, _format, dstFormat))
-                    assets::utils::convertImage(image, dstFormat, image.channelCount);
+                if (!isImageEquals(image, tp.format, dstFormat)) convertImage(image, dstFormat, image.channelCount);
                 pixels.emplace_back(copy);
                 OIIO::ImageSpec spec(image.width, image.height, image.channelCount, dstType);
-                if (_dither) spec.attribute("oiio:dither", 1);
-                if (_unassociatedAlpha) spec.attribute("oiio:UnassociatedAlpha", 1);
-                spec.attribute("Software", _appName);
-                spec.attribute("tiff:zipquality", _zipquality);
-                spec.attribute("tiff:bigtiff", _forceBigTIFF);
-                spec.attribute("XResolution", _dpi);
-                spec.attribute("YResolution", _dpi);
+                if (tp.dither) spec.attribute("oiio:dither", 1);
+                if (tp.unassociatedAlpha) spec.attribute("oiio:UnassociatedAlpha", 1);
+                spec.attribute("tiff:zipquality", tp.zipquality);
+                spec.attribute("tiff:bigtiff", tp.forceBigTIFF);
+                spec.attribute("XResolution", tp.dpi);
+                spec.attribute("YResolution", tp.dpi);
                 spec.attribute("ResolutionUnit", "in");
-                spec.attribute("compression", _compression);
+                spec.attribute("compression", tp.compression.c_str());
                 specs.push_back(spec);
             }
 
-            if (!out->open(_path, specs.size(), specs.data()))
+            if (!out->open(pPath, specs.size(), specs.data()))
             {
                 logError("%s", out->geterror().c_str());
                 return false;
@@ -407,7 +394,7 @@ namespace ecl
             {
                 if (i > 0)
                 {
-                    if (!out->open(_path, specs[i], OIIO::ImageOutput::AppendSubimage))
+                    if (!out->open(pPath, specs[i], OIIO::ImageOutput::AppendSubimage))
                     {
                         logError("%s", out->geterror().c_str());
                         return false;
@@ -422,20 +409,18 @@ namespace ecl
             return out->close();
         }
 
-        bool WebPExporter::save(size_t dstBit, astl::vector<astl::shared_ptr<void>> &pixels)
+        bool webp::save(const acul::string &path, Params &wp)
         {
-            assert(dstBit == 1);
-            pixels.resize(1);
-            assets::Image2D image = _images[0];
-            astl::shared_ptr<void> copy = copySrcBuffer(image.pixels, image.imageSize(), image.imageFormat);
+            umbf::Image2D image = wp.image;
+            acul::shared_ptr<void> copy = copySrcBuffer(image.pixels, image.imageSize(), image.imageFormat);
             image.pixels = copy.get();
-            if (!isImageEquals(image, _format, vk::Format::eR8G8B8A8Srgb))
-                assets::utils::convertImage(image, vk::Format::eR8G8B8A8Srgb, image.channelCount > 3 ? 4 : 3);
-            pixels.emplace_back(copy);
-            std::unique_ptr<OIIO::ImageOutput> out = OIIO::ImageOutput::create(_path.string());
+            if (!isImageEquals(image, wp.format, vk::Format::eR8G8B8A8Srgb))
+                convertImage(image, vk::Format::eR8G8B8A8Srgb, image.channelCount > 3 ? 4 : 3);
+            auto *pPath = path.c_str();
+            std::unique_ptr<OIIO::ImageOutput> out = OIIO::ImageOutput::create(pPath);
             OIIO::ImageSpec spec(image.width, image.height, image.channelCount, OIIO::TypeDesc::UINT8);
-            if (_dither) spec.attribute("oiio:dither", 1);
-            if (!out->open(_path, spec) || !out->write_image(OIIO::TypeDesc::UINT8, copy.get()))
+            if (wp.dither) spec.attribute("oiio:dither", 1);
+            if (!out->open(pPath, spec) || !out->write_image(OIIO::TypeDesc::UINT8, copy.get()))
             {
                 logError("%s", out->geterror().c_str());
                 return false;
@@ -443,22 +428,24 @@ namespace ecl
             return out->close();
         }
 
-        bool AssetExporter::save(size_t dstBit)
+        bool umbf::save(const acul::string &path, Params &up, u8 dstBit)
         {
-            auto &currentImage = _images.front();
-            if (currentImage.bytesPerChannel != dstBit)
+            auto &image = up.image;
+            if (image.bytesPerChannel != dstBit)
             {
-                astl::shared_ptr<void> copy =
-                    copySrcBuffer(currentImage.pixels, currentImage.imageSize(), currentImage.imageFormat);
-                currentImage.pixels = copy.get();
-                assets::utils::convertImage(currentImage, currentImage.imageFormat, dstBit);
+                acul::shared_ptr<void> copy = copySrcBuffer(image.pixels, image.imageSize(), image.imageFormat);
+                image.pixels = copy.get();
+                convertImage(image, image.imageFormat, dstBit);
             }
-            assets::Asset asset;
-            asset.header.type = assets::Type::Image;
-            asset.header.compressed = _compression > 0;
-            asset.blocks.push_back(astl::make_shared<assets::Image2D>(currentImage));
-            asset.checksum = _checksum;
-            return asset.save(_path, _compression);
+            umbf::File asset;
+            asset.header.vendor_sign = UMBF_VENDOR_ID;
+            asset.header.vendor_version = UMBF_VERSION;
+            asset.header.spec_version = UMBF_VERSION;
+            asset.header.type_sign = ::umbf::sign_block::format::image;
+            asset.header.compressed = up.compression > 0;
+            asset.blocks.push_back(acul::make_shared<umbf::Image2D>(image));
+            asset.checksum = up.checksum;
+            return asset.save(path, up.compression);
         }
     } // namespace image
 } // namespace ecl

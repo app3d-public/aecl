@@ -1,8 +1,8 @@
 #pragma once
 
+#include <acul/api.hpp>
+#include <acul/io/file.hpp>
 #include <assets/asset.hpp>
-#include <core/api.hpp>
-#include <io/file.hpp>
 #include "format.hpp"
 
 namespace ecl
@@ -27,8 +27,7 @@ namespace ecl
              * @param images Vector to store the loaded image data.
              * @return True if the image is successfully loaded, false otherwise.
              */
-            virtual io::file::ReadState load(const std::filesystem::path &path,
-                                             astl::vector<assets::Image2D> &images) = 0;
+            virtual acul::io::file::op_state load(const acul::string &path, acul::vector<umbf::Image2D> &images) = 0;
         };
 
         class OIIOLoader : public ILoader
@@ -43,8 +42,8 @@ namespace ecl
              * @param images Vector to store the loaded image data.
              * @return True if the image is successfully loaded, false otherwise.
              */
-            virtual io::file::ReadState load(const std::filesystem::path &path,
-                                             astl::vector<assets::Image2D> &images) override;
+            virtual acul::io::file::op_state load(const acul::string &path,
+                                                   acul::vector<umbf::Image2D> &images) override;
 
         protected:
             Format _format;
@@ -52,7 +51,7 @@ namespace ecl
             static bool loadImage(
                 const std::unique_ptr<OIIO::ImageInput> &inp, int subimage,
                 std::function<bool(const std::unique_ptr<OIIO::ImageInput> &, int, int, void *, size_t)> loadHandler,
-                assets::Image2D &info);
+                umbf::Image2D &info);
         };
 
         class BMPLoader final : public OIIOLoader
@@ -177,9 +176,8 @@ namespace ecl
             WebPLoader() : OIIOLoader({FormatFlagBits::bit8 | FormatFlagBits::alpha, vk::Format::eR8G8B8A8Srgb}) {}
         };
 
-        class AssetLoader final : public ILoader
+        class UMBFLoader final : public ILoader
         {
-        public:
         public:
             /**
              * @brief Load asset images from a given file path.
@@ -188,13 +186,13 @@ namespace ecl
              * @param images Vector to store the loaded image data.
              * @return True if the image is successfully loaded, false otherwise.
              */
-            virtual io::file::ReadState load(const std::filesystem::path &path,
-                                             astl::vector<assets::Image2D> &images) override;
+            virtual acul::io::file::op_state load(const acul::string &path,
+                                                   acul::vector<umbf::Image2D> &images) override;
 
         private:
             u32 _checksum = 0;
         };
 
-        APPLIB_API ILoader *getImporterByPath(const std::filesystem::path &path);
+        APPLIB_API ILoader *getImporterByPath(const acul::string &path);
     } // namespace image
 } // namespace ecl

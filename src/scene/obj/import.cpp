@@ -1,12 +1,13 @@
-#include <astl/hash.hpp>
-#include <astl/string.hpp>
-#include <core/locales.hpp>
-#include <core/log.hpp>
-#include <core/task.hpp>
+#include <acul/hash/hashmap.hpp>
+#include <acul/locales.hpp>
+#include <acul/log.hpp>
+#include <acul/string/string.hpp>
+#include <acul/task.hpp>
 #include <ecl/scene/obj/import.hpp>
 #include <ecl/scene/utils.hpp>
 #include <emhash/hash_table8.hpp>
 #include <oneapi/tbb/parallel_sort.h>
+#include <umbf/version.h>
 
 namespace ecl
 {
@@ -24,8 +25,8 @@ namespace ecl
                     {
                         token += 2;
                         glm::vec3 v;
-                        if (!astl::stov3(token, v))
-                            throw std::runtime_error("Failed to parse line: " + std::string(line));
+                        if (!acul::stov3(token, v))
+                            throw ParseException(line, lineIndex);
                         else
                             buffer.v.emplace_back(lineIndex, v);
                     }
@@ -33,8 +34,8 @@ namespace ecl
                     {
                         token += 3;
                         glm::vec2 vt;
-                        if (!astl::stov2(token, vt))
-                            throw std::runtime_error("Failed to parse line: " + std::string(line));
+                        if (!acul::stov2(token, vt))
+                            throw ParseException(line, lineIndex);
                         else
                             buffer.vt.emplace_back(lineIndex, vt);
                     }
@@ -42,8 +43,8 @@ namespace ecl
                     {
                         token += 3;
                         glm::vec3 vn;
-                        if (!astl::stov3(token, vn))
-                            throw std::runtime_error("Failed to parse line: " + std::string(line));
+                        if (!acul::stov3(token, vn))
+                            throw ParseException(line, lineIndex);
                         else
                             buffer.vn.emplace_back(lineIndex, vn);
                     }
@@ -51,17 +52,17 @@ namespace ecl
                 else if (token[0] == 'g' || token[0] == 'o')
                 {
                     token += 2;
-                    std::string str = astl::trim_end(token);
+                    acul::string str = acul::trim_end(token);
                     if (str != "off" && !str.empty()) buffer.g.emplace_back(lineIndex, str);
                 }
                 else if (token[0] == 'f')
                 {
                     token += 2;
-                    astl::vector<glm::ivec3> *vtn = astl::alloc<astl::vector<glm::ivec3>>();
+                    acul::vector<glm::ivec3> *vtn = acul::alloc<acul::vector<glm::ivec3>>();
                     while (true)
                     {
                         int vId{0}, vtId{0}, vnId{0};
-                        if (!(astl::stoi(token, vId))) break;
+                        if (!(acul::stoi(token, vId))) break;
                         // Handle negative indices
                         if (vId < 0) vId += buffer.v.size() + 1;
 
@@ -71,12 +72,12 @@ namespace ecl
                             if (*token == '/')
                             {
                                 ++token;
-                                if (astl::stoi(token, vtId))
+                                if (acul::stoi(token, vtId))
                                     if (vtId < 0) vtId += buffer.vt.size() + 1;
                                 if (*token == '/')
                                 {
                                     ++token;
-                                    if (astl::stoi(token, vnId))
+                                    if (acul::stoi(token, vnId))
                                         if (vnId < 0) vnId += buffer.vn.size() + 1;
                                 }
                             }
@@ -94,12 +95,12 @@ namespace ecl
                 else if (strncmp(token, "mtllib", 6) == 0)
                 {
                     token += 7;
-                    buffer.mtllib = astl::str_range(token);
+                    buffer.mtllib = acul::str_range(token);
                 }
                 else if (strncmp(token, "usemtl", 6) == 0)
                 {
                     token += 7;
-                    buffer.useMtl.emplace_back(lineIndex, astl::str_range(token));
+                    buffer.useMtl.emplace_back(lineIndex, acul::str_range(token));
                 }
             }
 
@@ -111,11 +112,11 @@ namespace ecl
                 size_t vtsize;
                 Line<glm::vec3> *__restrict vn;
                 size_t vnsize;
-                Line<astl::vector<glm::ivec3> *> *__restrict f;
+                Line<acul::vector<glm::ivec3> *> *__restrict f;
                 size_t fsize;
-                Line<std::string> *g;
+                Line<acul::string> *g;
                 size_t gsize;
-                Line<std::string> *useMtl;
+                Line<acul::string> *useMtl;
                 size_t useMtlsize;
             };
 
@@ -126,17 +127,17 @@ namespace ecl
                 return ps.fsize;
             }
 
-            using namespace assets::mesh;
+            using namespace umbf::mesh;
 
             struct GroupRange
             {
                 int startIndex;
                 int rangeEnd;
-                std::string name;
-                astl::shared_ptr<MeshBlock> mesh;
+                acul::string name;
+                acul::shared_ptr<MeshBlock> mesh;
             };
 
-            glm::vec3 calculateNormal(const ParseSingleThread &ps, const astl::vector<glm::ivec3> &__restrict inFace)
+            glm::vec3 calculateNormal(const ParseSingleThread &ps, const acul::vector<glm::ivec3> &__restrict inFace)
             {
                 glm::vec3 normal{0.0f};
                 for (int v = 0; v < inFace.size(); ++v)
@@ -169,13 +170,42 @@ namespace ecl
                     face.vertices.emplace_back(vgi, vIt->second);
             }
 
+            void addVertexToFace(const ParseSingleThread &__restrict ps, u32 vgi, u32 current,
+                                 acul::vector<VertexGroup> &groups, const glm::ivec3 &vtn, Model &m, IndexedFace &face)
+            {
+                Vertex vertex{ps.v[current].value};
+                if (vtn.y != 0 && ps.vtsize > vtn.y) vertex.uv = ps.vt[vtn.y - 1].value;
+                if (vtn.z != 0 && ps.vnsize > vtn.z)
+                    vertex.normal = ps.vn[vtn.z - 1].value;
+                else
+                    vertex.normal = face.normal;
+                auto &vgv = groups[vgi].vertices;
+                auto it = std::find_if(vgv.begin(), vgv.end(),
+                                       [&m, &vertex](u32 index) { return m.vertices[index] == vertex; });
+                if (it == vgv.end())
+                {
+                    vgv.emplace_back(m.vertices.size());
+                    face.vertices.emplace_back(vgi, m.vertices.size());
+                    m.vertices.emplace_back(vertex);
+                    m.aabb.min = glm::min(m.aabb.min, vertex.pos);
+                    m.aabb.max = glm::max(m.aabb.max, vertex.pos);
+                }
+                else
+                    face.vertices.emplace_back(vgi, *it);
+            }
+
             void indexMesh(size_t faceCount, const ParseSingleThread &ps, GroupRange &group)
             {
                 emhash8::HashMap<glm::ivec3, u32> vtnMap;
-                vtnMap.reserve(ps.vsize);
+                acul::vector<VertexGroup> mg;
+                const bool useNormals = ps.vnsize > 0;
+                if (useNormals)
+                    vtnMap.reserve(ps.vsize);
+                else
+                    mg.resize(ps.vsize);
                 auto &m = group.mesh->model;
                 m.faces.resize(faceCount);
-                astl::vector<int> posMap(ps.vsize, -1);
+                acul::vector<int> posMap(ps.vsize, -1);
                 for (size_t f = 0; f < faceCount; ++f)
                 {
                     auto &inFace = ps.f[group.startIndex + f].value;
@@ -186,27 +216,30 @@ namespace ecl
                         auto &vtn = (*inFace)[v];
                         const int current = vtn.x - 1;
                         if (ps.vsize < vtn.x) continue;
-                        if (posMap[current] == -1) posMap[current] = ++m.group_count;
-                        addVertexToFace(ps, posMap[current], current, vtnMap, vtn, m, face);
+                        if (posMap[current] == -1) posMap[current] = m.group_count++;
+                        if (useNormals)
+                            addVertexToFace(ps, posMap[current], current, vtnMap, vtn, m, face);
+                        else
+                            addVertexToFace(ps, posMap[current], current, mg, vtn, m, face);
                     }
                 }
             }
 
-            void indexGroups(ParseSingleThread &ps, astl::vector<assets::Object> &objects,
-                             astl::vector<GroupRange> &groups)
+            void indexGroups(ParseSingleThread &ps, acul::vector<umbf::Object> &objects,
+                             acul::vector<GroupRange> &groups)
             {
                 for (auto &group : groups)
                 {
                     logInfo("Indexing group data: '%s'", group.name.c_str());
                     const size_t faceCount = group.rangeEnd - group.startIndex;
-                    group.mesh = astl::make_shared<MeshBlock>();
+                    group.mesh = acul::make_shared<MeshBlock>();
                     auto &m = group.mesh->model;
                     indexMesh(faceCount, ps, group);
                     logInfo("Imported vertices: %zu", m.vertices.size());
                     logInfo("Imported faces: %zu", m.faces.size());
                     logInfo("Triangulating mesh group");
-                    astl::vector<astl::vector<u32>> ires(faceCount);
-                    astl::vector<astl::vector<bary::Vertex>> bres(faceCount);
+                    acul::vector<acul::vector<u32>> ires(faceCount);
+                    acul::vector<acul::vector<bary::Vertex>> bres(faceCount);
                     oneapi::tbb::parallel_for(oneapi::tbb::blocked_range<size_t>(0, faceCount),
                                               [&](const oneapi::tbb::blocked_range<size_t> &range) {
                                                   for (size_t i = range.begin(); i < range.end(); ++i)
@@ -226,33 +259,28 @@ namespace ecl
                         currentID += ires[i].size();
                     }
                     logDebug("Indices: %zu", m.indices.size());
-                    objects.emplace_back(astl::IDGen()(), group.name);
+                    objects.emplace_back(acul::IDGen()(), group.name);
                     objects.back().meta.push_back(group.mesh);
                 }
             }
 
-            void parseMTL(const std::filesystem::path &basePath, const ParseIndexed &parsed,
-                          astl::vector<Material> &materials)
+            void parseMTL(const acul::string &basePath, const ParseIndexed &parsed, acul::vector<Material> &materials)
             {
-                std::filesystem::path parsedPath = parsed.mtllib;
-                if (parsedPath.is_relative()) parsedPath = parsedPath.lexically_normal();
-
-                std::filesystem::path filename = basePath;
-                filename.replace_filename(parsedPath);
-                std::ifstream fileStream(filename);
+                acul::string filename = acul::io::replace_filename(basePath, parsed.mtllib);
+                std::ifstream fileStream(filename.c_str());
                 if (!fileStream.is_open())
                 {
-                    logError("Could not open file: %s", filename.string().c_str());
+                    logError("Could not open file: %s", filename.c_str());
                     return;
                 }
 
-                logInfo("Loading MTL file: %s", filename.string().c_str());
+                logInfo("Loading MTL file: %s", filename.c_str());
                 std::ostringstream oss;
                 oss << fileStream.rdbuf();
-                std::string fileContent = oss.str();
+                acul::string fileContent = oss.str().c_str();
                 fileStream.close();
-                astl::string_pool<char> stringPool(fileContent.size());
-                io::file::fillLineBuffer(fileContent.c_str(), fileContent.size(), stringPool);
+                acul::string_pool<char> stringPool(fileContent.size());
+                acul::io::file::fill_line_buffer(fileContent.c_str(), fileContent.size(), stringPool);
 
                 // Process each line from the buffer
                 int materialIndex = -1;
@@ -276,7 +304,7 @@ namespace ecl
                         return false;
                 }
                 glm::vec3 color;
-                if (astl::stov3(token, color))
+                if (acul::stov3(token, color))
                     colorOption.value = color;
                 else
                     return false;
@@ -325,39 +353,39 @@ namespace ecl
                         else if (strncmp(token, "boost", 5) == 0)
                         {
                             token += 6;
-                            if (!astl::stof(token, dst.boost)) return false;
+                            if (!acul::stof(token, dst.boost)) return false;
                         }
                         else if (strncmp(token, "mm", 2) == 0)
                         {
                             token += 3;
-                            if (!astl::stov2(token, dst.mm)) return false;
+                            if (!acul::stov2(token, dst.mm)) return false;
                         }
                         else if (token[0] == 'o')
                         {
                             token += 2;
-                            astl::stov3_opt(token, dst.offset);
+                            acul::stov3_opt(token, dst.offset);
                         }
                         else if (token[0] == 's')
                         {
                             token += 2;
-                            astl::stov3_opt(token, dst.scale);
+                            acul::stov3_opt(token, dst.scale);
                         }
                         else if (token[0] == 't')
                         {
                             if (isspace(token[1]))
                             {
                                 token += 2;
-                                astl::stov3_opt(token, dst.turbulence);
+                                acul::stov3_opt(token, dst.turbulence);
                             }
                             else if (strncmp(token, "texres", 6) == 0)
                             {
                                 token += 7;
-                                if (!astl::stoi(token, dst.resolution)) return false;
+                                if (!acul::stoi(token, dst.resolution)) return false;
                             }
                             else if (strncmp(token, "type", 4) == 0)
                             {
                                 token += 5;
-                                dst.type = astl::str_range(token);
+                                dst.type = acul::str_range(token);
                             }
                             else
                                 return false;
@@ -370,7 +398,7 @@ namespace ecl
                         else if (strncmp(token, "bm", 2) == 0)
                         {
                             token += 3;
-                            if (!astl::stof(token, dst.bumpIntensity)) return false;
+                            if (!acul::stof(token, dst.bumpIntensity)) return false;
                         }
                         else if (strncmp(token, "imfchan", 7) == 0)
                         {
@@ -381,21 +409,21 @@ namespace ecl
                         }
                         else
                         {
-                            logWarn("Unknown option: %s", astl::str_range(token).c_str());
+                            logWarn("Unknown option: %s", acul::str_range(token).c_str());
                             return false;
                         }
                     }
                     else
                     {
                         if (pathProcessed) break;
-                        dst.path = astl::str_range(token);
+                        dst.path = acul::str_range(token);
                         pathProcessed = true;
                     }
                 } while (true);
                 return true;
             }
 
-            void parseMTLline(const std::string_view &line, astl::vector<Material> &materials, int &matIndex,
+            void parseMTLline(const acul::string_view &line, acul::vector<Material> &materials, int &matIndex,
                               int lineIndex)
             {
                 try
@@ -405,7 +433,7 @@ namespace ecl
                     if (strncmp(token, "newmtl", 6) == 0)
                     {
                         token += 7;
-                        Material material(astl::str_range(token));
+                        Material material(acul::str_range(token));
                         materials.push_back(std::move(material));
                         ++matIndex;
                     }
@@ -430,31 +458,31 @@ namespace ecl
                         {
                             token += 3;
                             float ns;
-                            if (!astl::stof(token, ns)) throw ParseException(line, lineIndex);
+                            if (!acul::stof(token, ns)) throw ParseException(line, lineIndex);
                             materials[matIndex].Ns = ns;
                         }
                         else if (token[1] == 'i')
                         {
                             token += 3;
-                            if (!astl::stof(token, materials[matIndex].Ni)) throw ParseException(line, lineIndex);
+                            if (!acul::stof(token, materials[matIndex].Ni)) throw ParseException(line, lineIndex);
                         }
                     }
                     else if (strncmp(token, "illum", 5) == 0)
                     {
                         token += 6;
-                        if (!astl::stoi(token, materials[matIndex].illum)) throw ParseException(line, lineIndex);
+                        if (!acul::stoi(token, materials[matIndex].illum)) throw ParseException(line, lineIndex);
                     }
                     else if (token[0] == 'd')
                     {
                         token += 2;
-                        if (!astl::stof(token, materials[matIndex].d)) throw ParseException(line, lineIndex);
+                        if (!acul::stof(token, materials[matIndex].d)) throw ParseException(line, lineIndex);
                     }
                     else if (token[0] == 'T')
                     {
                         if (token[1] == 'r')
                         {
                             token += 3;
-                            if (!astl::stof(token, materials[matIndex].Tr)) throw ParseException(line, lineIndex);
+                            if (!acul::stof(token, materials[matIndex].Tr)) throw ParseException(line, lineIndex);
                         }
                         else if (token[1] == 'f')
                         {
@@ -605,29 +633,29 @@ namespace ecl
                         if (token[1] == 'r')
                         {
                             token += 3;
-                            if (!astl::stof(token, materials[matIndex].Pr)) throw ParseException(line, lineIndex);
+                            if (!acul::stof(token, materials[matIndex].Pr)) throw ParseException(line, lineIndex);
                         }
                         else if (token[1] == 'm')
                         {
                             token += 3;
-                            if (!astl::stof(token, materials[matIndex].Pm)) throw ParseException(line, lineIndex);
+                            if (!acul::stof(token, materials[matIndex].Pm)) throw ParseException(line, lineIndex);
                         }
                         else if (token[1] == 's')
                         {
                             token += 3;
-                            if (!astl::stof(token, materials[matIndex].Ps)) throw ParseException(line, lineIndex);
+                            if (!acul::stof(token, materials[matIndex].Ps)) throw ParseException(line, lineIndex);
                         }
                         else if (token[1] == 'c')
                         {
                             if (isspace(token[2]))
                             {
                                 token += 3;
-                                if (!astl::stof(token, materials[matIndex].Pc)) throw ParseException(line, lineIndex);
+                                if (!acul::stof(token, materials[matIndex].Pc)) throw ParseException(line, lineIndex);
                             }
                             else if (token[2] == 'r')
                             {
                                 token += 4;
-                                if (!astl::stof(token, materials[matIndex].Pcr)) throw ParseException(line, lineIndex);
+                                if (!acul::stof(token, materials[matIndex].Pcr)) throw ParseException(line, lineIndex);
                             }
                         }
                     }
@@ -636,12 +664,12 @@ namespace ecl
                         if (isspace(token[5]))
                         {
                             token += 6;
-                            if (!astl::stof(token, materials[matIndex].aniso)) throw ParseException(line, lineIndex);
+                            if (!acul::stof(token, materials[matIndex].aniso)) throw ParseException(line, lineIndex);
                         }
                         else if (token[5] == 'r')
                         {
                             token += 7;
-                            if (!astl::stof(token, materials[matIndex].anisor)) throw ParseException(line, lineIndex);
+                            if (!acul::stof(token, materials[matIndex].anisor)) throw ParseException(line, lineIndex);
                         }
                     }
                     else if (strncmp(token, "norm", 4) == 0)
@@ -664,46 +692,47 @@ namespace ecl
                 }
             }
 
-            void convertToMaterials(std::filesystem::path basePath, const astl::vector<Material> &mtlMatList,
-                                    emhash8::HashMap<std::string, int> &matMap,
-                                    astl::vector<astl::shared_ptr<assets::Asset>> &materials,
-                                    astl::vector<astl::shared_ptr<assets::Target>> &textures)
+            void convertToMaterials(const acul::string &basePath, const acul::vector<Material> &mtlMatList,
+                                    emhash8::HashMap<acul::string, int> &matMap,
+                                    acul::vector<acul::shared_ptr<umbf::File>> &materials,
+                                    acul::vector<acul::shared_ptr<umbf::Target>> &textures)
             {
-                emhash8::HashMap<std::string, size_t> texMap;
+                emhash8::HashMap<acul::string, size_t> texMap;
                 matMap.reserve(mtlMatList.size());
                 materials.resize(mtlMatList.size());
                 for (int i = 0; i < mtlMatList.size(); ++i)
                 {
                     auto &mtl = mtlMatList[i];
                     auto [mIt, mInserted] = matMap.emplace(mtl.name, i);
-                    auto mat = astl::make_shared<assets::Material>();
+                    auto mat = acul::make_shared<umbf::Material>();
                     if (mtl.map_Kd.path.empty())
                         mat->albedo.rgb = mtl.Kd.value;
                     else
                     {
-                        std::filesystem::path parsedPath = mtl.map_Kd.path;
-                        if (parsedPath.is_relative()) parsedPath = parsedPath.lexically_normal();
-                        basePath.replace_filename(parsedPath);
-                        auto [it, inserted] = texMap.insert({parsedPath.string(), textures.size()});
+                        acul::string parsedPath = acul::io::replace_filename(basePath, mtl.map_Kd.path);
+                        auto [it, inserted] = texMap.insert({parsedPath, textures.size()});
                         if (inserted)
                         {
-                            auto target = astl::make_shared<assets::Target>();
-                            assets::Target::Addr metaData;
-                            target->header.type = assets::Type::Image;
+                            auto target = acul::make_shared<umbf::Target>();
+                            target->header.vendor_sign = UMBF_VENDOR_ID;
+                            target->header.vendor_version = UMBF_VERSION;
+                            target->header.type_sign = umbf::sign_block::format::target;
+                            target->header.spec_version = UMBF_VERSION;
                             target->header.compressed = false;
+                            target->url = basePath;
                             target->checksum = 0;
-                            target->addr.proto = assets::Target::Addr::Proto::File;
-                            target->addr.url = basePath.string();
                             textures.push_back(target);
                         }
                         mat->albedo.textured = true;
-                        mat->albedo.textureID = it->second;
+                        mat->albedo.texture_id = it->second;
                     }
-                    materials[i] = astl::make_shared<assets::Asset>();
-                    materials[i]->header.type = assets::Type::Material;
+                    materials[i] = acul::make_shared<umbf::File>();
+                    materials[i]->header.vendor_sign = UMBF_VENDOR_ID;
+                    materials[i]->header.vendor_version = UMBF_VERSION;
+                    materials[i]->header.spec_version = UMBF_VERSION;
+                    materials[i]->header.type_sign = umbf::sign_block::format::material;
                     materials[i]->blocks.push_back(mat);
-                    materials[i]->blocks.push_back(
-                        astl::make_shared<assets::MaterialInfo>(astl::IDGen()(), mIt->first));
+                    materials[i]->blocks.push_back(acul::make_shared<umbf::MaterialInfo>(acul::IDGen()(), mIt->first));
                 }
             }
 
@@ -723,34 +752,34 @@ namespace ecl
                 pst.useMtlsize = pmt.useMtl.size();
 
                 // Allocate
-                pst.v = astl::alloc_n<Line<glm::vec3>>(pst.vsize);
-                pst.vt = astl::alloc_n<Line<glm::vec2>>(pst.vtsize);
-                pst.vn = astl::alloc_n<Line<glm::vec3>>(pst.vnsize);
-                pst.f = astl::alloc_n<Line<astl::vector<glm::ivec3> *>>(pst.fsize);
-                pst.g = astl::alloc_n<Line<std::string>>(pst.gsize);
-                pst.useMtl = astl::alloc_n<Line<std::string>>(pst.useMtlsize);
+                pst.v = acul::alloc_n<Line<glm::vec3>>(pst.vsize);
+                pst.vt = acul::alloc_n<Line<glm::vec2>>(pst.vtsize);
+                pst.vn = acul::alloc_n<Line<glm::vec3>>(pst.vnsize);
+                pst.f = acul::alloc_n<Line<acul::vector<glm::ivec3> *>>(pst.fsize);
+                pst.g = acul::alloc_n<Line<acul::string>>(pst.gsize);
+                pst.useMtl = acul::alloc_n<Line<acul::string>>(pst.useMtlsize);
 
                 // Construct
                 for (size_t i = 0; i < pmt.v.size(); ++i) new (&pst.v[i]) Line<glm::vec3>(pmt.v[i]);
                 for (size_t i = 0; i < pmt.vt.size(); ++i) new (&pst.vt[i]) Line<glm::vec2>(pmt.vt[i]);
                 for (size_t i = 0; i < pmt.vn.size(); ++i) new (&pst.vn[i]) Line<glm::vec3>(pmt.vn[i]);
-                for (size_t i = 0; i < pmt.f.size(); ++i) new (&pst.f[i]) Line<astl::vector<glm::ivec3> *>(pmt.f[i]);
-                for (size_t i = 0; i < pmt.g.size(); ++i) new (&pst.g[i]) Line<std::string>(pmt.g[i]);
-                for (size_t i = 0; i < pmt.useMtl.size(); ++i) new (&pst.useMtl[i]) Line<std::string>(pmt.useMtl[i]);
+                for (size_t i = 0; i < pmt.f.size(); ++i) new (&pst.f[i]) Line<acul::vector<glm::ivec3> *>(pmt.f[i]);
+                for (size_t i = 0; i < pmt.g.size(); ++i) new (&pst.g[i]) Line<acul::string>(pmt.g[i]);
+                for (size_t i = 0; i < pmt.useMtl.size(); ++i) new (&pst.useMtl[i]) Line<acul::string>(pmt.useMtl[i]);
             }
 
             void freePS(ParseSingleThread &ps)
             {
-                astl::release(ps.v, ps.vsize);
-                astl::release(ps.vt, ps.vtsize);
-                astl::release(ps.vn, ps.vnsize);
-                for (int i = 0; i < ps.fsize; ++i) astl::release(ps.f[i].value);
-                astl::release(ps.f, ps.fsize);
-                astl::release(ps.g, ps.gsize);
-                astl::release(ps.useMtl, ps.useMtlsize);
+                acul::release(ps.v, ps.vsize);
+                acul::release(ps.vt, ps.vtsize);
+                acul::release(ps.vn, ps.vnsize);
+                for (int i = 0; i < ps.fsize; ++i) acul::release(ps.f[i].value);
+                acul::release(ps.f, ps.fsize);
+                acul::release(ps.g, ps.gsize);
+                acul::release(ps.useMtl, ps.useMtlsize);
             }
 
-            void createGroupRanges(ParseSingleThread &ps, astl::vector<GroupRange> &groups)
+            void createGroupRanges(ParseSingleThread &ps, acul::vector<GroupRange> &groups)
             {
                 groups.reserve(ps.gsize + 1);
 
@@ -773,10 +802,10 @@ namespace ecl
                 }
             }
 
-            void assignMaterialsToGroups(ParseSingleThread &ps, const astl::vector<GroupRange> &groups,
-                                         const emhash8::HashMap<std::string, int> &matMap,
-                                         astl::vector<astl::shared_ptr<assets::Asset>> &materials,
-                                         astl::vector<astl::vector<u32>> &ranges)
+            void assignMaterialsToGroups(ParseSingleThread &ps, const acul::vector<GroupRange> &groups,
+                                         const emhash8::HashMap<acul::string, int> &matMap,
+                                         acul::vector<acul::shared_ptr<umbf::File>> &materials,
+                                         acul::vector<acul::vector<u32>> &ranges)
             {
                 if (ps.useMtlsize == 0) return;
                 int umID = 0;
@@ -799,14 +828,14 @@ namespace ecl
                             {
                                 auto meta = materials[it->second]->blocks;
                                 auto m_it = std::find_if(meta.begin(), meta.end(), [](auto &block) {
-                                    return block->signature() == assets::sign_block::material_info;
+                                    return block->signature() == umbf::sign_block::meta::material_info;
                                 });
                                 if (m_it == meta.end())
                                 {
                                     logWarn("Can't find material info block");
                                     continue;
                                 }
-                                auto assignments = astl::static_pointer_cast<assets::MaterialInfo>(*m_it)->assignments;
+                                auto assignments = acul::static_pointer_cast<umbf::MaterialInfo>(*m_it)->assignments;
                                 if (std::find(assignments.begin(), assignments.end(), g) == assignments.end())
                                     assignments.push_back(g);
                             }
@@ -815,9 +844,9 @@ namespace ecl
                 }
             }
 
-            void assignRangesToObjects(ParseSingleThread &ps, const astl::vector<astl::vector<u32>> &ranges,
-                                       emhash8::HashMap<std::string, int> &matMap,
-                                       const astl::vector<GroupRange> &groups, astl::vector<assets::Object> &objects)
+            void assignRangesToObjects(ParseSingleThread &ps, const acul::vector<acul::vector<u32>> &ranges,
+                                       emhash8::HashMap<acul::string, int> &matMap,
+                                       const acul::vector<GroupRange> &groups, acul::vector<umbf::Object> &objects)
             {
                 for (int gr = 0; gr < ranges.size(); ++gr)
                 {
@@ -836,7 +865,7 @@ namespace ecl
                                 for (; f < ps.fsize && ps.f[f].index < m_next; ++f);
                             else
                             {
-                                auto meta = astl::make_shared<assets::MatRangeAssignAtrr>();
+                                auto meta = acul::make_shared<umbf::MatRangeAssignAtrr>();
                                 meta->matID = it->second;
                                 for (; f < ps.fsize && ps.f[f].index < m_next; ++f)
                                     meta->faces.push_back(f - group.startIndex);
@@ -847,30 +876,30 @@ namespace ecl
                 }
             }
 
-            io::file::ReadState Importer::load(events::Manager &e)
+            acul::io::file::op_state Importer::load(events::Manager &e)
             {
                 auto start = std::chrono::high_resolution_clock::now();
-                logInfo("Loading OBJ file: %s", _path.string().c_str());
-                std::string header = astl::format("%s %ls", _("loading"), _path.filename().c_str());
+                logInfo("Loading OBJ file: %s", _path.c_str());
+                acul::string header = acul::format("%s %ls", _("loading"), acul::io::get_filename(_path).c_str());
                 e.dispatch<task::UpdateEvent>((void *)this, header, _("file:read"));
                 ParseIndexed parsed;
-                io::file::ReadState result = io::file::readByBlock(_path.string(), parsed, parseLine);
-                if (result != io::file::ReadState::Success) return result;
+                acul::io::file::op_state result = acul::io::file::read_by_block(_path, parsed, parseLine);
+                if (result != acul::io::file::op_state::success) return result;
 
                 e.dispatch<task::UpdateEvent>((void *)this, header, _("data_serialization"), 0.2f);
                 logInfo("Serializing parse result");
                 ParseSingleThread ps;
                 allocatePS(parsed, ps);
-                astl::vector<GroupRange> groups;
+                acul::vector<GroupRange> groups;
                 createGroupRanges(ps, groups);
                 indexGroups(ps, _objects, groups);
                 e.dispatch<task::UpdateEvent>((void *)this, header, _("materials:loading"), 0.8f);
                 if (!parsed.mtllib.empty())
                 {
-                    astl::vector<Material> mtlMaterials;
+                    acul::vector<Material> mtlMaterials;
                     parseMTL(_path, parsed, mtlMaterials);
-                    emhash8::HashMap<std::string, int> matMap;
-                    astl::vector<astl::vector<u32>> faceMatRanges;
+                    emhash8::HashMap<acul::string, int> matMap;
+                    acul::vector<acul::vector<u32>> faceMatRanges;
                     convertToMaterials(_path, mtlMaterials, matMap, _materials, _textures);
                     assignMaterialsToGroups(ps, groups, matMap, _materials, faceMatRanges);
                     assignRangesToObjects(ps, faceMatRanges, matMap, groups, _objects);
@@ -879,7 +908,7 @@ namespace ecl
                 auto end = std::chrono::high_resolution_clock::now();
                 logInfo("Loaded in %.5f ms", std::chrono::duration<f64, std::milli>(end - start).count());
 
-                return io::file::ReadState::Success;
+                return acul::io::file::op_state::success;
             }
         } // namespace obj
     } // namespace scene
