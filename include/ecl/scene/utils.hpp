@@ -1,6 +1,6 @@
 #pragma once
 
-#include <assets/asset.hpp>
+#include <umbf/umbf.hpp>
 
 namespace ecl
 {
@@ -37,8 +37,7 @@ namespace ecl
          *
          * @throws None
          */
-        void buildBarycentric(acul::vector<umbf::mesh::bary::Vertex> &barycentric,
-                              const umbf::mesh::IndexedFace &face, const acul::vector<umbf::mesh::Vertex> &vertices,
-                              const acul::vector<u32> &indices);
+        void buildBarycentric(acul::vector<umbf::mesh::bary::Vertex> &barycentric, const umbf::mesh::IndexedFace &face,
+                              const acul::vector<umbf::mesh::Vertex> &vertices, const acul::vector<u32> &indices);
     } // namespace utils
 } // namespace ecl

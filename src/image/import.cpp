@@ -1,7 +1,7 @@
 #include <acul/hash/hashmap.hpp>
 #include <acul/log.hpp>
-#include <assets/utils.hpp>
 #include <ecl/image/import.hpp>
+#include <umbf/utils.hpp>
 
 namespace ecl
 {

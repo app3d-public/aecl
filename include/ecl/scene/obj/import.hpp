@@ -387,7 +387,7 @@ namespace ecl
                  * @brief Load the scene
                  * @return True if the scene was loaded
                  **/
-                acul::io::file::op_state load(events::Manager &e) override;
+                acul::io::file::op_state load(acul::events::dispatcher &e) override;
             };
         } // namespace obj
     } // namespace scene

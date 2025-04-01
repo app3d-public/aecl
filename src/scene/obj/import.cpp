@@ -259,7 +259,7 @@ namespace ecl
                         currentID += ires[i].size();
                     }
                     logDebug("Indices: %zu", m.indices.size());
-                    objects.emplace_back(acul::IDGen()(), group.name);
+                    objects.emplace_back(acul::id_gen()(), group.name);
                     objects.back().meta.push_back(group.mesh);
                 }
             }
@@ -700,6 +700,7 @@ namespace ecl
                 emhash8::HashMap<acul::string, size_t> texMap;
                 matMap.reserve(mtlMatList.size());
                 materials.resize(mtlMatList.size());
+                auto generator = acul::id_gen();
                 for (int i = 0; i < mtlMatList.size(); ++i)
                 {
                     auto &mtl = mtlMatList[i];
@@ -732,7 +733,7 @@ namespace ecl
                     materials[i]->header.spec_version = UMBF_VERSION;
                     materials[i]->header.type_sign = umbf::sign_block::format::material;
                     materials[i]->blocks.push_back(mat);
-                    materials[i]->blocks.push_back(acul::make_shared<umbf::MaterialInfo>(acul::IDGen()(), mIt->first));
+                    materials[i]->blocks.push_back(acul::make_shared<umbf::MaterialInfo>(generator(), mIt->first));
                 }
             }
 
@@ -876,24 +877,24 @@ namespace ecl
                 }
             }
 
-            acul::io::file::op_state Importer::load(events::Manager &e)
+            acul::io::file::op_state Importer::load(acul::events::dispatcher &e)
             {
                 auto start = std::chrono::high_resolution_clock::now();
                 logInfo("Loading OBJ file: %s", _path.c_str());
                 acul::string header = acul::format("%s %ls", _("loading"), acul::io::get_filename(_path).c_str());
-                e.dispatch<task::UpdateEvent>((void *)this, header, _("file:read"));
+                e.dispatch<acul::task::update_event>((void *)this, header, _("file:read"));
                 ParseIndexed parsed;
                 acul::io::file::op_state result = acul::io::file::read_by_block(_path, parsed, parseLine);
                 if (result != acul::io::file::op_state::success) return result;
 
-                e.dispatch<task::UpdateEvent>((void *)this, header, _("data_serialization"), 0.2f);
+                e.dispatch<acul::task::update_event>((void *)this, header, _("data_serialization"), 0.2f);
                 logInfo("Serializing parse result");
                 ParseSingleThread ps;
                 allocatePS(parsed, ps);
                 acul::vector<GroupRange> groups;
                 createGroupRanges(ps, groups);
                 indexGroups(ps, _objects, groups);
-                e.dispatch<task::UpdateEvent>((void *)this, header, _("materials:loading"), 0.8f);
+                e.dispatch<acul::task::update_event>((void *)this, header, _("materials:loading"), 0.8f);
                 if (!parsed.mtllib.empty())
                 {
                     acul::vector<Material> mtlMaterials;

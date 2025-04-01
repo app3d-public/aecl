@@ -2,9 +2,9 @@
 #include <acul/log.hpp>
 #include <acul/string/string.hpp>
 #include <algorithm>
-#include <assets/utils.hpp>
 #include <ecl/scene/obj/export.hpp>
 #include <oneapi/tbb/parallel_for.h>
+#include <umbf/utils.hpp>
 
 namespace ecl
 {
@@ -23,7 +23,7 @@ namespace ecl
             }
 
             void Exporter::writeVertices(umbf::mesh::Model &model, const acul::vector<umbf::mesh::VertexGroup> &groups,
-                                         std::stringstream &ss)
+                                         acul::stringstream &ss)
             {
                 // v
                 for (auto &group : groups)
@@ -57,7 +57,8 @@ namespace ecl
                     for (auto &face : model.faces) std::reverse(face.vertices.begin(), face.vertices.end());
             }
 
-            void Exporter::writeTriangles(umbf::mesh::MeshBlock *meta, std::ostream &os, const acul::vector<u32> &faces,
+            void Exporter::writeTriangles(umbf::mesh::MeshBlock *meta, acul::stringstream &os,
+                                          const acul::vector<u32> &faces,
                                           const acul::vector<umbf::mesh::VertexGroup> &groups)
             {
                 const auto &m = meta->model;
@@ -66,7 +67,7 @@ namespace ecl
                     for (auto id : groups[g].vertices) positions[id] = g;
 
                 size_t threadCount = oneapi::tbb::this_task_arena::max_concurrency();
-                acul::vector<std::stringstream> blocks(threadCount);
+                acul::vector<acul::stringstream> blocks(threadCount);
                 oneapi::tbb::parallel_for(
                     oneapi::tbb::blocked_range<size_t>(0, faces.size()), [&](const tbb::blocked_range<size_t> &range) {
                         size_t threadId = oneapi::tbb::this_task_arena::current_thread_index();
@@ -95,10 +96,11 @@ namespace ecl
                 for (const auto &block : blocks) os << block.str();
             }
 
-            void Exporter::writeFaces(umbf::mesh::MeshBlock *meta, std::ostream &os, const acul::vector<u32> &faces)
+            void Exporter::writeFaces(umbf::mesh::MeshBlock *meta, acul::stringstream &os,
+                                      const acul::vector<u32> &faces)
             {
                 size_t threadCount = oneapi::tbb::this_task_arena::max_concurrency();
-                acul::vector<std::stringstream> blocks(threadCount);
+                acul::vector<acul::stringstream> blocks(threadCount);
                 auto &originFaces = meta->model.faces;
                 oneapi::tbb::parallel_for(oneapi::tbb::blocked_range<size_t>(0, faces.size()),
                                           [&](const tbb::blocked_range<size_t> &range) {
@@ -123,7 +125,7 @@ namespace ecl
                 for (const auto &block : blocks) os << block.str();
             }
 
-            inline void writeVec3sRGB(std::ostream &os, const std::string &token, const glm::vec3 &vec)
+            inline void writeVec3sRGB(acul::stringstream &os, const acul::string &token, const glm::vec3 &vec)
             {
                 os << token << " " << vec.x << " " << vec.y << " " << vec.z << "\n";
             }
@@ -136,27 +138,27 @@ namespace ecl
              * @param value The number to write.
              */
             template <typename T>
-            inline void writeNumber(std::ostream &os, const std::string &token, const T &value)
+            inline void writeNumber(acul::stringstream &os, const acul::string &token, const T &value)
             {
                 os << token << " " << value << "\n";
             }
 
-            void Exporter::writeTexture2D(std::ostream &os, const std::string &token, const acul::string &tex)
+            void Exporter::writeTexture2D(acul::stringstream &os, const acul::string &token, const acul::string &tex)
             {
                 if (materialFlags == MaterialExportFlags::texture_origin)
-                    os << token << " " << tex.c_str() << "\n";
+                    os << token << " " << tex << "\n";
                 else if (materialFlags == MaterialExportFlags::texture_copyToLocal)
                 {
                     acul::io::path parent = acul::io::path(path).parent_path();
                     acul::io::path tex_path = parent / "tex" / tex;
                     if (acul::io::file::copy(tex.c_str(), tex_path.str().c_str(), true))
-                        os << token << " ./tex/" << tex_path.filename().c_str() << "\n";
+                        os << token << " ./tex/" << tex_path.filename() << "\n";
                 }
             }
 
-            void writeDefaultMaterial(std::ostream &os, bool usePBR)
+            void writeDefaultMaterial(std::ofstream &os, bool usePBR)
             {
-                std::stringstream matBlock;
+                acul::stringstream matBlock;
                 matBlock << "newmtl default\n";
                 writeVec3sRGB(matBlock, "Ka", {1, 1, 1});
                 writeVec3sRGB(matBlock, "Kd", {1, 1, 1});
@@ -168,14 +170,14 @@ namespace ecl
                     writeNumber(matBlock, "Pm", 1);
                 }
                 writeNumber(matBlock, "illum", 7);
-                os << "\n" << matBlock.str();
+                os << "\n" << matBlock.str().c_str();
             }
 
             void Exporter::writeMaterial(const acul::shared_ptr<umbf::MaterialInfo> &matInfo,
                                          const acul::shared_ptr<umbf::Material> &mat, std::ostream &os)
             {
-                std::stringstream matBlock;
-                matBlock << "newmtl " << matInfo->name.c_str() << "\n";
+                acul::stringstream matBlock;
+                matBlock << "newmtl " << matInfo->name << "\n";
                 writeVec3sRGB(matBlock, "Ka", {1, 1, 1});
                 writeVec3sRGB(matBlock, "Kd", mat->albedo.rgb);
                 if (mat->albedo.textured)
@@ -191,10 +193,10 @@ namespace ecl
                     writeNumber(matBlock, "Pm", 1);
                 }
                 writeNumber(matBlock, "illum", 7);
-                os << "\n" << matBlock.str();
+                os << "\n" << matBlock.str().c_str();
             }
 
-            void Exporter::writeMtlLibInfo(std::ofstream &mtlStream, std::stringstream &objStream)
+            void Exporter::writeMtlLibInfo(std::ofstream &mtlStream, acul::stringstream &objStream)
             {
                 if (materialFlags != MaterialExportFlags::none)
                 {
@@ -204,7 +206,7 @@ namespace ecl
                         logWarn("Failed to write MTL file: %s", mtlPath.c_str());
                     else
                     {
-                        objStream << "mtllib ./" << acul::io::get_filename(mtlPath).c_str() << "\n";
+                        objStream << "mtllib ./" << acul::io::get_filename(mtlPath) << "\n";
                         mtlStream << "# App3D ECL MTL Exporter\n";
                     }
                 }
@@ -232,7 +234,7 @@ namespace ecl
                 }
             }
 
-            void Exporter::writeObject(const umbf::Object &object, std::stringstream &objStream)
+            void Exporter::writeObject(const umbf::Object &object, acul::stringstream &objStream)
             {
                 acul::shared_ptr<umbf::mesh::MeshBlock> mesh;
                 acul::vector<acul::shared_ptr<umbf::MatRangeAssignAtrr>> assignes;
@@ -255,9 +257,9 @@ namespace ecl
                 acul::vector<umbf::mesh::VertexGroup> vgroups;
                 umbf::utils::mesh::fillVertexGroups(mesh->model, vgroups);
                 if (objFlags & ObjExportFlagBits::mgp_groups)
-                    objStream << "g " << object.name.c_str() << "\n";
+                    objStream << "g " << object.name << "\n";
                 else if (objFlags & ObjExportFlagBits::mgp_objects)
-                    objStream << "o " << object.name.c_str() << "\n";
+                    objStream << "o " << object.name << "\n";
                 auto &model = mesh->model;
                 writeVertices(model, vgroups, objStream);
                 acul::vector<acul::shared_ptr<umbf::MatRangeAssignAtrr>> assignesAttr;
@@ -282,7 +284,7 @@ namespace ecl
                             if (it == _matMap.end())
                                 logError("Failed to find material: %llx", assign->matID);
                             else
-                                objStream << "usemtl " << it->second.info->name.c_str() << "\n";
+                                objStream << "usemtl " << it->second.info->name << "\n";
                         }
                     }
                     if (meshFlags & MeshExportFlagBits::export_triangulated)
@@ -309,7 +311,7 @@ namespace ecl
                 logInfo("Exporting OBJ file: %s", path.c_str());
                 try
                 {
-                    std::stringstream ss;
+                    acul::stringstream ss;
                     ss << "# App3D ECL OBJ Exporter\n";
                     std::ofstream mtlStream;
                     writeMtlLibInfo(mtlStream, ss);

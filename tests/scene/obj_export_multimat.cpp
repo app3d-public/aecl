@@ -6,7 +6,7 @@ namespace tests
 {
     void createMultimatMaterials(acul::vector<umbf::File> &materials, u64 object_id, u64 *materials_ids)
     {
-        acul::IDGen gen = acul::IDGen();
+        acul::id_gen generator;
         materials.resize(2);
         {
             auto mat = acul::make_shared<umbf::Material>();
@@ -15,7 +15,7 @@ namespace tests
             mat->albedo.texture_id = -1;
             auto meta = acul::make_shared<umbf::MaterialInfo>();
             meta->name = "ecl:test:mat_first_e";
-            meta->id = gen();
+            meta->id = generator();
             materials_ids[0] = meta->id;
             meta->assignments.push_back(object_id);
             materials[0].header.vendor_sign = UMBF_VENDOR_ID;
@@ -32,7 +32,7 @@ namespace tests
             mat->albedo.texture_id = -1;
             auto meta = acul::make_shared<umbf::MaterialInfo>();
             meta->name = "ecl:test:mat_second_e";
-            meta->id = gen();
+            meta->id = generator();
             materials_ids[1] = meta->id;
             meta->assignments.push_back(object_id);
             materials[1].header.vendor_sign = UMBF_VENDOR_ID;

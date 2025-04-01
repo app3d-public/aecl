@@ -2,7 +2,7 @@
 
 #include <acul/api.hpp>
 #include <acul/io/file.hpp>
-#include <assets/asset.hpp>
+#include <umbf/umbf.hpp>
 #include "format.hpp"
 
 namespace ecl
@@ -43,7 +43,7 @@ namespace ecl
              * @return True if the image is successfully loaded, false otherwise.
              */
             virtual acul::io::file::op_state load(const acul::string &path,
-                                                   acul::vector<umbf::Image2D> &images) override;
+                                                  acul::vector<umbf::Image2D> &images) override;
 
         protected:
             Format _format;
@@ -187,7 +187,7 @@ namespace ecl
              * @return True if the image is successfully loaded, false otherwise.
              */
             virtual acul::io::file::op_state load(const acul::string &path,
-                                                   acul::vector<umbf::Image2D> &images) override;
+                                                  acul::vector<umbf::Image2D> &images) override;
 
         private:
             u32 _checksum = 0;

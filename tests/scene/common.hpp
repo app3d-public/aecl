@@ -1,7 +1,7 @@
 #pragma once
 
-#include <assets/asset.hpp>
 #include <ecl/scene/export.hpp>
+#include <umbf/umbf.hpp>
 
 namespace tests
 {

@@ -2,7 +2,7 @@
 
 #include <acul/event.hpp>
 #include <acul/io/file.hpp>
-#include <assets/asset.hpp>
+#include <umbf/umbf.hpp>
 
 namespace ecl
 {
@@ -39,7 +39,7 @@ namespace ecl
              * @brief Load the scene
              * @return Read state result
              **/
-            virtual acul::io::file::op_state load(events::Manager &e) = 0;
+            virtual acul::io::file::op_state load(acul::events::dispatcher &e) = 0;
 
             // Get the filename path
             const acul::string path() const { return _path; }

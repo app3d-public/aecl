@@ -1,6 +1,7 @@
 #pragma once
 
 #include <acul/hash/hashmap.hpp>
+#include <acul/string/sstream.hpp>
 #include <emhash/hash_table5.hpp>
 #include <oneapi/tbb/concurrent_unordered_set.h>
 #include "../export.hpp"
@@ -59,17 +60,17 @@ namespace ecl
                 bool _allMaterialsExist = true;
 
                 void writeVertices(umbf::mesh::Model &model, const acul::vector<umbf::mesh::VertexGroup> &groups,
-                                   std::stringstream &ss);
-                void writeFaces(umbf::mesh::MeshBlock *meta, std::ostream &os, const acul::vector<u32> &faces);
-                void writeTriangles(umbf::mesh::MeshBlock *meta, std::ostream &os, const acul::vector<u32> &faces,
+                                   acul::stringstream &ss);
+                void writeFaces(umbf::mesh::MeshBlock *meta, acul::stringstream &os, const acul::vector<u32> &faces);
+                void writeTriangles(umbf::mesh::MeshBlock *meta, acul::stringstream &os, const acul::vector<u32> &faces,
                                     const acul::vector<umbf::mesh::VertexGroup> &groups);
-                void writeTexture2D(std::ostream &os, const std::string &token, const acul::string &tex);
+                void writeTexture2D(acul::stringstream &os, const acul::string &token, const acul::string &tex);
 
                 void writeMaterial(const acul::shared_ptr<umbf::MaterialInfo> &matInfo,
                                    const acul::shared_ptr<umbf::Material> &mat, std::ostream &os);
-                void writeMtlLibInfo(std::ofstream &mtlStream, std::stringstream &objStream);
+                void writeMtlLibInfo(std::ofstream &mtlStream, acul::stringstream &objStream);
                 void writeMtl(std::ofstream &stream);
-                void writeObject(const umbf::Object &object, std::stringstream &objStream);
+                void writeObject(const umbf::Object &object, acul::stringstream &objStream);
             };
         } // namespace obj
     } // namespace scene

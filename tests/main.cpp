@@ -7,16 +7,16 @@ namespace tests
 
 int main(int argc, char *argv[])
 {
-    task::ServiceDispatch sd;
-    acul::log::g_LogService = acul::alloc<acul::log::LogService>();
-    sd.registerService(acul::log::g_LogService);
-    acul::log::g_DefaultLogger = acul::log::g_LogService->addLogger<acul::log::ConsoleLogger>("app");
-    acul::log::g_LogService->level(acul::log::Level::Trace);
-    acul::log::g_DefaultLogger->setPattern("%(color_auto)%(level_name)\t%(message)%(color_off)\n");
+    acul::task::service_dispatch sd;
+    acul::log::log_service *log_service = acul::alloc<acul::log::log_service>();
+    sd.register_service(log_service);
+    auto *app_logger = log_service->add_logger<acul::log::console_logger>("app");
+    log_service->level = acul::log::level::trace;
+    app_logger->set_pattern("%(color_auto)%(level_name)\t%(message)%(color_off)\n");
     const char *dataDir = getenv("TEST_DATA_DIR");
     const char *outputDir = getenv("TEST_OUTPUT_DIR");
     if (!dataDir || !outputDir) return 1;
     bool result = tests::runTest(dataDir, outputDir);
-    acul::log::g_LogService->await();
+    log_service->await();
     return result ? 0 : 1;
 }
