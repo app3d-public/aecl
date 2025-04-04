@@ -14,12 +14,15 @@ namespace ecl
             switch (format)
             {
                 case vk::Format::eR8G8B8A8Srgb:
+                case vk::Format::eR8G8B8A8Unorm:
+                case vk::Format::eR8G8B8A8Uint:
                 {
                     acul::shared_ptr<u8[]> copy(size);
                     memcpy(copy.get(), src, size * sizeof(u8));
                     return copy;
                 }
                 case vk::Format::eR16G16B16A16Uint:
+                case vk::Format::eR16G16B16A16Unorm:
                 {
                     acul::shared_ptr<u16[]> copy(size);
                     memcpy(copy.get(), src, size * sizeof(u16));
@@ -34,8 +37,8 @@ namespace ecl
                 case vk::Format::eR16G16B16A16Sfloat:
                 case vk::Format::eR32G32B32A32Sfloat:
                 {
-                    acul::shared_ptr<float[]> copy(size);
-                    memcpy(copy.get(), src, size * sizeof(float));
+                    acul::shared_ptr<f32[]> copy(size);
+                    memcpy(copy.get(), src, size * sizeof(f32));
                     return copy;
                 }
                 default:
@@ -47,6 +50,7 @@ namespace ecl
         {
             auto &image = bp.image;
             auto copy = copySrcBuffer(image.pixels, image.imageSize(), image.imageFormat);
+            if (!copy) return false;
             image.pixels = copy.get();
             if (!isImageEquals(image, bp.format, vk::Format::eR8G8B8A8Srgb))
                 convertImage(image, vk::Format::eR8G8B8A8Srgb, image.channelCount > 3 ? 4 : 3);
@@ -74,8 +78,8 @@ namespace ecl
             for (auto &image : gp.images)
             {
                 acul::shared_ptr<void> copy = copySrcBuffer(image.pixels, image.imageSize(), image.imageFormat);
+                if (!copy) return false;
                 image.pixels = copy.get();
-
                 if (!isImageEquals(image, gp.format, vk::Format::eR8G8B8A8Srgb))
                     convertImage(image, vk::Format::eR8G8B8A8Srgb, 3);
                 pixels.emplace_back(copy);
@@ -118,6 +122,7 @@ namespace ecl
         bool hdr::save(const acul::string &path, Params &hp)
         {
             acul::shared_ptr<void> copy = copySrcBuffer(hp.image.pixels, hp.image.imageSize(), hp.image.imageFormat);
+            if (!copy) return false;
             hp.image.pixels = copy.get();
             if (!isImageEquals(hp.image, hp.format, vk::Format::eR32G32B32A32Sfloat))
                 convertImage(hp.image, vk::Format::eR32G32B32A32Sfloat, 3);
@@ -136,6 +141,7 @@ namespace ecl
             umbf::Image2D image = hp.image;
             int dstChannels = image.channelCount > 3 ? 4 : 3;
             acul::shared_ptr<void> copy = copySrcBuffer(image.pixels, image.imageSize(), image.imageFormat);
+            if (!copy) return false;
             image.pixels = copy.get();
             if (!isImageEquals(image, hp.format, vk::Format::eR8G8B8A8Srgb))
                 convertImage(image, vk::Format::eR8G8B8A8Srgb, dstChannels);
@@ -156,6 +162,7 @@ namespace ecl
         {
             umbf::Image2D image = jp.image;
             acul::shared_ptr<void> copy = copySrcBuffer(image.pixels, image.imageSize(), image.imageFormat);
+            if (!copy) return false;
             image.pixels = copy.get();
             if (!isImageEquals(image, jp.format, vk::Format::eR8G8B8A8Srgb))
                 convertImage(image, vk::Format::eR8G8B8A8Srgb, 3);
@@ -185,6 +192,7 @@ namespace ecl
             int dstChannels = image.channelCount > 3 ? 4 : 3;
             const vk::Format dstFormat = getFormatByBit(dstBit, jp.format);
             acul::shared_ptr<void> copy = copySrcBuffer(image.pixels, image.imageSize(), image.imageFormat);
+            if (!copy) return false;
             image.pixels = copy.get();
             if (!isImageEquals(image, jp.format, dstFormat)) convertImage(image, dstFormat, dstChannels);
             auto *pPath = path.c_str();
@@ -209,6 +217,7 @@ namespace ecl
             int dstChannels = image.channelCount > 3 ? 4 : 3;
             const vk::Format dstFormat = getFormatByBit(dstBit, jp.format);
             acul::shared_ptr<void> copy = copySrcBuffer(image.pixels, image.imageSize(), image.imageFormat);
+            if (!copy) return false;
             image.pixels = copy.get();
             if (!isImageEquals(image, jp.format, dstFormat)) convertImage(image, dstFormat, dstChannels);
             auto *pPath = path.c_str();
@@ -243,6 +252,7 @@ namespace ecl
             for (umbf::Image2D image : op.images)
             {
                 acul::shared_ptr<void> copy = copySrcBuffer(image.pixels, image.imageSize(), image.imageFormat);
+                if (!copy) return false;
                 image.pixels = copy.get();
                 if (!isImageEquals(image, op.format, dstFormat)) convertImage(image, dstFormat, image.channelCount);
                 pixels.emplace_back(copy);
@@ -289,6 +299,7 @@ namespace ecl
             umbf::Image2D image = pp.image;
             int dstChannels = image.channelCount > 3 ? 4 : 3;
             acul::shared_ptr<void> copy = copySrcBuffer(image.pixels, image.imageSize(), image.imageFormat);
+            if (!copy) return false;
             image.pixels = copy.get();
             if (!isImageEquals(image, pp.format, dstFormat)) convertImage(image, dstFormat, dstChannels);
             auto *pPath = path.c_str();
@@ -315,6 +326,7 @@ namespace ecl
         {
             umbf::Image2D image = pp.image;
             acul::shared_ptr<void> copy = copySrcBuffer(image.pixels, image.imageSize(), image.imageFormat);
+            if (!copy) return false;
             image.pixels = copy.get();
             if (!isImageEquals(image, pp.format, vk::Format::eR8G8B8A8Srgb))
                 convertImage(image, vk::Format::eR8G8B8A8Srgb, 3);
@@ -337,6 +349,7 @@ namespace ecl
             umbf::Image2D image = tp.image;
             int dstChannels = image.channelCount > 3 ? 4 : 3;
             acul::shared_ptr<void> copy = copySrcBuffer(image.pixels, image.imageSize(), image.imageFormat);
+            if (!copy) return false;
             image.pixels = copy.get();
             if (!isImageEquals(image, tp.format, vk::Format::eR8G8B8A8Srgb))
                 convertImage(image, vk::Format::eR8G8B8A8Srgb, dstChannels);
@@ -369,6 +382,7 @@ namespace ecl
             for (umbf::Image2D image : tp.images)
             {
                 acul::shared_ptr<void> copy = copySrcBuffer(image.pixels, image.imageSize(), image.imageFormat);
+                if (!copy) return false;
                 image.pixels = copy.get();
                 if (!isImageEquals(image, tp.format, dstFormat)) convertImage(image, dstFormat, image.channelCount);
                 pixels.emplace_back(copy);
@@ -413,6 +427,7 @@ namespace ecl
         {
             umbf::Image2D image = wp.image;
             acul::shared_ptr<void> copy = copySrcBuffer(image.pixels, image.imageSize(), image.imageFormat);
+            if (!copy) return false;
             image.pixels = copy.get();
             if (!isImageEquals(image, wp.format, vk::Format::eR8G8B8A8Srgb))
                 convertImage(image, vk::Format::eR8G8B8A8Srgb, image.channelCount > 3 ? 4 : 3);
@@ -434,6 +449,7 @@ namespace ecl
             if (image.bytesPerChannel != dstBit)
             {
                 acul::shared_ptr<void> copy = copySrcBuffer(image.pixels, image.imageSize(), image.imageFormat);
+                if (!copy) return false;
                 image.pixels = copy.get();
                 convertImage(image, image.imageFormat, dstBit);
             }

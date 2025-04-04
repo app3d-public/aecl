@@ -13,6 +13,7 @@ int main(int argc, char *argv[])
     auto *app_logger = log_service->add_logger<acul::log::console_logger>("app");
     log_service->level = acul::log::level::trace;
     app_logger->set_pattern("%(color_auto)%(level_name)\t%(message)%(color_off)\n");
+    log_service->default_logger = app_logger;
     const char *dataDir = getenv("TEST_DATA_DIR");
     const char *outputDir = getenv("TEST_OUTPUT_DIR");
     if (!dataDir || !outputDir) return 1;
