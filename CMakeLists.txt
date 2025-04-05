@@ -20,7 +20,7 @@ pkg_search_module(OPENIMAGEIO REQUIRED openimageio)
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
     ${ACUL_LIB_NAME}
-    umbf
+    ${UMBF_LIB_NAME}
     ${OPENIMAGEIO_LIBRARIES}
 )
 
