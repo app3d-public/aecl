@@ -9,7 +9,7 @@ namespace tests
 
     void createCubeVGroups(acul::vector<umbf::mesh::VertexGroup> &vertexGroups);
 
-    void createCubeFaces(acul::vector<umbf::mesh::IndexedFace> &faces);
+    void createCubeFaces(acul::vector<umbf::mesh::Face> &faces);
 
     void createObjects(acul::vector<umbf::Object> &objects);
 

@@ -152,8 +152,7 @@ namespace ecl
             }
 
             void addVertexToFace(const ParseSingleThread &__restrict ps, u32 vgi, u32 current,
-                                 emhash8::HashMap<glm::ivec3, u32> &vtnMap, const glm::ivec3 &vtn, Model &m,
-                                 IndexedFace &face)
+                                 emhash8::HashMap<glm::ivec3, u32> &vtnMap, const glm::ivec3 &vtn, Model &m, Face &face)
             {
                 auto [vIt, vInserted] = vtnMap.emplace(vtn, vtnMap.size());
                 if (vInserted)
@@ -171,7 +170,7 @@ namespace ecl
             }
 
             void addVertexToFace(const ParseSingleThread &__restrict ps, u32 vgi, u32 current,
-                                 acul::vector<VertexGroup> &groups, const glm::ivec3 &vtn, Model &m, IndexedFace &face)
+                                 acul::vector<VertexGroup> &groups, const glm::ivec3 &vtn, Model &m, Face &face)
             {
                 Vertex vertex{ps.v[current].value};
                 if (vtn.y != 0 && ps.vtsize > vtn.y) vertex.uv = ps.vt[vtn.y - 1].value;
@@ -239,23 +238,19 @@ namespace ecl
                     logInfo("Imported faces: %zu", m.faces.size());
                     logInfo("Triangulating mesh group");
                     acul::vector<acul::vector<u32>> ires(faceCount);
-                    acul::vector<acul::vector<bary::Vertex>> bres(faceCount);
                     oneapi::tbb::parallel_for(oneapi::tbb::blocked_range<size_t>(0, faceCount),
                                               [&](const oneapi::tbb::blocked_range<size_t> &range) {
                                                   for (size_t i = range.begin(); i < range.end(); ++i)
                                                   {
                                                       ires[i] = utils::triangulate(m.faces[i], m.vertices);
-                                                      m.faces[i].indexCount = ires[i].size();
-                                                      utils::buildBarycentric(bres[i], m.faces[i], m.vertices, ires[i]);
+                                                      m.faces[i].count = ires[i].size();
                                                   }
                                               });
-                    auto &barycentrics = group.mesh->baryVertices;
                     u32 currentID = 0;
                     for (int i = 0; i < faceCount; ++i)
                     {
-                        m.faces[i].startID = currentID;
+                        m.faces[i].firstVertex = currentID;
                         m.indices.insert(m.indices.end(), ires[i].begin(), ires[i].end());
-                        barycentrics.insert(barycentrics.end(), bres[i].begin(), bres[i].end());
                         currentID += ires[i].size();
                     }
                     logDebug("Indices: %zu", m.indices.size());

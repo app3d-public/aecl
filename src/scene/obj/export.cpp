@@ -74,7 +74,7 @@ namespace ecl
                         for (size_t r = range.begin(); r != range.end(); ++r)
                         {
                             auto &face = m.faces[faces[r]];
-                            for (u32 iter = 0, currentID = face.startID; iter < face.indexCount / 3; ++iter)
+                            for (u32 iter = 0, currentID = face.firstVertex; iter < face.count / 3; ++iter)
                             {
                                 blocks[threadId] << "f ";
                                 for (size_t vertexIndex = 0; vertexIndex < 3; ++vertexIndex)

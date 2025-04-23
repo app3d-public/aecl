@@ -39,7 +39,7 @@ namespace tests
         vertices[23] = {{-100, -100, -100}, {0, 0}, {0, -1, 0}};
     }
 
-    void createCubeFaces(acul::vector<umbf::mesh::IndexedFace> &faces)
+    void createCubeFaces(acul::vector<umbf::mesh::Face> &faces)
     {
         faces.resize(6);
         faces[0] = {{
