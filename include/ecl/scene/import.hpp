@@ -1,6 +1,5 @@
 #pragma once
 
-#include <acul/event.hpp>
 #include <acul/io/file.hpp>
 #include <umbf/umbf.hpp>
 
@@ -35,11 +34,17 @@ namespace ecl
             ILoader(const acul::string &filename) : _path(filename) {}
             virtual ~ILoader() = default;
 
-            /**
-             * @brief Load the scene
-             * @return Read state result
-             **/
-            virtual acul::io::file::op_state load(acul::events::dispatcher &e) = 0;
+            // Load raw source file
+            virtual acul::io::file::op_state readSource() = 0;
+
+            // Load the scene includes all intermediate calls
+            virtual bool load() = 0;
+
+            // Indexing geometry to UMBF format
+            virtual void buildGeometry() = 0;
+
+            // Loadd materials & textures
+            virtual void loadMaterials() = 0;
 
             // Get the filename path
             const acul::string path() const { return _path; }

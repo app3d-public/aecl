@@ -224,44 +224,8 @@ namespace ecl
                 }
             }
 
-            void indexGroups(ParseSingleThread &ps, acul::vector<umbf::Object> &objects,
-                             acul::vector<GroupRange> &groups)
+            void parseMTL(const acul::string &filename, acul::vector<Material> &materials)
             {
-                for (auto &group : groups)
-                {
-                    logInfo("Indexing group data: '%s'", group.name.c_str());
-                    const size_t faceCount = group.rangeEnd - group.startIndex;
-                    group.mesh = acul::make_shared<MeshBlock>();
-                    auto &m = group.mesh->model;
-                    indexMesh(faceCount, ps, group);
-                    logInfo("Imported vertices: %zu", m.vertices.size());
-                    logInfo("Imported faces: %zu", m.faces.size());
-                    logInfo("Triangulating mesh group");
-                    acul::vector<acul::vector<u32>> ires(faceCount);
-                    oneapi::tbb::parallel_for(oneapi::tbb::blocked_range<size_t>(0, faceCount),
-                                              [&](const oneapi::tbb::blocked_range<size_t> &range) {
-                                                  for (size_t i = range.begin(); i < range.end(); ++i)
-                                                  {
-                                                      ires[i] = utils::triangulate(m.faces[i], m.vertices);
-                                                      m.faces[i].count = ires[i].size();
-                                                  }
-                                              });
-                    u32 currentID = 0;
-                    for (int i = 0; i < faceCount; ++i)
-                    {
-                        m.faces[i].firstVertex = currentID;
-                        m.indices.insert(m.indices.end(), ires[i].begin(), ires[i].end());
-                        currentID += ires[i].size();
-                    }
-                    logDebug("Indices: %zu", m.indices.size());
-                    objects.emplace_back(acul::id_gen()(), group.name);
-                    objects.back().meta.push_back(group.mesh);
-                }
-            }
-
-            void parseMTL(const acul::string &basePath, const ParseIndexed &parsed, acul::vector<Material> &materials)
-            {
-                acul::string filename = acul::io::replace_filename(basePath, parsed.mtllib);
                 std::ifstream fileStream(filename.c_str());
                 if (!fileStream.is_open())
                 {
@@ -452,7 +416,7 @@ namespace ecl
                         if (token[1] == 's')
                         {
                             token += 3;
-                            float ns;
+                            f32 ns;
                             if (!acul::stof(token, ns)) throw ParseException(line, lineIndex);
                             materials[matIndex].Ns = ns;
                         }
@@ -872,39 +836,77 @@ namespace ecl
                 }
             }
 
-            acul::io::file::op_state Importer::load(acul::events::dispatcher &e)
+            struct ImportCtx
             {
-                auto start = std::chrono::high_resolution_clock::now();
-                logInfo("Loading OBJ file: %s", _path.c_str());
-                acul::string header = acul::format("%s %ls", _("loading"), acul::io::get_filename(_path).c_str());
-                e.dispatch<acul::task::update_event>((void *)this, header, _("file:read"));
+                std::chrono::high_resolution_clock::time_point start;
+                ParseSingleThread ps;
+                acul::string mtlLib;
+                acul::vector<GroupRange> groups;
+
+                ~ImportCtx() { freePS(ps); }
+            };
+
+            Importer::~Importer() { acul::release(_ctx); }
+
+            acul::io::file::op_state Importer::readSource()
+            {
+                _ctx = acul::alloc<ImportCtx>();
+                _ctx->start = std::chrono::high_resolution_clock::now();
                 ParseIndexed parsed;
                 acul::io::file::op_state result = acul::io::file::read_by_block(_path, parsed, parseLine);
                 if (result != acul::io::file::op_state::success) return result;
-
-                e.dispatch<acul::task::update_event>((void *)this, header, _("data_serialization"), 0.2f);
-                logInfo("Serializing parse result");
-                ParseSingleThread ps;
-                allocatePS(parsed, ps);
-                acul::vector<GroupRange> groups;
-                createGroupRanges(ps, groups);
-                indexGroups(ps, _objects, groups);
-                e.dispatch<acul::task::update_event>((void *)this, header, _("materials:loading"), 0.8f);
-                if (!parsed.mtllib.empty())
-                {
-                    acul::vector<Material> mtlMaterials;
-                    parseMTL(_path, parsed, mtlMaterials);
-                    emhash8::HashMap<acul::string, int> matMap;
-                    acul::vector<acul::vector<u32>> faceMatRanges;
-                    convertToMaterials(_path, mtlMaterials, matMap, _materials, _textures);
-                    assignMaterialsToGroups(ps, groups, matMap, _materials, faceMatRanges);
-                    assignRangesToObjects(ps, faceMatRanges, matMap, groups, _objects);
-                }
-                freePS(ps);
-                auto end = std::chrono::high_resolution_clock::now();
-                logInfo("Loaded in %.5f ms", std::chrono::duration<f64, std::milli>(end - start).count());
-
+                allocatePS(parsed, _ctx->ps);
+                _ctx->mtlLib = parsed.mtllib;
                 return acul::io::file::op_state::success;
+            }
+
+            void Importer::buildGeometry()
+            {
+                createGroupRanges(_ctx->ps, _ctx->groups);
+                // Index Groups
+                for (auto &group : _ctx->groups)
+                {
+                    logInfo("Indexing group data: '%s'", group.name.c_str());
+                    const size_t faceCount = group.rangeEnd - group.startIndex;
+                    group.mesh = acul::make_shared<MeshBlock>();
+                    auto &m = group.mesh->model;
+                    indexMesh(faceCount, _ctx->ps, group);
+                    logInfo("Imported vertices: %zu", m.vertices.size());
+                    logInfo("Imported faces: %zu", m.faces.size());
+                    logInfo("Triangulating mesh group");
+                    acul::vector<acul::vector<u32>> ires(faceCount);
+                    oneapi::tbb::parallel_for(oneapi::tbb::blocked_range<size_t>(0, faceCount),
+                                              [&](const oneapi::tbb::blocked_range<size_t> &range) {
+                                                  for (size_t i = range.begin(); i < range.end(); ++i)
+                                                  {
+                                                      ires[i] = utils::triangulate(m.faces[i], m.vertices);
+                                                      m.faces[i].count = ires[i].size();
+                                                  }
+                                              });
+                    u32 currentID = 0;
+                    for (int i = 0; i < faceCount; ++i)
+                    {
+                        m.faces[i].firstVertex = currentID;
+                        m.indices.insert(m.indices.end(), ires[i].begin(), ires[i].end());
+                        currentID += ires[i].size();
+                    }
+                    logDebug("Indices: %zu", m.indices.size());
+                    _objects.emplace_back(acul::id_gen()(), group.name);
+                    _objects.back().meta.push_back(group.mesh);
+                }
+            }
+
+            void Importer::loadMaterials()
+            {
+                if (_ctx->mtlLib.empty()) return;
+                acul::vector<Material> mtlMaterials;
+                acul::io::path mtlPath = acul::io::path(_path).parent_path() / _ctx->mtlLib;
+                parseMTL(mtlPath, mtlMaterials);
+                emhash8::HashMap<acul::string, int> matMap;
+                acul::vector<acul::vector<u32>> faceMatRanges;
+                convertToMaterials(_path, mtlMaterials, matMap, _materials, _textures);
+                assignMaterialsToGroups(_ctx->ps, _ctx->groups, matMap, _materials, faceMatRanges);
+                assignRangesToObjects(_ctx->ps, faceMatRanges, matMap, _ctx->groups, _objects);
             }
         } // namespace obj
     } // namespace scene

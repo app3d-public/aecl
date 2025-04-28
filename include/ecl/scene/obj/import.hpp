@@ -41,13 +41,13 @@ namespace ecl
                  *  The boost option increases the sharpness, or clarity. If you render animations with boost,
                  *you may experience some texture crawling.
                  *
-                 * Value is any non-negative floating point value representing the
+                 * Value is any non-negative f32ing point value representing the
                  * degree of increased clarity; the greater the value, the greater the
                  * clarity.  You should start with a boost value of no more than 1 or 2 and
                  * increase the value as needed. Note that larger values have more
                  * potential to introduce texture crawling when animated.
                  **/
-                float boost{0};
+                f32 boost{0};
                 /**
                  *  The mm option modifies the range over which scalar or color texture
                  * values may vary.  This has an effect only during rendering and does not
@@ -156,7 +156,7 @@ namespace ecl
                  * because only the surface normal is perturbed and the surface position does not change. For
                  * best results, use values between 0 and 1.
                  */
-                float bumpIntensity{1.0f};
+                f32 bumpIntensity{1.0f};
                 /**
                  * The imfchan option specifies the channel used to create a scalar or
                  * bump texture.  Scalar textures are applied to:
@@ -219,23 +219,23 @@ namespace ecl
                  * focus of specular highlights in the material. Ns values normally range from 0 to 1000, with a
                  * high value resulting in a tight, concentrated highlight.
                  */
-                float Ns{10.0f};
+                f32 Ns{10.0f};
                 /**
                  * @brief defines the optical density (aka index of refraction) in the current material.
                  * The values can range from 0.001 to 10. A value of 1.0 means that light does not
                  * bend as it passes through an object.
                  */
-                float Ni;
+                f32 Ni;
                 /**
                  * @brief specifies a factor for dissolve, how much this material dissolves into the background.
                  * A factor of 1.0 is fully opaque. A factor of 0.0 is completely transparent.
                  */
-                float d{1.0};
+                f32 d{1.0};
                 /**
                  * @brief specifies the transparency of the material as a value between 0.0 and 1.0.
                  * Tr euqals: 1.0 - d
                  */
-                float Tr{0.0f};
+                f32 Tr{0.0f};
 
                 /**
                  * The Tf statement specifies the transmission filter using RGB/XYZ values.
@@ -272,14 +272,14 @@ namespace ecl
                 int illum;
 
                 /// PBR Workflow
-                float Pr;
-                float Pm;
-                float Ps;
-                float Ke;
-                float Pc;
-                float Pcr;
-                float aniso;
-                float anisor;
+                f32 Pr;
+                f32 Pm;
+                f32 Ps;
+                f32 Ke;
+                f32 Pc;
+                f32 Pcr;
+                f32 aniso;
+                f32 anisor;
 
                 /// Textures
 
@@ -383,11 +383,28 @@ namespace ecl
             public:
                 Importer(const acul::string &filename) : ILoader(filename) {};
 
+                ~Importer();
+
                 /**
                  * @brief Load the scene
                  * @return True if the scene was loaded
                  **/
-                acul::io::file::op_state load(acul::events::dispatcher &e) override;
+                bool load() override
+                {
+                    if (readSource() != acul::io::file::op_state::success) return false;
+                    buildGeometry();
+                    loadMaterials();
+                    return true;
+                }
+
+                virtual acul::io::file::op_state readSource() override;
+
+                virtual void buildGeometry() override;
+
+                virtual void loadMaterials() override;
+
+            private:
+                struct ImportCtx *_ctx;
             };
         } // namespace obj
     } // namespace scene
