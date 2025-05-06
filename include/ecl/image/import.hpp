@@ -48,7 +48,7 @@ namespace ecl
         protected:
             Format _format;
 
-            static bool loadImage(
+            static bool load_image(
                 const std::unique_ptr<OIIO::ImageInput> &inp, int subimage,
                 std::function<bool(const std::unique_ptr<OIIO::ImageInput> &, int, int, void *, size_t)> loadHandler,
                 umbf::Image2D &info);
@@ -92,26 +92,6 @@ namespace ecl
             JPEGLoader() : OIIOLoader({FormatFlagBits::bit8, vk::Format::eR8G8B8A8Srgb}) {}
         };
 
-        class JPEG2000Loader final : public OIIOLoader
-        {
-        public:
-            JPEG2000Loader()
-                : OIIOLoader({FormatFlagBits::bit8 | FormatFlagBits::bit16 | FormatFlagBits::alpha,
-                              vk::Format::eR8G8B8A8Srgb, vk::Format::eR16G16B16A16Uint})
-            {
-            }
-        };
-
-        class JPEGXLLoader final : public OIIOLoader
-        {
-        public:
-            JPEGXLLoader()
-                : OIIOLoader({FormatFlagBits::bit8 | FormatFlagBits::bit16, vk::Format::eR8G8B8A8Srgb,
-                              vk::Format::eR16G16B16A16Uint})
-            {
-            }
-        };
-
         class OpenEXRLoader final : public OIIOLoader
         {
         public:
@@ -137,14 +117,6 @@ namespace ecl
         {
         public:
             PBMLoader() : OIIOLoader({FormatFlagBits::bit8, vk::Format::eR8G8B8A8Srgb}) {}
-        };
-
-        class RAWLoader final : public OIIOLoader
-        {
-        public:
-            RAWLoader() : OIIOLoader({FormatFlagBits::bit16 | FormatFlagBits::readOnly, vk::Format::eR16G16B16A16Uint})
-            {
-            }
         };
 
         class TargaLoader final : public OIIOLoader
@@ -193,6 +165,6 @@ namespace ecl
             u32 _checksum = 0;
         };
 
-        APPLIB_API ILoader *getImporterByPath(const acul::string &path);
+        APPLIB_API ILoader *get_importer_by_path(const acul::string &path);
     } // namespace image
 } // namespace ecl

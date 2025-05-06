@@ -18,10 +18,10 @@ namespace ecl
                 enum enum_type
                 {
                     // Mesh Group Policy
-                    mgp_default = 0x0, // Exporting all object in 'default' group (without grouping)
-                    mgp_groups = 0x1,  // Exporting objects with 'g' flag
-                    mgp_objects = 0x2, // Exporting objects with 'o' flag
-                    mat_PBR = 0x4      // Using PBR materials workflow
+                    ObjectPolicyDefault = 0x0, // Exporting all object in 'default' group (without grouping)
+                    ObjectPolicyGroups = 0x1,  // Exporting objects with 'g' flag
+                    ObjectPolicyObjects = 0x2, // Exporting objects with 'o' flag
+                    MaterialsPBR = 0x4         // Using PBR materials workflow
                 };
                 using flag_bitmask = std::true_type;
             };
@@ -38,7 +38,7 @@ namespace ecl
             class APPLIB_API Exporter final : public IExporter
             {
             public:
-                ObjExportFlags objFlags;
+                ObjExportFlags obj_flags;
                 /**
                  * Constructs an Exporter object with the given parameters.
                  *
@@ -54,23 +54,24 @@ namespace ecl
                 bool save() override;
 
             private:
-                emhash5::HashMap<glm::vec2, u32> _vtMap;
-                emhash5::HashMap<glm::vec3, u32> _vnMap;
-                emhash5::HashMap<u64, MaterialRef> _matMap;
-                bool _allMaterialsExist = true;
+                emhash5::HashMap<glm::vec2, u32> _vt_map;
+                emhash5::HashMap<glm::vec3, u32> _vn_map;
+                emhash5::HashMap<u64, MaterialRef> _material_map;
+                bool _all_materials_exist = true;
 
-                void writeVertices(umbf::mesh::Model &model, const acul::vector<umbf::mesh::VertexGroup> &groups,
-                                   acul::stringstream &ss);
-                void writeFaces(umbf::mesh::MeshBlock *meta, acul::stringstream &os, const acul::vector<u32> &faces);
-                void writeTriangles(umbf::mesh::MeshBlock *meta, acul::stringstream &os, const acul::vector<u32> &faces,
-                                    const acul::vector<umbf::mesh::VertexGroup> &groups);
-                void writeTexture2D(acul::stringstream &os, const acul::string &token, const acul::string &tex);
+                void write_vertices(umbf::mesh::Model &model, const acul::vector<umbf::mesh::VertexGroup> &groups,
+                                    acul::stringstream &ss);
+                void write_faces(umbf::mesh::MeshBlock *meta, acul::stringstream &os, const acul::vector<u32> &faces);
+                void write_triangles(umbf::mesh::MeshBlock *meta, acul::stringstream &os,
+                                     const acul::vector<u32> &faces,
+                                     const acul::vector<umbf::mesh::VertexGroup> &groups);
+                void write_texture(acul::stringstream &os, const acul::string &token, const acul::string &tex);
 
-                void writeMaterial(const acul::shared_ptr<umbf::MaterialInfo> &matInfo,
-                                   const acul::shared_ptr<umbf::Material> &mat, std::ostream &os);
-                void writeMtlLibInfo(std::ofstream &mtlStream, acul::stringstream &objStream);
-                void writeMtl(std::ofstream &stream);
-                void writeObject(const umbf::Object &object, acul::stringstream &objStream);
+                void write_material(const acul::shared_ptr<umbf::MaterialInfo> &material_info,
+                                    const acul::shared_ptr<umbf::Material> &material, std::ostream &os);
+                void write_mtllib_info(std::ofstream &mtl_stream, acul::stringstream &obj_stream);
+                void write_mtl(std::ofstream &stream);
+                void write_object(const umbf::Object &object, acul::stringstream &stream);
             };
         } // namespace obj
     } // namespace scene

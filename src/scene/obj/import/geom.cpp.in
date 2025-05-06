@@ -1,0 +1,125 @@
+#include <ecl/scene/import.hpp>
+#include <oneapi/tbb/concurrent_vector.h>
+
+namespace ecl
+{
+    namespace scene
+    {
+        namespace obj
+        {
+
+            template <typename T>
+            struct Line
+            {
+                int index; // Line index
+                T value;   // Line content
+
+                bool operator<(const Line &other) const { return index < other.index; }
+            };
+
+            template <template <typename> class Container>
+            struct ParseData
+            {
+                Container<Line<glm::vec3>> v;
+                Container<Line<glm::vec2>> vt;
+                Container<Line<glm::vec3>> vn;
+                Container<Line<acul::vector<glm::ivec3> *>> f;
+                Container<Line<acul::string>> g;
+                acul::string mtllib;
+                Container<Line<acul::string>> use_mtl;
+            };
+
+            using ParseDataWrite = ParseData<oneapi::tbb::concurrent_vector>;
+            using ParseDataRead = ParseData<acul::vector>;
+
+            void parseLine(ParseDataWrite &data, const char *line, int line_index)
+            {
+                if (line[0] == '\0' || line[0] == '#') return;
+                const char *token = line;
+                if (token[0] == 'v')
+                {
+                    if (isspace(token[1]))
+                    {
+                        token += 2;
+                        glm::vec3 v;
+                        if (!acul::stov3(token, v))
+                            throw ParseException(line, line_index);
+                        else
+                            data.v.emplace_back(line_index, v);
+                    }
+                    else if (token[1] == 't')
+                    {
+                        token += 3;
+                        glm::vec2 vt;
+                        if (!acul::stov2(token, vt))
+                            throw ParseException(line, line_index);
+                        else
+                            data.vt.emplace_back(line_index, vt);
+                    }
+                    else if (token[1] == 'n')
+                    {
+                        token += 3;
+                        glm::vec3 vn;
+                        if (!acul::stov3(token, vn))
+                            throw ParseException(line, line_index);
+                        else
+                            data.vn.emplace_back(line_index, vn);
+                    }
+                }
+                else if (token[0] == 'g' || token[0] == 'o')
+                {
+                    token += 2;
+                    acul::string str = acul::trim_end(token);
+                    if (str != "off" && !str.empty()) data.g.emplace_back(line_index, str);
+                }
+                else if (token[0] == 'f')
+                {
+                    token += 2;
+                    acul::vector<glm::ivec3> *vtn = acul::alloc<acul::vector<glm::ivec3>>();
+                    while (true)
+                    {
+                        int v_id{0}, vt_id{0}, vn_id{0};
+                        if (!(acul::stoi(token, v_id))) break;
+                        // Handle negative indices
+                        if (v_id < 0) v_id += data.v.size() + 1;
+
+                        if (v_id > 0)
+                        {
+                            // Changed this section
+                            if (*token == '/')
+                            {
+                                ++token;
+                                if (acul::stoi(token, vt_id))
+                                    if (vt_id < 0) vt_id += data.vt.size() + 1;
+                                if (*token == '/')
+                                {
+                                    ++token;
+                                    if (acul::stoi(token, vn_id))
+                                        if (vn_id < 0) vn_id += data.vn.size() + 1;
+                                }
+                            }
+                            vtn->emplace_back(v_id, vt_id, vn_id);
+
+                            // Skip spaces
+                            while (isspace(*token)) ++token;
+                        }
+                        else
+                            break;
+                    }
+
+                    data.f.emplace_back(line_index, vtn);
+                }
+                else if (strncmp(token, "mtllib", 6) == 0)
+                {
+                    token += 7;
+                    data.mtllib = acul::str_range(token);
+                }
+                else if (strncmp(token, "usemtl", 6) == 0)
+                {
+                    token += 7;
+                    data.use_mtl.emplace_back(line_index, acul::str_range(token));
+                }
+            }
+        } // namespace obj
+    } // namespace scene
+} // namespace ecl

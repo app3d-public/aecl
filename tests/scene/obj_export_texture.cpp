@@ -1,30 +1,30 @@
 #include <ecl/scene/obj/export.hpp>
+#include "../env.hpp"
 #include "common.hpp"
 
-namespace tests
+void test_obj_export_texture()
 {
-    bool runTest(const acul::io::path &dataDir, const acul::io::path &outputDir)
-    {
-        using namespace ecl::scene;
-        obj::Exporter exporter(outputDir / "export_origin.obj");
-        exporter.meshFlags =
-            MeshExportFlagBits::export_normals | MeshExportFlagBits::export_uv | MeshExportFlagBits::transform_reverseY;
-        exporter.objFlags = obj::ObjExportFlagBits::mgp_groups | obj::ObjExportFlagBits::mat_PBR;
-        exporter.materialFlags = MaterialExportFlags::texture_copyToLocal;
+    test_environment env;
+    create_test_environment(env);
+    using namespace ecl::scene;
+    obj::Exporter exporter(acul::io::path(env.output_dir) / "export_origin.obj");
+    exporter.mesh_flags =
+        MeshExportFlagBits::ExportNormals | MeshExportFlagBits::ExportUV | MeshExportFlagBits::TransformReverseY;
+    exporter.obj_flags = obj::ObjExportFlagBits::ObjectPolicyGroups | obj::ObjExportFlagBits::MaterialsPBR;
+    exporter.material_flags = MaterialExportFlags::TextureCopyToLocal;
 
-        createObjects(exporter.objects);
-        auto mat = acul::make_shared<umbf::MatRangeAssignAtrr>();
-        mat->matID = 0;
-        exporter.objects.front().meta.push_back(mat);
+    create_objects(exporter.objects);
+    auto mat = acul::make_shared<umbf::MatRangeAssignAttr>();
+    mat->mat_id = 0;
+    exporter.objects.front().meta.push_back(mat);
 
-        createMaterials(exporter.materials);
+    create_materials(exporter.materials);
 
-        acul::string texture;
-        createDefaultTexture(texture, dataDir);
-        exporter.textures.push_back(texture);
+    acul::string texture;
+    create_default_texture(texture, env.data_dir);
+    exporter.textures.push_back(texture);
 
-        auto state = exporter.save();
-        exporter.clear();
-        return state;
-    }
-} // namespace tests
+    auto state = exporter.save();
+    exporter.clear();
+    assert(state);
+}

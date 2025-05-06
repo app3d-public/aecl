@@ -35,7 +35,7 @@ namespace ecl
             vk::Format bit32format = vk::Format::eUndefined;
         };
 
-        inline OIIO::TypeDesc vkFormatToOIIO(vk::Format format)
+        inline OIIO::TypeDesc vk_format_to_OIIO(vk::Format format)
         {
             switch (format)
             {
@@ -54,7 +54,7 @@ namespace ecl
             }
         }
 
-        inline vk::Format getFormatByBit(size_t bit, Format format)
+        inline vk::Format get_format_by_bit(size_t bit, Format format)
         {
             switch (bit)
             {
@@ -77,37 +77,27 @@ namespace ecl
             HDR,
             HEIF,
             JPEG,
-            JPEG2000,
-            JPEGXL,
             OpenEXR,
             PNG,
             PBM,
-            RAW,
             Targa,
             TIFF,
             WebP,
             UMBF
         };
 
-        constexpr Type getTypeByExt(acul::string_view extension)
+        constexpr Type get_type_by_extension(acul::string_view extension)
         {
-            constexpr std::array<std::pair<acul::string_view, Type>, 54> extMap = {
-                {{".bmp", Type::BMP},      {".gif", Type::GIF},      {".hdr", Type::HDR},    {".heif", Type::HEIF},
-                 {".heic", Type::HEIF},    {".avif", Type::HEIF},    {".jpg", Type::JPEG},   {".jpe", Type::JPEG},
-                 {".jpeg", Type::JPEG},    {".jif", Type::JPEG},     {".jfif", Type::JPEG},  {".jfi", Type::JPEG},
-                 {".jp2", Type::JPEG2000}, {".j2k", Type::JPEG2000}, {".jxl", Type::JPEGXL}, {".exr", Type::OpenEXR},
-                 {".png", Type::PNG},      {".pbm", Type::PBM},      {".pgm", Type::PBM},    {".ppm", Type::PBM},
-                 {".ari", Type::RAW},      {".dpx", Type::RAW},      {".arw", Type::RAW},    {".srf", Type::RAW},
-                 {".sr2", Type::RAW},      {".bay", Type::RAW},      {".crw", Type::RAW},    {".cr2", Type::RAW},
-                 {".cr3", Type::RAW},      {".dng", Type::RAW},      {".dcr", Type::RAW},    {".kdc", Type::RAW},
-                 {".erf", Type::RAW},      {".3fr", Type::RAW},      {".mef", Type::RAW},    {".mrw", Type::RAW},
-                 {".nef", Type::RAW},      {".nrw", Type::RAW},      {".orf", Type::RAW},    {".ptx", Type::RAW},
-                 {".pef", Type::RAW},      {".raf", Type::RAW},      {".raw", Type::RAW},    {".rwl", Type::RAW},
-                 {".rw2", Type::RAW},      {".r3d", Type::RAW},      {".srw", Type::RAW},    {".x3f", Type::RAW},
-                 {"tga", Type::Targa},     {".tpic", Type::Targa},   {".tif", Type::TIFF},   {".tiff", Type::TIFF},
-                 {".webp", Type::WebP},    {".umia", Type::UMBF}}};
+            constexpr std::array<std::pair<acul::string_view, Type>, 25> extension_map = {
+                {{".bmp", Type::BMP},     {".gif", Type::GIF},   {".hdr", Type::HDR},   {".heif", Type::HEIF},
+                 {".heic", Type::HEIF},   {".avif", Type::HEIF}, {".jpg", Type::JPEG},  {".jpe", Type::JPEG},
+                 {".jpeg", Type::JPEG},   {".jif", Type::JPEG},  {".jfif", Type::JPEG}, {".jfi", Type::JPEG},
+                 {".exr", Type::OpenEXR}, {".png", Type::PNG},   {".pbm", Type::PBM},   {".pgm", Type::PBM},
+                 {".ppm", Type::PBM},     {".pnm", Type::PBM},   {".tga", Type::Targa}, {".tpic", Type::Targa},
+                 {".tif", Type::TIFF},    {".tiff", Type::TIFF}, {".webp", Type::WebP}, {".umia", Type::UMBF},
+                 {".umbf", Type::UMBF}}};
 
-            for (const auto &[ext, type] : extMap)
+            for (const auto &[ext, type] : extension_map)
                 if (ext == extension) return type;
             return Type::Unknown;
         }

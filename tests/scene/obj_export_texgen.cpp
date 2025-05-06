@@ -1,28 +1,29 @@
 #include <ecl/scene/obj/export.hpp>
+#include "../env.hpp"
 #include "common.hpp"
 
-namespace tests
+void test_obj_export_texgen()
 {
-    bool runTest(const acul::io::path &dataDir, const acul::io::path &outputDir)
-    {
-        using namespace ecl::scene;
-        obj::Exporter exporter(outputDir / "export_origin.obj");
-        exporter.meshFlags =
-            MeshExportFlagBits::export_normals | MeshExportFlagBits::export_uv | MeshExportFlagBits::transform_reverseY;
-        exporter.materialFlags = MaterialExportFlags::texture_origin;
-        exporter.objFlags = obj::ObjExportFlagBits::mgp_objects | obj::ObjExportFlagBits::mat_PBR;
+    test_environment env;
+    create_test_environment(env);
+    using namespace ecl::scene;
+    auto path = acul::io::path(env.output_dir);
+    obj::Exporter exporter(path / "export_origin.obj");
+    exporter.mesh_flags =
+        MeshExportFlagBits::ExportNormals | MeshExportFlagBits::ExportUV | MeshExportFlagBits::TransformReverseY;
+    exporter.material_flags = MaterialExportFlags::TextureOrigin;
+    exporter.obj_flags = obj::ObjExportFlagBits::ObjectPolicyObjects | obj::ObjExportFlagBits::MaterialsPBR;
 
-        createObjects(exporter.objects);
-        auto mat = acul::make_shared<umbf::MatRangeAssignAtrr>();
-        mat->matID = 0;
-        exporter.objects.front().meta.push_back(mat);
+    create_objects(exporter.objects);
+    auto mat = acul::make_shared<umbf::MatRangeAssignAttr>();
+    mat->mat_id = 0;
+    exporter.objects.front().meta.push_back(mat);
 
-        createMaterials(exporter.materials);
+    create_materials(exporter.materials);
 
-        acul::string texture;
-        createGeneratedTexture(texture, outputDir / "tex");
-        exporter.textures.push_back(texture);
+    acul::string texture;
+    create_generated_texture(texture, path / "tex");
+    exporter.textures.push_back(texture);
 
-        return exporter.save();
-    }
-} // namespace tests
+    assert(exporter.save());
+}

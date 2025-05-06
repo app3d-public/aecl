@@ -1,12 +1,7 @@
 cmake_minimum_required(VERSION 3.17)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/tests)
-
-set(ECL_TEST_INCLUDES
-    $<TARGET_PROPERTY:${ACUL_LIB_NAME},INCLUDE_DIRECTORIES>
-    $<TARGET_PROPERTY:${UMBF_LIB_NAME},INCLUDE_DIRECTORIES>
-    $<TARGET_PROPERTY:app3d-ecl,INCLUDE_DIRECTORIES>)
-set(ECL_TEST_LIBRARIES
+set(TEST_LIBRARIES
     ${ACUL_LIB_NAME}
     ${UMBF_LIB_NAME}
     app3d-ecl
@@ -15,65 +10,22 @@ set(ECL_TEST_LIBRARIES
 
 set(TEST_DATA_DIR "${CMAKE_CURRENT_SOURCE_DIR}/data")
 set(TEST_OUTPUT_DIR "${CMAKE_BINARY_DIR}/tests/artifacts")
-set(ENV_VAR "TEST_DATA_DIR=${TEST_DATA_DIR};TEST_OUTPUT_DIR=${TEST_OUTPUT_DIR}")
+set(TEST_ENV "TEST_DATA_DIR=${TEST_DATA_DIR};TEST_OUTPUT_DIR=${TEST_OUTPUT_DIR}")
+set(TEST_SOURCES env.cpp scene/common.cpp)
 
-set(ECL_OBJ_IMPORT_SRC main.cpp "scene/obj_import.cpp")
-add_test_files(
-    "ecl"
-    "obj_import"
-    "${ECL_OBJ_IMPORT_SRC}"
-    "${ECL_TEST_INCLUDES}"
-    "${ECL_TEST_LIBRARIES}"
-    "${ENV_VAR}")
+# Image
+add_test_files(ecl image_import image/import.cpp)
+add_test_files(ecl image_export image/export.cpp)
+# add_test_files(ecl image_format image/format.cpp)
 
-set(ECL_OBJ_EXPORT_TRIANGLES_SRC
-    main.cpp
-    "scene/common.cpp"
-    "scene/obj_export_triangles.cpp")
-add_test_files(
-    "ecl"
-    "obj_export_triangles"
-    "${ECL_OBJ_EXPORT_TRIANGLES_SRC}"
-    "${ECL_TEST_INCLUDES}"
-    "${ECL_TEST_LIBRARIES}"
-    "${ENV_VAR}"
-)
+# Scene
+add_test_files(ecl parse_exception scene/parse_exception.cpp)
+add_test_files(ecl obj_import scene/obj_import.cpp)
+add_test_files(ecl obj_export_triangles scene/obj_export_triangles.cpp)
+add_test_files(ecl obj_export_texture scene/obj_export_texture.cpp)
+add_test_files(ecl obj_export_texgen scene/obj_export_texgen.cpp)
+add_test_files(ecl obj_export_multimat scene/obj_export_multimat.cpp)
 
-set(ECL_OBJ_EXPORT_TEXTURE_SRC
-    main.cpp
-    "scene/common.cpp"
-    "scene/obj_export_texture.cpp")
-add_test_files(
-    "ecl"
-    "obj_export_texture"
-    "${ECL_OBJ_EXPORT_TEXTURE_SRC}"
-    "${ECL_TEST_INCLUDES}"
-    "${ECL_TEST_LIBRARIES}"
-    "${ENV_VAR}"
-)
-
-set(ECL_OBJ_EXPORT_TEXGEN_SRC
-    main.cpp
-    "scene/common.cpp"
-    "scene/obj_export_texgen.cpp")
-add_test_files(
-    "ecl"
-    "obj_export_texgen"
-    "${ECL_OBJ_EXPORT_TEXGEN_SRC}"
-    "${ECL_TEST_INCLUDES}"
-    "${ECL_TEST_LIBRARIES}"
-    "${ENV_VAR}"
-)
-
-set(ECL_OBJ_EXPORT_MULTIMAT_SRC
-    main.cpp
-    "scene/common.cpp"
-    "scene/obj_export_multimat.cpp")
-add_test_files(
-    "ecl"
-    "obj_export_multimat"
-    "${ECL_OBJ_EXPORT_MULTIMAT_SRC}"
-    "${ECL_TEST_INCLUDES}"
-    "${ECL_TEST_LIBRARIES}"
-    "${ENV_VAR}"
-)
+if(ENABLE_COVERAGE)
+    add_test_coverage(ecl)
+endif()

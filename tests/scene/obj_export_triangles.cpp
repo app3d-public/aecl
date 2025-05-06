@@ -1,19 +1,19 @@
 #include <ecl/scene/obj/export.hpp>
+#include "../env.hpp"
 #include "common.hpp"
 
-namespace tests
+void test_obj_export_triangles()
 {
-    bool runTest(const acul::io::path &dataDir, const acul::io::path &outputDir)
-    {
-        using namespace ecl::scene;
-        obj::ObjExportFlags objFlags = obj::ObjExportFlagBits::mgp_groups | obj::ObjExportFlagBits::mat_PBR;
-        obj::Exporter exporter(outputDir / "export_origin.obj");
-        exporter.materialFlags = MaterialExportFlags::none;
-        exporter.meshFlags = MeshExportFlagBits::export_normals | MeshExportFlagBits::export_triangulated;
-        exporter.objFlags = obj::ObjExportFlagBits::mgp_groups | obj::ObjExportFlagBits::mat_PBR;
-        createObjects(exporter.objects);
-        auto state = exporter.save();
-        exporter.clear();
-        return state;
-    }
-} // namespace tests
+    test_environment env;
+    create_test_environment(env);
+    using namespace ecl::scene;
+    obj::ObjExportFlags obj_flags = obj::ObjExportFlagBits::ObjectPolicyGroups | obj::ObjExportFlagBits::MaterialsPBR;
+    obj::Exporter exporter(acul::io::path(env.output_dir) / "export_origin.obj");
+    exporter.material_flags = MaterialExportFlags::None;
+    exporter.mesh_flags = MeshExportFlagBits::ExportNormals | MeshExportFlagBits::ExportTriangulated;
+    exporter.obj_flags = obj::ObjExportFlagBits::ObjectPolicyGroups | obj::ObjExportFlagBits::MaterialsPBR;
+    create_objects(exporter.objects);
+    auto state = exporter.save();
+    exporter.clear();
+    assert(state);
+}

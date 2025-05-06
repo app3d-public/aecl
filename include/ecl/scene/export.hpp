@@ -11,16 +11,16 @@ namespace ecl
         {
             enum enum_type
             {
-                none,
-                transform_reverseX = 0x1,
-                transform_reverseY = 0x2,
-                transform_reverseZ = 0x4,
-                transform_swapXY = 0x8,
-                transform_swapXZ = 0x10,
-                transform_swapYZ = 0x20,
-                export_uv = 0x40,
-                export_normals = 0x80,
-                export_triangulated = 0x100
+                None,
+                TransformReverseX = 0x1,
+                TransformReverseY = 0x2,
+                TransformReverseZ = 0x4,
+                TransformSwapXY = 0x8,
+                TransformSwapXZ = 0x10,
+                TransformSwapYZ = 0x20,
+                ExportUV = 0x40,
+                ExportNormals = 0x80,
+                ExportTriangulated = 0x100
             };
             using flag_bitmask = std::true_type;
         };
@@ -31,10 +31,10 @@ namespace ecl
         {
             enum
             {
-                none,               // Do not export materials
-                texture_none,       // Do not export textures
-                texture_origin,     // As present in the material manager (external references)
-                texture_copyToLocal // Create "tex" folder and copy textures there (keeping them external, but local)
+                None,              // Do not export materials
+                TextureNone,       // Do not export textures
+                TextureOrigin,     // As present in the material manager (external references)
+                TextureCopyToLocal // Create "tex" folder and copy textures there (keeping them external, but local)
             };
         };
 
@@ -42,8 +42,8 @@ namespace ecl
         {
         public:
             acul::string path;
-            MeshExportFlags meshFlags;
-            int materialFlags;
+            MeshExportFlags mesh_flags;
+            int material_flags;
             acul::vector<umbf::Object> objects;
             acul::vector<umbf::File> materials;
             acul::vector<acul::string> textures;

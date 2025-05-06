@@ -21,11 +21,7 @@ namespace ecl
          */
         acul::shared_ptr<void> copySrcBuffer(const void *src, size_t size, vk::Format format);
 
-        struct ExportParams
-        {
-        };
-
-        struct OIIOParams : ExportParams
+        struct OIIOParams
         {
             Format format;
             OIIOParams(Format format) : format(format) {}
@@ -118,61 +114,23 @@ namespace ecl
                 bool dither;
                 bool progressive;
                 int compression;
-                acul::string appName;
+                acul::string app_name;
 
                 Params(const umbf::Image2D &image, f32 dpi = 72.0f, bool dither = false, bool progressive = false,
-                       int compression = 100, const acul::string &appName = {})
+                       int compression = 100, const acul::string &app_name = {})
                     : OIIOParams({FormatFlagBits::bit8, vk::Format::eR8G8B8A8Srgb}),
                       image(image),
                       dpi(dpi),
                       dither(dither),
                       progressive(progressive),
                       compression(compression),
-                      appName(appName)
+                      app_name(app_name)
                 {
                 }
             };
 
             APPLIB_API bool save(const acul::string &path, Params &jp);
         } // namespace jpeg
-
-        namespace jpeg2000
-        {
-            struct Params : OIIOParams
-            {
-                umbf::Image2D image;
-                bool unassociatedAlpha;
-                bool dither;
-
-                Params(const umbf::Image2D &image, bool unassociatedAlpha = false, bool dither = false)
-                    : OIIOParams({FormatFlagBits::bit8 | FormatFlagBits::bit16 | FormatFlagBits::alpha,
-                                  vk::Format::eR8G8B8A8Srgb, vk::Format::eR16G16B16A16Uint}),
-                      image(image),
-                      unassociatedAlpha(unassociatedAlpha),
-                      dither(dither)
-                {
-                }
-            };
-
-            APPLIB_API bool save(const acul::string &path, Params &jp, u8 dstBit);
-        } // namespace jpeg2000
-
-        namespace jpegXL
-        {
-            struct Params : OIIOParams
-            {
-                umbf::Image2D image;
-
-                Params(const umbf::Image2D &image)
-                    : OIIOParams({FormatFlagBits::bit8 | FormatFlagBits::bit16, vk::Format::eR8G8B8A8Srgb,
-                                  vk::Format::eR16G16B16A16Uint}),
-                      image(image)
-                {
-                }
-            };
-
-            APPLIB_API bool save(const acul::string &path, Params &jp, u8 dstBit);
-        } // namespace jpegXL
 
         namespace openEXR
         {
@@ -203,7 +161,7 @@ namespace ecl
                 }
             };
 
-            APPLIB_API bool save(const acul::string &path, Params &op, u8 dstBit);
+            APPLIB_API bool save(const acul::string &path, Params &op, u8 dst_bit);
         } // namespace openEXR
         namespace png
         {
@@ -219,14 +177,14 @@ namespace ecl
                  * The default is 0 (PNG_NO_FILTERS), but other values
                  * (which may be “or-ed” or summed to combine their effects) are 8 (PNG_FILTER_NONE),
                  * 16 (PNG_FILTER_SUB), 32 (PNG_FILTER_UP), 64 (PNG_FILTER_AVG), or 128 (PNG_FILTER_PAETH).
-                 * @param unassociatedAlpha Whether to use unassociated alpha in the exported image.
+                 * @param unassociated_alpha Whether to use unassociated alpha in the exported image.
                  */
                 int compression;
                 int filter;
-                bool unassociatedAlpha;
+                bool unassociated_alpha;
 
                 Params(const umbf::Image2D &image, f32 dpi = 72.0f, bool dither = false, int compression = 6,
-                       int filter = 0, bool unassociatedAlpha = false)
+                       int filter = 0, bool unassociated_alpha = false)
                     : OIIOParams({FormatFlagBits::bit8 | FormatFlagBits::bit16 | FormatFlagBits::alpha,
                                   vk::Format::eR8G8B8A8Srgb, vk::Format::eR16G16B16A16Uint}),
                       image(image),
@@ -234,12 +192,12 @@ namespace ecl
                       dither(dither),
                       compression(compression),
                       filter(filter),
-                      unassociatedAlpha(unassociatedAlpha)
+                      unassociated_alpha(unassociated_alpha)
                 {
                 }
             };
 
-            APPLIB_API bool save(const acul::string &path, Params &pp, u8 dstBit);
+            APPLIB_API bool save(const acul::string &path, Params &pp, u8 dst_bit);
         } // namespace png
 
         namespace pnm
@@ -271,26 +229,26 @@ namespace ecl
                 // Compression level for the exporting image.
                 // Values of none and rle are supported. The default is RLE.
                 acul::string compression;
-                acul::string appName;
+                acul::string app_name;
                 // Meaning of any alpha channel (0 = none; 1 = undefined, ignore; 2 = undefined, preserve; 3 = useful
                 // unassociated alpha; 4 = useful associated alpha / premultiplied color).
-                int alphaType;
+                int alpha_type;
 
                 Params(const umbf::Image2D &image, bool dither = false, const acul::string &compression = "rle",
-                       const acul::string &appName = {}, int alphaType = 4)
+                       const acul::string &app_name = {}, int alpha_type = 4)
                     : OIIOParams({FormatFlagBits::bit8 | FormatFlagBits::bit16 | FormatFlagBits::alpha |
                                       FormatFlagBits::readOnly,
                                   vk::Format::eR8G8B8A8Srgb, vk::Format::eR16G16B16A16Uint}),
                       image(image),
                       dither(dither),
                       compression(compression),
-                      appName(appName),
-                      alphaType(alphaType)
+                      app_name(app_name),
+                      alpha_type(alpha_type)
                 {
                 }
             };
 
-            APPLIB_API bool save(const acul::string &path, Params &tp, u8 dstBit);
+            APPLIB_API bool save(const acul::string &path, Params &tp);
         } // namespace targa
 
         namespace tiff
@@ -298,7 +256,7 @@ namespace ecl
             struct Params : OIIOParams
             {
                 acul::vector<umbf::Image2D> images;
-                bool unassociatedAlpha;
+                bool unassociated_alpha;
                 bool dither;
                 /* An integer representing the quality level for ZIP compression.
                  * A time-vs-space knob for zip compression, ranging from 1-9 (default is 6).
@@ -309,30 +267,30 @@ namespace ecl
                 int zipquality;
                 // A boolean representing whether to force the use of BigTIFF format that allows files to be more than
                 // 4 GB (default: 0).
-                bool forceBigTIFF;
+                bool force_big_tiff;
                 f32 dpi;
                 // A string representing the compression algorithm to be used for the exported image.
                 acul::string compression;
 
-                Params(const acul::vector<umbf::Image2D> &images, bool unassociatedAlpha = false, bool dither = false,
-                       int zipquality = 6, bool forceBigTIFF = false, const acul::string &appName = {}, f32 dpi = 72.0f,
+                Params(const acul::vector<umbf::Image2D> &images, bool unassociated_alpha = false, bool dither = false,
+                       int zipquality = 6, bool force_big_tiff = false, const acul::string &app_name = {}, f32 dpi = 72.0f,
                        const acul::string &compression = "none")
                     : OIIOParams({FormatFlagBits::bit8 | FormatFlagBits::bit16 | FormatFlagBits::bit32 |
                                       FormatFlagBits::alpha | FormatFlagBits::multilayer,
                                   vk::Format::eR8G8B8A8Srgb, vk::Format::eR16G16B16A16Uint,
                                   vk::Format::eR32G32B32A32Sfloat}),
                       images(images),
-                      unassociatedAlpha(unassociatedAlpha),
+                      unassociated_alpha(unassociated_alpha),
                       dither(dither),
                       zipquality(zipquality),
-                      forceBigTIFF(forceBigTIFF),
+                      force_big_tiff(force_big_tiff),
                       dpi(dpi),
                       compression(compression)
                 {
                 }
             };
 
-            APPLIB_API bool save(const acul::string &path, Params &tp, u8 dstBit);
+            APPLIB_API bool save(const acul::string &path, Params &tp, u8 dst_bit);
         } // namespace tiff
 
         namespace webp
@@ -358,21 +316,21 @@ namespace ecl
             using ::umbf::File;
             using ::umbf::Image2D;
 
-            struct Params : ExportParams
+            struct Params
             {
                 umbf::Image2D image;
-                int compression;
+                int compression = 5;
                 u32 checksum;
             };
 
-            APPLIB_API bool save(const acul::string &path, Params &up, u8 dstBit);
+            APPLIB_API bool save(const acul::string &path, Params &up);
         } // namespace umbf
 
-        inline bool isImageEquals(const umbf::Image2D &image, Format srcFormat, vk::Format dstFormat)
+        inline bool is_image_equals(const umbf::Image2D &image, Format src_format, vk::Format dst_format)
         {
-            if (image.channelCount != 3 && !((srcFormat.flags & FormatFlagBits::alpha) && image.channelCount == 4))
+            if (image.channel_count != 3 && !((src_format.flags & FormatFlagBits::alpha) && image.channel_count == 4))
                 return false;
-            return dstFormat == image.imageFormat;
+            return dst_format == image.format;
         }
     } // namespace image
 } // namespace ecl
