@@ -68,7 +68,7 @@ namespace ecl
                 return false;
             }
 
-            for (int i{0}; i < pixels.size(); i++)
+            for (size_t i{0}; i < pixels.size(); i++)
             {
                 if (i > 0)
                 {
@@ -80,7 +80,7 @@ namespace ecl
                 }
                 if (!out->write_image(OIIO::TypeDesc::UINT8, pixels[i]))
                 {
-                    LOG_ERROR("Failed to write subimage#%d", i);
+                    LOG_ERROR("Failed to write subimage#%zu", i);
                     return false;
                 }
             }
@@ -201,7 +201,7 @@ namespace ecl
                 return false;
             }
 
-            for (int i{0}; i < pixels.size(); i++)
+            for (size_t i{0}; i < pixels.size(); i++)
             {
                 if (i > 0)
                 {
@@ -213,7 +213,7 @@ namespace ecl
                 }
                 if (!out->write_image(dst_type, pixels[i]))
                 {
-                    LOG_ERROR("Failed to write subimage#%d", i);
+                    LOG_ERROR("Failed to write subimage#%zu", i);
                     return false;
                 }
             }
@@ -340,7 +340,7 @@ namespace ecl
                 return false;
             }
 
-            for (int i{0}; i < pixels.size(); i++)
+            for (size_t i{0}; i < pixels.size(); i++)
             {
                 if (i > 0)
                 {
@@ -352,7 +352,7 @@ namespace ecl
                 }
                 if (!out->write_image(dst_type, pixels[i]))
                 {
-                    LOG_ERROR("Failed to write subimage#%d", i);
+                    LOG_ERROR("Failed to write subimage#%zu", i);
                     return false;
                 }
             }

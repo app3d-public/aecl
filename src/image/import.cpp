@@ -31,7 +31,7 @@ namespace ecl
             {
                 const OIIO::ImageSpec &spec = inp->spec();
                 acul::vector<acul::string> channel_names(spec.channelnames.size());
-                for (size_t i = 0; i < spec.nchannels; i++) channel_names[i] = spec.channelnames[i].c_str();
+                for (int i = 0; i < spec.nchannels; i++) channel_names[i] = spec.channelnames[i].c_str();
                 umbf::Image2D info;
                 info.width = spec.width;
                 info.height = spec.height;
@@ -62,7 +62,7 @@ namespace ecl
                     }
                     OIIO::TypeDesc dst_type = vk_format_to_OIIO(image_format);
                     load_handler = [dst_type](const std::unique_ptr<OIIO::ImageInput> &inp, int subimage, int channels,
-                                             void *dst, vk::DeviceSize size) {
+                                              void *dst, vk::DeviceSize size) {
                         if (!inp->read_image(subimage, 0, 0, channels, dst_type, dst)) return false;
                         return true;
                     };

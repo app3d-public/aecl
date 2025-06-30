@@ -16,7 +16,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 )
 
 find_package(PkgConfig)
-pkg_search_module(OPENIMAGEIO REQUIRED openimageio)
+pkg_search_module(OPENIMAGEIO REQUIRED OpenImageIO)
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
     ${ACUL_LIB_NAME}

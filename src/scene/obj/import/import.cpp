@@ -3,6 +3,7 @@
 #include <ecl/scene/utils.hpp>
 #include <emhash/hash_table8.hpp>
 #include <oneapi/tbb/parallel_sort.h>
+#include <sstream>
 #include <umbf/version.h>
 #include "geom.cpp.in"
 #include "mat.cpp.in"
@@ -15,7 +16,7 @@ namespace ecl
         {
             inline int get_group_range_end(int start_index, int range_end, ParseDataRead &data)
             {
-                for (int i = start_index; i < data.f.size(); ++i)
+                for (size_t i = start_index; i < data.f.size(); ++i)
                     if (data.f[i].index >= range_end) return i;
                 return data.f.size();
             }
@@ -33,7 +34,7 @@ namespace ecl
             glm::vec3 calculate_normal(const ParseDataRead &data, const acul::vector<glm::ivec3> &__restrict in_face)
             {
                 glm::vec3 normal{0.0f};
-                for (int v = 0; v < in_face.size(); ++v)
+                for (size_t v = 0; v < in_face.size(); ++v)
                 {
                     glm::vec3 current = data.v[in_face[v].x - 1].value;
                     glm::vec3 next = data.v[in_face[(v + 1) % in_face.size()].x - 1].value;
@@ -54,8 +55,8 @@ namespace ecl
                     face.vertices.emplace_back(vertex_group_id, m.vertices.size());
                     m.vertices.emplace_back(data.v[current].value);
                     auto &vertex = m.vertices.back();
-                    if (vtn.y != 0 && data.vt.size() > vtn.y) vertex.uv = data.vt[vtn.y - 1].value;
-                    vertex.normal = vtn.z != 0 && data.vn.size() > vtn.z ? data.vn[vtn.z - 1].value : face.normal;
+                    if (vtn.y != 0 && (int)data.vt.size() > vtn.y) vertex.uv = data.vt[vtn.y - 1].value;
+                    vertex.normal = vtn.z != 0 && (int)data.vn.size() > vtn.z ? data.vn[vtn.z - 1].value : face.normal;
                     m.aabb.min = glm::min(m.aabb.min, vertex.pos);
                     m.aabb.max = glm::max(m.aabb.max, vertex.pos);
                 }
@@ -67,8 +68,8 @@ namespace ecl
                                     acul::vector<VertexGroup> &groups, const glm::ivec3 &vtn, Model &m, Face &face)
             {
                 Vertex vertex{data.v[current].value};
-                if (vtn.y != 0 && data.vt.size() > vtn.y) vertex.uv = data.vt[vtn.y - 1].value;
-                if (vtn.z != 0 && data.vn.size() > vtn.z)
+                if (vtn.y != 0 && (int)data.vt.size() > vtn.y) vertex.uv = data.vt[vtn.y - 1].value;
+                if (vtn.z != 0 && (int)data.vn.size() > vtn.z)
                     vertex.normal = data.vn[vtn.z - 1].value;
                 else
                     vertex.normal = face.normal;
@@ -104,11 +105,11 @@ namespace ecl
                     auto &in_face = data.f[group.start_index + f].value;
                     auto &face = m.faces[f];
                     face.normal = calculate_normal(data, *in_face);
-                    for (int v = 0; v < in_face->size(); ++v)
+                    for (size_t v = 0; v < in_face->size(); ++v)
                     {
                         auto &vtn = (*in_face)[v];
                         const int current = vtn.x - 1;
-                        if (data.v.size() < vtn.x) continue;
+                        if ((int)data.v.size() < vtn.x) continue;
                         if (pos_map[current] == -1) pos_map[current] = m.group_count++;
                         if (use_normals)
                             add_vertex_to_face(data, pos_map[current], current, vtn_map, vtn, m, face);
@@ -151,7 +152,7 @@ namespace ecl
                 mat_map.reserve(mtl_list.size());
                 materials.resize(mtl_list.size());
                 auto generator = acul::id_gen();
-                for (int i = 0; i < mtl_list.size(); ++i)
+                for (size_t i = 0; i < mtl_list.size(); ++i)
                 {
                     auto &mtl = mtl_list[i];
                     auto [mat_it, is_mat_inserted] = mat_map.emplace(mtl.name, i);
@@ -217,7 +218,7 @@ namespace ecl
                     groups.emplace_back(0, lfi, "default");
                 }
 
-                for (int g = 0; g < data.g.size(); ++g)
+                for (size_t g = 0; g < data.g.size(); ++g)
                 {
                     int range_end = (g < data.g.size() - 1) ? data.g[g + 1].index : data.f.back().index + 1;
                     int temp = get_group_range_end(lfi, range_end, data);
@@ -234,15 +235,15 @@ namespace ecl
                 if (data.use_mtl.size() == 0) return;
                 int um_id = 0;
                 ranges.resize(groups.size());
-                for (int g = 0; g < groups.size(); ++g)
+                for (size_t g = 0; g < groups.size(); ++g)
                 {
                     auto &group = groups[g];
                     const auto first = data.f[group.start_index].index;
                     const auto last = data.f[group.range_end - 1].index;
                     if (data.use_mtl[um_id].index < first)
                     {
-                        while (um_id < data.use_mtl.size() && data.use_mtl[um_id].index <= first) ++um_id;
-                        for (--um_id; um_id < data.use_mtl.size() && data.use_mtl[um_id].index <= last; ++um_id)
+                        while (um_id < (int)data.use_mtl.size() && data.use_mtl[um_id].index <= first) ++um_id;
+                        for (--um_id; um_id < (int)data.use_mtl.size() && data.use_mtl[um_id].index <= last; ++um_id)
                         {
                             ranges[g].emplace_back(um_id);
                             auto it = mat_map.find(data.use_mtl[um_id].value);
@@ -272,26 +273,26 @@ namespace ecl
                                           emhash8::HashMap<acul::string, int> &mat_map,
                                           const acul::vector<GroupRange> &groups, acul::vector<umbf::Object> &objects)
             {
-                for (int gr = 0; gr < ranges.size(); ++gr)
+                for (size_t gr = 0; gr < ranges.size(); ++gr)
                 {
                     auto &group_range = ranges[gr];
                     if (group_range.size() > 1)
                     {
                         auto &group = groups[gr];
                         int f = group.start_index;
-                        for (int i = 0; i < group_range.size(); ++i)
+                        for (size_t i = 0; i < group_range.size(); ++i)
                         {
                             int m_next = (i == group_range.size() - 1) ? data.f[group.range_end - 1].index + 1
                                                                        : data.use_mtl[group_range[i + 1]].index;
 
                             auto it = mat_map.find(data.use_mtl[group_range[i]].value);
                             if (it == mat_map.end())
-                                for (; f < data.f.size() && data.f[f].index < m_next; ++f);
+                                for (; f < (int)data.f.size() && data.f[f].index < m_next; ++f);
                             else
                             {
                                 auto meta = acul::make_shared<umbf::MatRangeAssignAttr>();
                                 meta->mat_id = it->second;
-                                for (; f < data.f.size() && data.f[f].index < m_next; ++f)
+                                for (; f < (int)data.f.size() && data.f[f].index < m_next; ++f)
                                     meta->faces.push_back(f - group.start_index);
                                 objects[gr].meta.push_back(meta);
                             }
@@ -353,7 +354,7 @@ namespace ecl
                                                   }
                                               });
                     u32 current_id = 0;
-                    for (int i = 0; i < face_count; ++i)
+                    for (size_t i = 0; i < face_count; ++i)
                     {
                         m.faces[i].first_vertex = current_id;
                         m.indices.insert(m.indices.end(), ires[i].begin(), ires[i].end());

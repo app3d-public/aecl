@@ -2,6 +2,7 @@
 
 void create_test_environment(test_environment &env)
 {
+    env.sd.run();
     env.log_service = acul::alloc<acul::log::log_service>();
     env.sd.register_service(env.log_service);
     env.log_service->level = acul::log::level::Trace;

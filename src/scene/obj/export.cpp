@@ -3,6 +3,7 @@
 #include <acul/string/string.hpp>
 #include <algorithm>
 #include <ecl/scene/obj/export.hpp>
+#include <inttypes.h>
 #include <oneapi/tbb/parallel_for.h>
 #include <umbf/utils.hpp>
 
@@ -63,7 +64,7 @@ namespace ecl
             {
                 const auto &m = meta->model;
                 acul::vector<u32> positions(m.vertices.size());
-                for (int g = 0; g < groups.size(); g++)
+                for (size_t g = 0; g < groups.size(); g++)
                     for (auto id : groups[g].vertices) positions[id] = g;
 
                 size_t thread_count = oneapi::tbb::this_task_arena::max_concurrency();
@@ -282,7 +283,7 @@ namespace ecl
                         {
                             auto it = _material_map.find(assign->mat_id);
                             if (it == _material_map.end())
-                                LOG_ERROR("Failed to find material: %llx", assign->mat_id);
+                                LOG_ERROR("Failed to find material: %" PRIx64, assign->mat_id);
                             else
                                 stream << "usemtl " << it->second.info->name << "\n";
                         }
