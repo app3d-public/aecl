@@ -15,7 +15,7 @@ void test_obj_export_texgen()
     exporter.obj_flags = obj::ObjExportFlagBits::ObjectPolicyObjects | obj::ObjExportFlagBits::MaterialsPBR;
 
     create_objects(exporter.objects);
-    auto mat = acul::make_shared<umbf::MatRangeAssignAttr>();
+    auto mat = acul::make_shared<umbf::MaterialRange>();
     mat->mat_id = 0;
     exporter.objects.front().meta.push_back(mat);
 

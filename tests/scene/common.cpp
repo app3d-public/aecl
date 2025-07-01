@@ -101,15 +101,15 @@ void create_objects(acul::vector<umbf::Object> &objects)
     objects.emplace_back();
     auto &cube = objects.front();
     cube.name = "cube";
-    auto meshBlock = acul::make_shared<umbf::mesh::MeshBlock>();
-    auto &model = meshBlock->model;
+    auto mesh = acul::make_shared<umbf::mesh::Mesh>();
+    auto &model = mesh->model;
     create_cube_verticles(model.vertices);
     model.indices = {2,  3,  0,  0,  1,  2,  6,  7,  4,  4,  5,  6,  10, 11, 8,  8,  9,  10,
                      14, 15, 12, 12, 13, 14, 18, 19, 16, 16, 17, 18, 22, 23, 20, 20, 21, 22};
     create_cube_faces(model.faces);
     model.group_count = 8;
     model.aabb = {glm::vec3{-100, -100, -100}, {100, 100, 100}};
-    cube.meta.push_back(meshBlock);
+    cube.meta.push_back(mesh);
 }
 
 void create_materials(acul::vector<umbf::File> &materials)

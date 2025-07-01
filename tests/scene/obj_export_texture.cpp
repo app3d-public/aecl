@@ -14,7 +14,7 @@ void test_obj_export_texture()
     exporter.material_flags = MaterialExportFlags::TextureCopyToLocal;
 
     create_objects(exporter.objects);
-    auto mat = acul::make_shared<umbf::MatRangeAssignAttr>();
+    auto mat = acul::make_shared<umbf::MaterialRange>();
     mat->mat_id = 0;
     exporter.objects.front().meta.push_back(mat);
 

@@ -80,7 +80,7 @@ namespace ecl
             auto asset = umbf::File::read_from_disk(path);
             if (!asset) return acul::io::file::op_state::Error;
             _checksum = asset->checksum;
-            if (asset->blocks.empty() || asset->blocks.front()->signature() != umbf::sign_block::meta::Image2D)
+            if (asset->blocks.empty() || asset->blocks.front()->signature() != umbf::sign_block::Image2D)
             {
                 LOG_WARN("ECL UMBF Loader can recognize only 2D images");
                 return acul::io::file::op_state::Error;

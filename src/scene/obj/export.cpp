@@ -58,7 +58,7 @@ namespace ecl
                     for (auto &face : model.faces) std::reverse(face.vertices.begin(), face.vertices.end());
             }
 
-            void Exporter::write_triangles(umbf::mesh::MeshBlock *meta, acul::stringstream &os,
+            void Exporter::write_triangles(umbf::mesh::Mesh *meta, acul::stringstream &os,
                                            const acul::vector<u32> &faces,
                                            const acul::vector<umbf::mesh::VertexGroup> &groups)
             {
@@ -97,8 +97,7 @@ namespace ecl
                 for (const auto &block : blocks) os << block.str();
             }
 
-            void Exporter::write_faces(umbf::mesh::MeshBlock *meta, acul::stringstream &os,
-                                       const acul::vector<u32> &faces)
+            void Exporter::write_faces(umbf::mesh::Mesh *meta, acul::stringstream &os, const acul::vector<u32> &faces)
             {
                 size_t thread_count = oneapi::tbb::this_task_arena::max_concurrency();
                 acul::vector<acul::stringstream> blocks(thread_count);
@@ -219,10 +218,10 @@ namespace ecl
                     {
                         switch (block->signature())
                         {
-                            case umbf::sign_block::meta::Material:
+                            case umbf::sign_block::Material:
                                 ptr = acul::static_pointer_cast<umbf::Material>(block);
                                 break;
-                            case umbf::sign_block::meta::MaterialInfo:
+                            case umbf::sign_block::MaterialInfo:
                             {
                                 auto info = acul::static_pointer_cast<umbf::MaterialInfo>(block);
                                 _material_map[info->id] = {info, ptr};
@@ -237,17 +236,17 @@ namespace ecl
 
             void Exporter::write_object(const umbf::Object &object, acul::stringstream &stream)
             {
-                acul::shared_ptr<umbf::mesh::MeshBlock> mesh;
-                acul::vector<acul::shared_ptr<umbf::MatRangeAssignAttr>> assignes;
+                acul::shared_ptr<umbf::mesh::Mesh> mesh;
+                acul::vector<acul::shared_ptr<umbf::MaterialRange>> assignes;
                 for (auto &block : object.meta)
                 {
                     switch (block->signature())
                     {
-                        case umbf::sign_block::meta::Mesh:
-                            mesh = acul::static_pointer_cast<umbf::mesh::MeshBlock>(block);
+                        case umbf::sign_block::Mesh:
+                            mesh = acul::static_pointer_cast<umbf::mesh::Mesh>(block);
                             break;
-                        case umbf::sign_block::meta::MaterialRangeAssign:
-                            assignes.push_back(acul::static_pointer_cast<umbf::MatRangeAssignAttr>(block));
+                        case umbf::sign_block::MaterialRange:
+                            assignes.push_back(acul::static_pointer_cast<umbf::MaterialRange>(block));
                             break;
                         default:
                             LOG_WARN("Unsupported signature: 0x%08x", block->signature());
@@ -263,10 +262,10 @@ namespace ecl
                     stream << "o " << object.name << "\n";
                 auto &model = mesh->model;
                 write_vertices(model, vertex_groups, stream);
-                acul::vector<acul::shared_ptr<umbf::MatRangeAssignAttr>> assignesAttr;
+                acul::vector<acul::shared_ptr<umbf::MaterialRange>> assignesAttr;
                 auto default_mat_id_it = std::find_if(
                     assignes.begin(), assignes.end(),
-                    [](const acul::shared_ptr<umbf::MatRangeAssignAttr> &range) { return range->faces.empty(); });
+                    [](const acul::shared_ptr<umbf::MaterialRange> &range) { return range->faces.empty(); });
                 u64 default_mat_id = default_mat_id_it == assignes.end() ? 0 : (*default_mat_id_it)->mat_id;
                 umbf::utils::filter_mat_assignments(assignes, model.faces.size(), default_mat_id, assignesAttr);
                 for (auto &assign : assignesAttr)

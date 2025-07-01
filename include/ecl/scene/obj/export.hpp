@@ -61,8 +61,8 @@ namespace ecl
 
                 void write_vertices(umbf::mesh::Model &model, const acul::vector<umbf::mesh::VertexGroup> &groups,
                                     acul::stringstream &ss);
-                void write_faces(umbf::mesh::MeshBlock *meta, acul::stringstream &os, const acul::vector<u32> &faces);
-                void write_triangles(umbf::mesh::MeshBlock *meta, acul::stringstream &os,
+                void write_faces(umbf::mesh::Mesh *meta, acul::stringstream &os, const acul::vector<u32> &faces);
+                void write_triangles(umbf::mesh::Mesh *meta, acul::stringstream &os,
                                      const acul::vector<u32> &faces,
                                      const acul::vector<umbf::mesh::VertexGroup> &groups);
                 void write_texture(acul::stringstream &os, const acul::string &token, const acul::string &tex);

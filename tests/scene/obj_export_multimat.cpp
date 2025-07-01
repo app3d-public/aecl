@@ -59,14 +59,14 @@ void test_obj_export_multimat()
     u64 materials_ids[2];
     create_multi_materials(exporter.materials, exporter.objects.front().id, materials_ids);
     // Materials assignments
-    auto mat0 = acul::make_shared<umbf::MatRangeAssignAttr>();
+    auto mat0 = acul::make_shared<umbf::MaterialRange>();
     mat0->mat_id = materials_ids[0];
     mat0->faces.resize(2);
     mat0->faces[0] = 2;
     mat0->faces[1] = 3;
     exporter.objects.front().meta.push_back(mat0);
 
-    auto mat1 = acul::make_shared<umbf::MatRangeAssignAttr>();
+    auto mat1 = acul::make_shared<umbf::MaterialRange>();
     mat1->mat_id = materials_ids[1];
     mat1->faces.resize(2);
     mat1->faces[0] = 4;

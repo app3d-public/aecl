@@ -28,7 +28,7 @@ namespace ecl
                 int start_index;
                 int range_end;
                 acul::string name;
-                acul::shared_ptr<MeshBlock> mesh;
+                acul::shared_ptr<Mesh> mesh;
             };
 
             glm::vec3 calculate_normal(const ParseDataRead &data, const acul::vector<glm::ivec3> &__restrict in_face)
@@ -253,7 +253,7 @@ namespace ecl
                             {
                                 auto meta = materials[it->second]->blocks;
                                 auto m_it = std::find_if(meta.begin(), meta.end(), [](auto &block) {
-                                    return block->signature() == umbf::sign_block::meta::MaterialInfo;
+                                    return block->signature() == umbf::sign_block::MaterialInfo;
                                 });
                                 if (m_it == meta.end())
                                 {
@@ -290,7 +290,7 @@ namespace ecl
                                 for (; f < (int)data.f.size() && data.f[f].index < m_next; ++f);
                             else
                             {
-                                auto meta = acul::make_shared<umbf::MatRangeAssignAttr>();
+                                auto meta = acul::make_shared<umbf::MaterialRange>();
                                 meta->mat_id = it->second;
                                 for (; f < (int)data.f.size() && data.f[f].index < m_next; ++f)
                                     meta->faces.push_back(f - group.start_index);
@@ -338,7 +338,7 @@ namespace ecl
                 {
                     LOG_INFO("Indexing group data: '%s'", group.name.c_str());
                     const size_t face_count = group.range_end - group.start_index;
-                    group.mesh = acul::make_shared<MeshBlock>();
+                    group.mesh = acul::make_shared<Mesh>();
                     auto &m = group.mesh->model;
                     index_mesh(face_count, _ctx->data, group);
                     LOG_INFO("Imported vertices: %zu", m.vertices.size());

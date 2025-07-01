@@ -8,11 +8,11 @@ void test_image_export()
 {
     test_environment env;
     create_test_environment(env);
-    acul::meta::hash_resolver meta_resolver;
+    umbf::streams::HashResolver meta_resolver;
     meta_resolver.streams = {
-        {umbf::sign_block::meta::Image2D, &umbf::streams::image2D},
+        {umbf::sign_block::Image2D, &umbf::streams::image2D},
     };
-    acul::meta::resolver = &meta_resolver;
+    umbf::streams::resolver = &meta_resolver;
 
     auto p = acul::io::path(env.data_dir) / "image.umia";
     auto loader = ecl::image::get_importer_by_path(p);
