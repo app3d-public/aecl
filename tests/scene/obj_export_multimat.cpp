@@ -1,4 +1,4 @@
-#include <ecl/scene/obj/export.hpp>
+#include <aecl/scene/obj/export.hpp>
 #include <umbf/version.h>
 #include "../env.hpp"
 #include "common.hpp"
@@ -45,7 +45,7 @@ void create_multi_materials(acul::vector<umbf::File> &materials, u64 object_id, 
 
 void test_obj_export_multimat()
 {
-    using namespace ecl::scene;
+    using namespace aecl::scene;
 
     test_environment env;
     create_test_environment(env);

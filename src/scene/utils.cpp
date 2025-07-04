@@ -1,10 +1,10 @@
 #include <acul/hash/hashset.hpp>
-#include <ecl/scene/utils.hpp>
+#include <aecl/scene/utils.hpp>
 #include <mapbox/earcut.hpp>
 
 #define is_nearly_zero(x) (fabs(x) < 1e-6f)
 
-namespace ecl
+namespace aecl
 {
     namespace utils
     {
@@ -86,4 +86,4 @@ namespace ecl
             return result_indices;
         }
     } // namespace utils
-} // namespace ecl
+} // namespace aecl

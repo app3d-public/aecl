@@ -1,9 +1,9 @@
 #include <acul/log.hpp>
-#include <ecl/image/export.hpp>
+#include <aecl/image/export.hpp>
 #include <umbf/utils.hpp>
 #include <umbf/version.h>
 
-namespace ecl
+namespace aecl
 {
     namespace image
     {
@@ -393,4 +393,4 @@ namespace ecl
             return asset.save(path, up.compression);
         }
     } // namespace image
-} // namespace ecl
+} // namespace aecl

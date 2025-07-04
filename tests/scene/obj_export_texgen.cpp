@@ -1,4 +1,4 @@
-#include <ecl/scene/obj/export.hpp>
+#include <aecl/scene/obj/export.hpp>
 #include "../env.hpp"
 #include "common.hpp"
 
@@ -6,7 +6,7 @@ void test_obj_export_texgen()
 {
     test_environment env;
     create_test_environment(env);
-    using namespace ecl::scene;
+    using namespace aecl::scene;
     auto path = acul::io::path(env.output_dir);
     obj::Exporter exporter(path / "export_origin.obj");
     exporter.mesh_flags =

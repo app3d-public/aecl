@@ -1,9 +1,9 @@
 #include <acul/hash/hashmap.hpp>
 #include <acul/log.hpp>
-#include <ecl/image/import.hpp>
+#include <aecl/image/import.hpp>
 #include <umbf/utils.hpp>
 
-namespace ecl
+namespace aecl
 {
     namespace image
     {
@@ -44,13 +44,13 @@ namespace ecl
                     switch (info.bytes_per_channel)
                     {
                         case 1:
-                            image_format = _format.bit8format;
+                            image_format = _format.bit8_format;
                             break;
                         case 2:
-                            image_format = _format.bit16format;
+                            image_format = _format.bit16_format;
                             break;
                         case 4:
-                            image_format = _format.bit32format;
+                            image_format = _format.bit32_format;
                             break;
                         default:
                             break;
@@ -123,4 +123,4 @@ namespace ecl
             }
         }
     } // namespace image
-} // namespace ecl
+} // namespace aecl

@@ -2,7 +2,7 @@
 
 #include <umbf/umbf.hpp>
 
-namespace ecl
+namespace aecl
 {
     namespace utils
     {
@@ -18,4 +18,4 @@ namespace ecl
             return glm::normalize(normal);
         }
     } // namespace utils
-} // namespace ecl
+} // namespace aecl

@@ -1,8 +1,8 @@
-#include <ecl/scene/import.hpp>
+#include <aecl/scene/import.hpp>
 
 void test_parse_exception()
 {
-    using namespace ecl::scene;
+    using namespace aecl::scene;
     acul::string_view inputLine = "some invalid line";
     size_t lineIndex = 42;
 

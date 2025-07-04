@@ -6,7 +6,7 @@
 #include <acul/string/string_view.hpp>
 #include <vulkan/vulkan.hpp>
 
-namespace ecl
+namespace aecl
 {
     namespace image
     {
@@ -14,13 +14,13 @@ namespace ecl
         {
             enum enum_type
             {
-                none = 0x0,
-                bit8 = 0x1,
-                bit16 = 0x2,
-                bit32 = 0x4,
-                readOnly = 0x8,
-                multilayer = 0x10,
-                alpha = 0x20,
+                None = 0x0,
+                Bit8 = 0x1,
+                Bit16 = 0x2,
+                Bit32 = 0x4,
+                ReadOnly = 0x8,
+                Multilayer = 0x10,
+                Alpha = 0x20,
             };
             using flag_bitmask = std::true_type;
         };
@@ -29,10 +29,10 @@ namespace ecl
 
         struct Format
         {
-            FormatFlags flags = FormatFlagBits::none;
-            vk::Format bit8format = vk::Format::eUndefined;
-            vk::Format bit16format = vk::Format::eUndefined;
-            vk::Format bit32format = vk::Format::eUndefined;
+            FormatFlags flags = FormatFlagBits::None;
+            vk::Format bit8_format = vk::Format::eUndefined;
+            vk::Format bit16_format = vk::Format::eUndefined;
+            vk::Format bit32_format = vk::Format::eUndefined;
         };
 
         inline OIIO::TypeDesc vk_format_to_OIIO(vk::Format format)
@@ -59,11 +59,11 @@ namespace ecl
             switch (bit)
             {
                 case 1:
-                    return format.bit8format;
+                    return format.bit8_format;
                 case 2:
-                    return format.bit16format;
+                    return format.bit16_format;
                 case 4:
-                    return format.bit32format;
+                    return format.bit32_format;
                 default:
                     return vk::Format::eUndefined;
             }
@@ -102,4 +102,4 @@ namespace ecl
             return Type::Unknown;
         }
     } // namespace image
-} // namespace ecl
+} // namespace aecl

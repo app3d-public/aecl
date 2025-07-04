@@ -1,5 +1,5 @@
 #include "common.hpp"
-#include <ecl/image/export.hpp>
+#include <aecl/image/export.hpp>
 #include <umbf/version.h>
 
 void create_cube_verticles(acul::vector<umbf::mesh::Vertex> &vertices)
@@ -156,8 +156,8 @@ void create_generated_texture(acul::string &tex, const acul::io::path &texDir)
     }
     image.pixels = pixels;
     tex = texDir / "generated.png";
-    ecl::image::png::Params pp(image);
-    bool success = ecl::image::png::save(tex, pp, 1);
+    aecl::image::png::Params pp(image);
+    bool success = aecl::image::png::save(tex, pp, 1);
     acul::release(pixels);
     if (!success) throw acul::runtime_error("Failed to save image");
 }

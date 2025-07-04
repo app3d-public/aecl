@@ -3,7 +3,7 @@
 #include <acul/enum.hpp>
 #include <umbf/umbf.hpp>
 
-namespace ecl
+namespace aecl
 {
     namespace scene
     {
@@ -66,4 +66,4 @@ namespace ecl
             }
         };
     } // namespace scene
-} // namespace ecl
+} // namespace aecl

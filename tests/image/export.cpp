@@ -1,8 +1,8 @@
-#include <ecl/image/export.hpp>
-#include <ecl/image/import.hpp>
+#include <aecl/image/export.hpp>
+#include <aecl/image/import.hpp>
 #include "../env.hpp"
 
-using namespace ecl;
+using namespace aecl;
 
 void test_image_export()
 {
@@ -15,7 +15,7 @@ void test_image_export()
     umbf::streams::resolver = &meta_resolver;
 
     auto p = acul::io::path(env.data_dir) / "image.umia";
-    auto loader = ecl::image::get_importer_by_path(p);
+    auto loader = aecl::image::get_importer_by_path(p);
     assert(loader);
     acul::vector<image::umbf::Image2D> images;
     auto state = loader->load(p, images);
@@ -24,7 +24,7 @@ void test_image_export()
     auto &inp = images.front();
 
     acul::io::path op = env.output_dir;
-    using namespace ecl::image;
+    using namespace aecl::image;
 
     // BMP
     bmp::Params bmpp(inp, 72.0f, false);
@@ -71,8 +71,8 @@ void test_image_export()
     assert(webp::save(op / "image_export.webp", webpp));
 
     // UMBF
-    ecl::image::umbf::Params umbfp(inp);
-    assert(ecl::image::umbf::save(op / "image_export.umia", umbfp));
+    aecl::image::umbf::Params umbfp(inp);
+    assert(aecl::image::umbf::save(op / "image_export.umia", umbfp));
 
     for (auto &image : images) acul::release(image.pixels);
     acul::release(loader);

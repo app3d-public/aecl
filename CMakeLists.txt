@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.17)
-project(app3d-ecl
+project(aecl
     VERSION 0.0.1
     LANGUAGES CXX C
     DESCRIPTION "App3d Extended Content Loader")
@@ -19,8 +19,8 @@ find_package(PkgConfig)
 pkg_search_module(OPENIMAGEIO REQUIRED OpenImageIO)
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
-    ${ACUL_LIB_NAME}
-    ${UMBF_LIB_NAME}
+    acul
+    umbf
     ${OPENIMAGEIO_LIBRARIES}
 )
 

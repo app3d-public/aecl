@@ -3,24 +3,10 @@
 #include <umbf/umbf.hpp>
 #include "format.hpp"
 
-namespace ecl
+namespace aecl
 {
     namespace image
     {
-        /**
-         * @brief Copies the source buffer to a new buffer based on the specified Vulkan format.
-         *
-         * This function creates a dynamically allocated copy of the source buffer based on the provided
-         * Vulkan format. The correct bit depth is determined from the format, and a shared pointer
-         * to the new buffer is returned.
-         *
-         * @param src Pointer to the source buffer.
-         * @param size Size of the source buffer.
-         * @param format Vulkan format that determines the bit depth of the source buffer.
-         * @return Shared pointer to the dynamically allocated buffer containing the copied data.
-         */
-        acul::shared_ptr<void> copySrcBuffer(const void *src, size_t size, vk::Format format);
-
         struct OIIOParams
         {
             Format format;
@@ -36,7 +22,7 @@ namespace ecl
                 bool dither;
 
                 Params(const umbf::Image2D &image, f32 dpi = 72.0f, bool dither = false)
-                    : OIIOParams({FormatFlagBits::bit8 | FormatFlagBits::alpha, vk::Format::eR8G8B8A8Srgb}),
+                    : OIIOParams({FormatFlagBits::Bit8 | FormatFlagBits::Alpha, vk::Format::eR8G8B8A8Srgb}),
                       image(image),
                       dpi(dpi),
                       dither(dither)
@@ -57,7 +43,7 @@ namespace ecl
                 int fps;
 
                 Params(const acul::vector<umbf::Image2D> &images, bool interlacing = false, int loops = 0, int fps = 0)
-                    : OIIOParams({FormatFlagBits::bit8 | FormatFlagBits::multilayer, vk::Format::eR8G8B8A8Srgb}),
+                    : OIIOParams({FormatFlagBits::Bit8 | FormatFlagBits::Multilayer, vk::Format::eR8G8B8A8Srgb}),
                       images(images),
                       interlacing(interlacing),
                       loops(loops),
@@ -76,7 +62,7 @@ namespace ecl
                 umbf::Image2D image;
 
                 Params(const umbf::Image2D &image)
-                    : OIIOParams({FormatFlagBits::bit32, vk::Format::eUndefined, vk::Format::eUndefined,
+                    : OIIOParams({FormatFlagBits::Bit32, vk::Format::eUndefined, vk::Format::eUndefined,
                                   vk::Format::eR32G32B32A32Sfloat}),
                       image(image)
                 {
@@ -94,7 +80,7 @@ namespace ecl
                 int compression; // Quality can be 1-100, with 100 meaning lossless
 
                 Params(const umbf::Image2D &image, int compression = 100)
-                    : OIIOParams({FormatFlagBits::bit8 | FormatFlagBits::alpha | FormatFlagBits::multilayer,
+                    : OIIOParams({FormatFlagBits::Bit8 | FormatFlagBits::Alpha | FormatFlagBits::Multilayer,
                                   vk::Format::eR8G8B8A8Srgb}),
                       image(image),
                       compression(compression)
@@ -118,7 +104,7 @@ namespace ecl
 
                 Params(const umbf::Image2D &image, f32 dpi = 72.0f, bool dither = false, bool progressive = false,
                        int compression = 100, const acul::string &app_name = {})
-                    : OIIOParams({FormatFlagBits::bit8, vk::Format::eR8G8B8A8Srgb}),
+                    : OIIOParams({FormatFlagBits::Bit8, vk::Format::eR8G8B8A8Srgb}),
                       image(image),
                       dpi(dpi),
                       dither(dither),
@@ -151,8 +137,8 @@ namespace ecl
                 acul::string compression;
 
                 Params(const acul::vector<umbf::Image2D> &images, const acul::string &compression = "none")
-                    : OIIOParams({FormatFlagBits::bit16 | FormatFlagBits::bit32 | FormatFlagBits::alpha |
-                                      FormatFlagBits::multilayer,
+                    : OIIOParams({FormatFlagBits::Bit16 | FormatFlagBits::Bit32 | FormatFlagBits::Alpha |
+                                      FormatFlagBits::Multilayer,
                                   vk::Format::eUndefined, vk::Format::eR16G16B16A16Sfloat,
                                   vk::Format::eR32G32B32A32Sfloat}),
                       images(images),
@@ -185,7 +171,7 @@ namespace ecl
 
                 Params(const umbf::Image2D &image, f32 dpi = 72.0f, bool dither = false, int compression = 6,
                        int filter = 0, bool unassociated_alpha = false)
-                    : OIIOParams({FormatFlagBits::bit8 | FormatFlagBits::bit16 | FormatFlagBits::alpha,
+                    : OIIOParams({FormatFlagBits::Bit8 | FormatFlagBits::Bit16 | FormatFlagBits::Alpha,
                                   vk::Format::eR8G8B8A8Srgb, vk::Format::eR16G16B16A16Uint}),
                       image(image),
                       dpi(dpi),
@@ -209,7 +195,7 @@ namespace ecl
                 bool dither;
 
                 Params(const umbf::Image2D &image, bool binary = false, bool dither = false)
-                    : OIIOParams({FormatFlagBits::bit8, vk::Format::eR8G8B8A8Srgb}),
+                    : OIIOParams({FormatFlagBits::Bit8, vk::Format::eR8G8B8A8Srgb}),
                       image(image),
                       binary(binary),
                       dither(dither)
@@ -236,8 +222,8 @@ namespace ecl
 
                 Params(const umbf::Image2D &image, bool dither = false, const acul::string &compression = "rle",
                        const acul::string &app_name = {}, int alpha_type = 4)
-                    : OIIOParams({FormatFlagBits::bit8 | FormatFlagBits::bit16 | FormatFlagBits::alpha |
-                                      FormatFlagBits::readOnly,
+                    : OIIOParams({FormatFlagBits::Bit8 | FormatFlagBits::Bit16 | FormatFlagBits::Alpha |
+                                      FormatFlagBits::ReadOnly,
                                   vk::Format::eR8G8B8A8Srgb, vk::Format::eR16G16B16A16Uint}),
                       image(image),
                       dither(dither),
@@ -273,10 +259,10 @@ namespace ecl
                 acul::string compression;
 
                 Params(const acul::vector<umbf::Image2D> &images, bool unassociated_alpha = false, bool dither = false,
-                       int zipquality = 6, bool force_big_tiff = false, const acul::string &app_name = {}, f32 dpi = 72.0f,
-                       const acul::string &compression = "none")
-                    : OIIOParams({FormatFlagBits::bit8 | FormatFlagBits::bit16 | FormatFlagBits::bit32 |
-                                      FormatFlagBits::alpha | FormatFlagBits::multilayer,
+                       int zipquality = 6, bool force_big_tiff = false, const acul::string &app_name = {},
+                       f32 dpi = 72.0f, const acul::string &compression = "none")
+                    : OIIOParams({FormatFlagBits::Bit8 | FormatFlagBits::Bit16 | FormatFlagBits::Bit32 |
+                                      FormatFlagBits::Alpha | FormatFlagBits::Multilayer,
                                   vk::Format::eR8G8B8A8Srgb, vk::Format::eR16G16B16A16Uint,
                                   vk::Format::eR32G32B32A32Sfloat}),
                       images(images),
@@ -301,7 +287,7 @@ namespace ecl
                 bool dither;
 
                 Params(const umbf::Image2D &image, bool dither = false)
-                    : OIIOParams({FormatFlagBits::bit8 | FormatFlagBits::alpha, vk::Format::eR8G8B8A8Srgb}),
+                    : OIIOParams({FormatFlagBits::Bit8 | FormatFlagBits::Alpha, vk::Format::eR8G8B8A8Srgb}),
                       image(image),
                       dither(dither)
                 {
@@ -328,9 +314,9 @@ namespace ecl
 
         inline bool is_image_equals(const umbf::Image2D &image, Format src_format, vk::Format dst_format)
         {
-            if (image.channel_count != 3 && !((src_format.flags & FormatFlagBits::alpha) && image.channel_count == 4))
+            if (image.channel_count != 3 && !((src_format.flags & FormatFlagBits::Alpha) && image.channel_count == 4))
                 return false;
             return dst_format == image.format;
         }
     } // namespace image
-} // namespace ecl
+} // namespace aecl

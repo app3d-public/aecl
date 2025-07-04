@@ -2,12 +2,12 @@
 #include <acul/log.hpp>
 #include <acul/string/string.hpp>
 #include <algorithm>
-#include <ecl/scene/obj/export.hpp>
+#include <aecl/scene/obj/export.hpp>
 #include <inttypes.h>
 #include <oneapi/tbb/parallel_for.h>
 #include <umbf/utils.hpp>
 
-namespace ecl
+namespace aecl
 {
     namespace scene
     {
@@ -335,4 +335,4 @@ namespace ecl
             }
         } // namespace obj
     } // namespace scene
-} // namespace ecl
+} // namespace aecl

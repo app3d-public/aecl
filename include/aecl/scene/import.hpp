@@ -3,7 +3,7 @@
 #include <acul/io/file.hpp>
 #include <umbf/umbf.hpp>
 
-namespace ecl
+namespace aecl
 {
     namespace scene
     {
@@ -77,4 +77,4 @@ namespace ecl
             acul::vector<acul::shared_ptr<umbf::Target>> _textures;
         };
     } // namespace scene
-} // namespace ecl
+} // namespace aecl

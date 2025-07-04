@@ -5,7 +5,7 @@
 #include <umbf/umbf.hpp>
 #include "format.hpp"
 
-namespace ecl
+namespace aecl
 {
     namespace image
     {
@@ -57,20 +57,20 @@ namespace ecl
         class BMPLoader final : public OIIOLoader
         {
         public:
-            BMPLoader() : OIIOLoader({FormatFlagBits::bit8 | FormatFlagBits::alpha, vk::Format::eR8G8B8A8Srgb}) {}
+            BMPLoader() : OIIOLoader({FormatFlagBits::Bit8 | FormatFlagBits::Alpha, vk::Format::eR8G8B8A8Srgb}) {}
         };
 
         class GIFLoader final : public OIIOLoader
         {
         public:
-            GIFLoader() : OIIOLoader({FormatFlagBits::bit8 | FormatFlagBits::multilayer, vk::Format::eR8G8B8A8Srgb}) {}
+            GIFLoader() : OIIOLoader({FormatFlagBits::Bit8 | FormatFlagBits::Multilayer, vk::Format::eR8G8B8A8Srgb}) {}
         };
 
         class HDRLoader final : public OIIOLoader
         {
         public:
             HDRLoader()
-                : OIIOLoader({FormatFlagBits::bit16 | FormatFlagBits::bit32, vk::Format::eUndefined,
+                : OIIOLoader({FormatFlagBits::Bit16 | FormatFlagBits::Bit32, vk::Format::eUndefined,
                               vk::Format::eR16G16B16A16Sfloat, vk::Format::eR32G32B32A32Sfloat})
             {
             }
@@ -80,7 +80,7 @@ namespace ecl
         {
         public:
             HEIFLoader()
-                : OIIOLoader({FormatFlagBits::bit8 | FormatFlagBits::alpha | FormatFlagBits::multilayer,
+                : OIIOLoader({FormatFlagBits::Bit8 | FormatFlagBits::Alpha | FormatFlagBits::Multilayer,
                               vk::Format::eR8G8B8A8Srgb})
             {
             }
@@ -89,15 +89,15 @@ namespace ecl
         class JPEGLoader final : public OIIOLoader
         {
         public:
-            JPEGLoader() : OIIOLoader({FormatFlagBits::bit8, vk::Format::eR8G8B8A8Srgb}) {}
+            JPEGLoader() : OIIOLoader({FormatFlagBits::Bit8, vk::Format::eR8G8B8A8Srgb}) {}
         };
 
         class OpenEXRLoader final : public OIIOLoader
         {
         public:
             OpenEXRLoader()
-                : OIIOLoader({FormatFlagBits::bit16 | FormatFlagBits::bit32 | FormatFlagBits::alpha |
-                                  FormatFlagBits::multilayer,
+                : OIIOLoader({FormatFlagBits::Bit16 | FormatFlagBits::Bit32 | FormatFlagBits::Alpha |
+                                  FormatFlagBits::Multilayer,
                               vk::Format::eUndefined, vk::Format::eR16G16B16A16Sfloat, vk::Format::eR32G32B32A32Sfloat})
             {
             }
@@ -107,7 +107,7 @@ namespace ecl
         {
         public:
             PNGLoader()
-                : OIIOLoader({FormatFlagBits::bit8 | FormatFlagBits::bit16 | FormatFlagBits::alpha,
+                : OIIOLoader({FormatFlagBits::Bit8 | FormatFlagBits::Bit16 | FormatFlagBits::Alpha,
                               vk::Format::eR8G8B8A8Srgb, vk::Format::eR16G16B16A16Uint})
             {
             }
@@ -116,7 +116,7 @@ namespace ecl
         class PBMLoader final : public OIIOLoader
         {
         public:
-            PBMLoader() : OIIOLoader({FormatFlagBits::bit8, vk::Format::eR8G8B8A8Srgb}) {}
+            PBMLoader() : OIIOLoader({FormatFlagBits::Bit8, vk::Format::eR8G8B8A8Srgb}) {}
         };
 
         class TargaLoader final : public OIIOLoader
@@ -124,7 +124,7 @@ namespace ecl
         public:
             TargaLoader()
                 : OIIOLoader(
-                      {FormatFlagBits::bit8 | FormatFlagBits::bit16 | FormatFlagBits::alpha | FormatFlagBits::readOnly,
+                      {FormatFlagBits::Bit8 | FormatFlagBits::Bit16 | FormatFlagBits::Alpha | FormatFlagBits::ReadOnly,
                        vk::Format::eR8G8B8A8Srgb, vk::Format::eR16G16B16A16Uint})
             {
             }
@@ -134,8 +134,8 @@ namespace ecl
         {
         public:
             TIFFLoader()
-                : OIIOLoader({FormatFlagBits::bit8 | FormatFlagBits::bit16 | FormatFlagBits::bit32 |
-                                  FormatFlagBits::alpha | FormatFlagBits::multilayer,
+                : OIIOLoader({FormatFlagBits::Bit8 | FormatFlagBits::Bit16 | FormatFlagBits::Bit32 |
+                                  FormatFlagBits::Alpha | FormatFlagBits::Multilayer,
                               vk::Format::eR8G8B8A8Srgb, vk::Format::eR16G16B16A16Uint,
                               vk::Format::eR32G32B32A32Sfloat})
             {
@@ -145,7 +145,7 @@ namespace ecl
         class WebPLoader final : public OIIOLoader
         {
         public:
-            WebPLoader() : OIIOLoader({FormatFlagBits::bit8 | FormatFlagBits::alpha, vk::Format::eR8G8B8A8Srgb}) {}
+            WebPLoader() : OIIOLoader({FormatFlagBits::Bit8 | FormatFlagBits::Alpha, vk::Format::eR8G8B8A8Srgb}) {}
         };
 
         class UMBFLoader final : public ILoader
@@ -167,4 +167,4 @@ namespace ecl
 
         APPLIB_API ILoader *get_importer_by_path(const acul::string &path);
     } // namespace image
-} // namespace ecl
+} // namespace aecl

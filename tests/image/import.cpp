@@ -1,13 +1,13 @@
-#include <ecl/image/import.hpp>
+#include <aecl/image/import.hpp>
 #include "../env.hpp"
 
-using namespace ecl;
-using namespace ecl::image;
+using namespace aecl;
+using namespace aecl::image;
 
 void import_test_image(const acul::io::path &p)
 {
     LOG_INFO("Loading %s", p.str().c_str());
-    auto loader = ecl::image::get_importer_by_path(p);
+    auto loader = aecl::image::get_importer_by_path(p);
     assert(loader);
     acul::vector<umbf::Image2D> images;
     auto state = loader->load(p, images);

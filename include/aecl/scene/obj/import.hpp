@@ -3,7 +3,7 @@
 #include <oneapi/tbb/concurrent_vector.h>
 #include "../import.hpp"
 
-namespace ecl
+namespace aecl
 {
     namespace scene
     {
@@ -32,4 +32,4 @@ namespace ecl
             };
         } // namespace obj
     } // namespace scene
-} // namespace ecl
+} // namespace aecl

@@ -1,6 +1,6 @@
 #include <acul/hash/hashmap.hpp>
-#include <ecl/scene/obj/import.hpp>
-#include <ecl/scene/utils.hpp>
+#include <aecl/scene/obj/import.hpp>
+#include <aecl/scene/utils.hpp>
 #include <emhash/hash_table8.hpp>
 #include <oneapi/tbb/parallel_sort.h>
 #include <sstream>
@@ -8,7 +8,7 @@
 #include "geom.cpp.in"
 #include "mat.cpp.in"
 
-namespace ecl
+namespace aecl
 {
     namespace scene
     {
@@ -380,4 +380,4 @@ namespace ecl
             }
         } // namespace obj
     } // namespace scene
-} // namespace ecl
+} // namespace aecl

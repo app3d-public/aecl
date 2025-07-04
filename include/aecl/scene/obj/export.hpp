@@ -6,7 +6,7 @@
 #include <oneapi/tbb/concurrent_unordered_set.h>
 #include "../export.hpp"
 
-namespace ecl
+namespace aecl
 {
     namespace scene
     {
@@ -75,4 +75,4 @@ namespace ecl
             };
         } // namespace obj
     } // namespace scene
-} // namespace ecl
+} // namespace aecl
