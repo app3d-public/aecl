@@ -126,7 +126,7 @@ void create_materials(acul::vector<umbf::File> &materials)
     asset.header.vendor_sign = UMBF_VENDOR_ID;
     asset.header.vendor_version = UMBF_VERSION;
     asset.header.spec_version = UMBF_VERSION;
-    asset.header.type_sign = umbf::sign_block::format::Material;
+    asset.header.type_sign = umbf::sign_block::format::material;
     asset.blocks.push_back(mat);
     asset.blocks.push_back(meta);
     materials.push_back(asset);

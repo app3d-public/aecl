@@ -168,7 +168,7 @@ namespace aecl
                             auto target = acul::make_shared<umbf::Target>();
                             target->header.vendor_sign = UMBF_VENDOR_ID;
                             target->header.vendor_version = UMBF_VERSION;
-                            target->header.type_sign = umbf::sign_block::format::Target;
+                            target->header.type_sign = umbf::sign_block::format::target;
                             target->header.spec_version = UMBF_VERSION;
                             target->header.compressed = false;
                             target->url = base_path;
@@ -182,7 +182,7 @@ namespace aecl
                     materials[i]->header.vendor_sign = UMBF_VENDOR_ID;
                     materials[i]->header.vendor_version = UMBF_VERSION;
                     materials[i]->header.spec_version = UMBF_VERSION;
-                    materials[i]->header.type_sign = umbf::sign_block::format::Material;
+                    materials[i]->header.type_sign = umbf::sign_block::format::material;
                     materials[i]->blocks.push_back(mat);
                     materials[i]->blocks.push_back(acul::make_shared<umbf::MaterialInfo>(generator(), mat_it->first));
                 }
@@ -253,7 +253,7 @@ namespace aecl
                             {
                                 auto meta = materials[it->second]->blocks;
                                 auto m_it = std::find_if(meta.begin(), meta.end(), [](auto &block) {
-                                    return block->signature() == umbf::sign_block::MaterialInfo;
+                                    return block->signature() == umbf::sign_block::material_info;
                                 });
                                 if (m_it == meta.end())
                                 {
@@ -324,10 +324,10 @@ namespace aecl
                                                           parseLine(parsed, string_pool[i], i);
                                                   });
                     });
-                if (result != acul::io::file::op_state::Success) return result;
+                if (result != acul::io::file::op_state::success) return result;
                 copy_write_data(parsed, _ctx->data);
                 _ctx->mtlLib = parsed.mtllib;
-                return acul::io::file::op_state::Success;
+                return acul::io::file::op_state::success;
             }
 
             void Importer::build_geometry()

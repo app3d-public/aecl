@@ -10,7 +10,7 @@ void test_image_export()
     create_test_environment(env);
     umbf::streams::HashResolver meta_resolver;
     meta_resolver.streams = {
-        {umbf::sign_block::Image2D, &umbf::streams::image2D},
+        {umbf::sign_block::image, &umbf::streams::image},
     };
     umbf::streams::resolver = &meta_resolver;
 
@@ -19,7 +19,7 @@ void test_image_export()
     assert(loader);
     acul::vector<image::umbf::Image2D> images;
     auto state = loader->load(p, images);
-    assert(state == acul::io::file::op_state::Success);
+    assert(state == acul::io::file::op_state::success);
     assert(!images.empty());
     auto &inp = images.front();
 

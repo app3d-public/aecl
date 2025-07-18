@@ -40,7 +40,7 @@ namespace aecl
             // Load the scene includes all intermediate calls
             bool load()
             {
-                if (read_source() != acul::io::file::op_state::Success) return false;
+                if (read_source() != acul::io::file::op_state::success) return false;
                 build_geometry();
                 load_materials();
                 return true;

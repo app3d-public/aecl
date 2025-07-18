@@ -386,7 +386,7 @@ namespace aecl
             asset.header.vendor_sign = UMBF_VENDOR_ID;
             asset.header.vendor_version = UMBF_VERSION;
             asset.header.spec_version = UMBF_VERSION;
-            asset.header.type_sign = ::umbf::sign_block::format::Image;
+            asset.header.type_sign = ::umbf::sign_block::format::image;
             asset.header.compressed = up.compression > 0;
             asset.blocks.push_back(acul::make_shared<umbf::Image2D>(up.image));
             asset.checksum = up.checksum;

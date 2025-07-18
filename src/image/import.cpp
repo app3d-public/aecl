@@ -9,11 +9,11 @@ namespace aecl
     {
         bool OIIOLoader::load_image(
             const std::unique_ptr<OIIO::ImageInput> &inp, int subimage,
-            std::function<bool(const std::unique_ptr<OIIO::ImageInput> &, int, int, void *, size_t)> loadHandler,
+            std::function<bool(const std::unique_ptr<OIIO::ImageInput> &, int, int, void *, size_t)> load_handler,
             umbf::Image2D &info)
         {
             info.pixels = acul::mem_allocator<std::byte>::allocate(info.size());
-            return loadHandler(inp, subimage, info.channel_count, info.pixels, info.size());
+            return load_handler(inp, subimage, info.channel_count, info.pixels, info.size());
         }
 
         acul::io::file::op_state OIIOLoader::load(const acul::string &path, acul::vector<umbf::Image2D> &images)
@@ -22,7 +22,7 @@ namespace aecl
             if (!inp)
             {
                 LOG_ERROR("OIIO: %s", OIIO::geterror().c_str());
-                return acul::io::file::op_state::Error;
+                return acul::io::file::op_state::error;
             }
             std::function<bool(const std::unique_ptr<OIIO::ImageInput> &inp, int, int, void *, vk::DeviceSize)>
                 load_handler{nullptr};
@@ -58,7 +58,7 @@ namespace aecl
                     if (image_format == vk::Format::eUndefined)
                     {
                         LOG_ERROR("Unsupported image format");
-                        return acul::io::file::op_state::Error;
+                        return acul::io::file::op_state::error;
                     }
                     OIIO::TypeDesc dst_type = vk_format_to_OIIO(image_format);
                     load_handler = [dst_type](const std::unique_ptr<OIIO::ImageInput> &inp, int subimage, int channels,
@@ -72,22 +72,22 @@ namespace aecl
                 images.push_back(info);
             }
             inp->close();
-            return images.empty() ? acul::io::file::op_state::Error : acul::io::file::op_state::Success;
+            return images.empty() ? acul::io::file::op_state::error : acul::io::file::op_state::success;
         }
 
         acul::io::file::op_state UMBFLoader::load(const acul::string &path, acul::vector<umbf::Image2D> &images)
         {
             auto asset = umbf::File::read_from_disk(path);
-            if (!asset) return acul::io::file::op_state::Error;
+            if (!asset) return acul::io::file::op_state::error;
             _checksum = asset->checksum;
-            if (asset->blocks.empty() || asset->blocks.front()->signature() != umbf::sign_block::Image2D)
+            if (asset->blocks.empty() || asset->blocks.front()->signature() != umbf::sign_block::image)
             {
                 LOG_WARN("ECL UMBF Loader can recognize only 2D images");
-                return acul::io::file::op_state::Error;
+                return acul::io::file::op_state::error;
             }
             auto image = acul::static_pointer_cast<umbf::Image2D>(asset->blocks.front());
             images.push_back(*image);
-            return acul::io::file::op_state::Success;
+            return acul::io::file::op_state::success;
         }
 
         ILoader *get_importer_by_path(const acul::string &path)

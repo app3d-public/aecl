@@ -11,7 +11,7 @@ void import_test_image(const acul::io::path &p)
     assert(loader);
     acul::vector<umbf::Image2D> images;
     auto state = loader->load(p, images);
-    assert(state == acul::io::file::op_state::Success);
+    assert(state == acul::io::file::op_state::success);
     assert(!images.empty());
     acul::release(loader);
 }
@@ -22,7 +22,7 @@ void test_image_import()
     create_test_environment(env);
     umbf::streams::HashResolver meta_resolver;
     meta_resolver.streams = {
-        {umbf::sign_block::Image2D, &umbf::streams::image2D},
+        {umbf::sign_block::image, &umbf::streams::image},
     };
     umbf::streams::resolver = &meta_resolver;
 

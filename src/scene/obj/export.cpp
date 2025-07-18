@@ -1,8 +1,8 @@
 #include <acul/io/file.hpp>
 #include <acul/log.hpp>
 #include <acul/string/string.hpp>
-#include <algorithm>
 #include <aecl/scene/obj/export.hpp>
+#include <algorithm>
 #include <inttypes.h>
 #include <oneapi/tbb/parallel_for.h>
 #include <umbf/utils.hpp>
@@ -218,10 +218,10 @@ namespace aecl
                     {
                         switch (block->signature())
                         {
-                            case umbf::sign_block::Material:
+                            case umbf::sign_block::material:
                                 ptr = acul::static_pointer_cast<umbf::Material>(block);
                                 break;
-                            case umbf::sign_block::MaterialInfo:
+                            case umbf::sign_block::material_info:
                             {
                                 auto info = acul::static_pointer_cast<umbf::MaterialInfo>(block);
                                 _material_map[info->id] = {info, ptr};
@@ -242,10 +242,10 @@ namespace aecl
                 {
                     switch (block->signature())
                     {
-                        case umbf::sign_block::Mesh:
+                        case umbf::sign_block::mesh:
                             mesh = acul::static_pointer_cast<umbf::mesh::Mesh>(block);
                             break;
-                        case umbf::sign_block::MaterialRange:
+                        case umbf::sign_block::material_range:
                             assignes.push_back(acul::static_pointer_cast<umbf::MaterialRange>(block));
                             break;
                         default:

@@ -20,7 +20,7 @@ void create_multi_materials(acul::vector<umbf::File> &materials, u64 object_id, 
         materials[0].header.vendor_sign = UMBF_VENDOR_ID;
         materials[0].header.vendor_version = UMBF_VERSION;
         materials[0].header.spec_version = UMBF_VERSION;
-        materials[0].header.type_sign = umbf::sign_block::format::Material;
+        materials[0].header.type_sign = umbf::sign_block::format::material;
         materials[0].blocks.push_back(mat);
         materials[0].blocks.push_back(meta);
     }
@@ -37,7 +37,7 @@ void create_multi_materials(acul::vector<umbf::File> &materials, u64 object_id, 
         materials[1].header.vendor_sign = UMBF_VENDOR_ID;
         materials[1].header.vendor_version = UMBF_VERSION;
         materials[1].header.spec_version = UMBF_VERSION;
-        materials[1].header.type_sign = umbf::sign_block::format::Material;
+        materials[1].header.type_sign = umbf::sign_block::format::material;
         materials[1].blocks.push_back(mat);
         materials[1].blocks.push_back(meta);
     }
