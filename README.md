@@ -1,48 +1,52 @@
-# Библиотека App3D Extended Content Loader
+# App3D Extended Content Loader
 
-`app3d-ecl` — это расширенная библиотека для импорта и экспорта изображений и 3D объектов, являющаяся частью проекта App3D. Основное предназначение библиотеки — поддержка различных форматов файлов изображений и 3D объектов, что обеспечивает гибкость и удобство работы с мультимедийным контентом.
+**AECL** is a C++ library for importing and exporting images and 3D scenes, developed as part of the App3D project.  
+Its purpose is to provide a unified interface for asset I/O, ensure seamless integration with other App3D modules, and meet the project's performance and data fidelity requirements.
 
-## Основные возможности
+Unlike direct use of third-party libraries, AECL operates on native App3D data structures, ensuring that assets — whether images, geometry, or entire scenes — are exported exactly as represented internally.
 
-- **Импорт и экспорт изображений**: Поддержка множества форматов изображений/
-- **Импорт и экспорт 3D объектов**: Поддержка формата OBJ для 3D моделей.
+## Supported Formats
 
-## Поддерживаемые форматы
-
-На данный момент библиотека поддерживает следующие форматы:
-
-### Изображения
-
-- Asset
+### Images
 - BMP
 - GIF
 - HDR
-- HEIF/AVIF
+- HEIF
 - JPEG
-- JPEG-2000
-- JPEG-XL
 - OpenEXR
 - PNG
 - PBM
-- RAW
 - Targa
 - TIFF
 - WebP
+- UMBF
 
-### 3D объекты
+### Scenes
+- OBJ
 
-- Wavefront OBJ
+## Building
 
-## Требования
+### Supported compilers:
+- GNU GCC
+- Clang
 
-Для работы с библиотекой вам понадобятся:
+### Supported OS:
+- Linux
+- Microsoft Windows
 
-- Компилятор C++ с поддержкой C++23
-- Vulkan SDK
-- CMake версии 3.15 или новее
+### External packages
+These are system libraries that must be available at build time:
+- [OpenImageIO](https://openimageio.readthedocs.io/)
 
-## Лицензия
-Этот проект лицензирован по проприетарной лицензии - подробности см. в файле LICENSE.
+### Bundled submodules
 
-Контакты
-Если у вас возникнут вопросы или предложения, свяжитесь с командой разработки App3D по адресу [wusikijeronii@gmail.com].
+- [acbt](https://git.homedatasrv.ru/app3d/acbt)
+- [acul](https://git.homedatasrv.ru/app3d/acul)
+- [umbf](https://git.homedatasrv.ru/app3d/umbf)
+- [earcut](https://github.com/mapbox/earcut)
+
+## License
+This project is licensed under the [MIT License](LICENSE).
+
+## Contacts
+For any questions or feedback, you can reach out via [email](mailto:wusikijeronii@gmail.com) or open a new issue.
