@@ -1,5 +1,7 @@
 #pragma once
 
+#include <amal/geometric.hpp>
+#include <amal/vector.hpp>
 #include <umbf/umbf.hpp>
 
 namespace aecl
@@ -10,12 +12,12 @@ namespace aecl
 
         acul::vector<u32> triangulate(const umbf::mesh::Face &face, const acul::vector<umbf::mesh::Vertex> &vertices);
 
-        inline glm::vec3 average_vertex_normal(const umbf::mesh::Face &face,
-                                               const acul::vector<umbf::mesh::Vertex> &vertices)
+        inline amal::vec3 average_vertex_normal(const umbf::mesh::Face &face,
+                                                const acul::vector<umbf::mesh::Vertex> &vertices)
         {
-            glm::vec3 normal{0.0f, 0.0f, 0.0f};
+            amal::vec3 normal{0.0f, 0.0f, 0.0f};
             for (const auto &ref : face.vertices) normal += vertices[ref.vertex].normal;
-            return glm::normalize(normal);
+            return amal::normalize(normal);
         }
     } // namespace utils
 } // namespace aecl

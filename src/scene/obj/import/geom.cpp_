@@ -1,4 +1,5 @@
 #include <aecl/scene/import.hpp>
+#include <amal/integration/acul/string.hpp>
 #include <oneapi/tbb/concurrent_vector.h>
 
 namespace aecl
@@ -20,10 +21,10 @@ namespace aecl
             template <template <typename> class Container>
             struct ParseData
             {
-                Container<Line<glm::vec3>> v;
-                Container<Line<glm::vec2>> vt;
-                Container<Line<glm::vec3>> vn;
-                Container<Line<acul::vector<glm::ivec3> *>> f;
+                Container<Line<amal::vec3>> v;
+                Container<Line<amal::vec2>> vt;
+                Container<Line<amal::vec3>> vn;
+                Container<Line<acul::vector<amal::ivec3> *>> f;
                 Container<Line<acul::string>> g;
                 acul::string mtllib;
                 Container<Line<acul::string>> use_mtl;
@@ -41,7 +42,7 @@ namespace aecl
                     if (isspace(token[1]))
                     {
                         token += 2;
-                        glm::vec3 v;
+                        amal::vec3 v;
                         if (!acul::stov3(token, v))
                             throw ParseException(line, line_index);
                         else
@@ -50,7 +51,7 @@ namespace aecl
                     else if (token[1] == 't')
                     {
                         token += 3;
-                        glm::vec2 vt;
+                        amal::vec2 vt;
                         if (!acul::stov2(token, vt))
                             throw ParseException(line, line_index);
                         else
@@ -59,7 +60,7 @@ namespace aecl
                     else if (token[1] == 'n')
                     {
                         token += 3;
-                        glm::vec3 vn;
+                        amal::vec3 vn;
                         if (!acul::stov3(token, vn))
                             throw ParseException(line, line_index);
                         else
@@ -69,13 +70,13 @@ namespace aecl
                 else if (token[0] == 'g' || token[0] == 'o')
                 {
                     token += 2;
-                    acul::string str = acul::trim_end(token);
+                    acul::string str = acul::trim_end(token, acul::null_terminated_length(token));
                     if (str != "off" && !str.empty()) data.g.emplace_back(line_index, str);
                 }
                 else if (token[0] == 'f')
                 {
                     token += 2;
-                    acul::vector<glm::ivec3> *vtn = acul::alloc<acul::vector<glm::ivec3>>();
+                    acul::vector<amal::ivec3> *vtn = acul::alloc<acul::vector<amal::ivec3>>();
                     while (true)
                     {
                         int v_id{0}, vt_id{0}, vn_id{0};
@@ -112,12 +113,12 @@ namespace aecl
                 else if (strncmp(token, "mtllib", 6) == 0)
                 {
                     token += 7;
-                    data.mtllib = acul::str_range(token);
+                    data.mtllib = acul::strip_controls(token);
                 }
                 else if (strncmp(token, "usemtl", 6) == 0)
                 {
                     token += 7;
-                    data.use_mtl.emplace_back(line_index, acul::str_range(token));
+                    data.use_mtl.emplace_back(line_index, acul::strip_controls(token));
                 }
             }
         } // namespace obj

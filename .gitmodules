@@ -1,6 +1,12 @@
-[submodule "emhash"]
-	path = modules/3rd-party/emhash
-	url = https://github.com/ktprime/emhash.git
 [submodule "earcut"]
 	path = modules/3rd-party/earcut
 	url = https://github.com/mapbox/earcut.hpp.git
+[submodule "cmake"]
+	path = cmake
+	url = git@git.dev.lan:app3d/acbt.git
+[submodule "modules/acul"]
+	path = modules/acul
+	url = git@git.dev.lan:app3d/acul.git
+[submodule "modules/umbf"]
+	path = modules/umbf
+	url = git@git.dev.lan:app3d/umbf.git

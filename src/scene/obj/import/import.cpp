@@ -1,12 +1,11 @@
-#include <acul/hash/hashmap.hpp>
+#include <acul/hash/hl_hashmap.hpp>
 #include <aecl/scene/obj/import.hpp>
 #include <aecl/scene/utils.hpp>
-#include <emhash/hash_table8.hpp>
 #include <oneapi/tbb/parallel_sort.h>
 #include <sstream>
 #include <umbf/version.h>
-#include "geom.cpp.in"
-#include "mat.cpp.in"
+#include "geom.cpp_"
+#include "mat.cpp_"
 
 namespace aecl
 {
@@ -31,22 +30,22 @@ namespace aecl
                 acul::shared_ptr<Mesh> mesh;
             };
 
-            glm::vec3 calculate_normal(const ParseDataRead &data, const acul::vector<glm::ivec3> &__restrict in_face)
+            amal::vec3 calculate_normal(const ParseDataRead &data, const acul::vector<amal::ivec3> &__restrict in_face)
             {
-                glm::vec3 normal{0.0f};
+                amal::vec3 normal{0.0f};
                 for (size_t v = 0; v < in_face.size(); ++v)
                 {
-                    glm::vec3 current = data.v[in_face[v].x - 1].value;
-                    glm::vec3 next = data.v[in_face[(v + 1) % in_face.size()].x - 1].value;
+                    amal::vec3 current = data.v[in_face[v].x - 1].value;
+                    amal::vec3 next = data.v[in_face[(v + 1) % in_face.size()].x - 1].value;
                     normal.x += (current.y - next.y) * (current.z + next.z);
                     normal.y += (current.z - next.z) * (current.x + next.x);
                     normal.z += (current.x - next.x) * (current.y + next.y);
                 }
-                return glm::normalize(normal);
+                return amal::normalize(normal);
             }
 
             void add_vertex_to_face(const ParseDataRead &data, u32 vertex_group_id, u32 current,
-                                    emhash8::HashMap<glm::ivec3, u32> &vtn_map, const glm::ivec3 &vtn, Model &m,
+                                    acul::hl_hashmap<amal::ivec3, u32> &vtn_map, const amal::ivec3 &vtn, Model &m,
                                     Face &face)
             {
                 auto [it, inserted] = vtn_map.emplace(vtn, vtn_map.size());
@@ -57,15 +56,15 @@ namespace aecl
                     auto &vertex = m.vertices.back();
                     if (vtn.y != 0 && (int)data.vt.size() > vtn.y) vertex.uv = data.vt[vtn.y - 1].value;
                     vertex.normal = vtn.z != 0 && (int)data.vn.size() > vtn.z ? data.vn[vtn.z - 1].value : face.normal;
-                    m.aabb.min = glm::min(m.aabb.min, vertex.pos);
-                    m.aabb.max = glm::max(m.aabb.max, vertex.pos);
+                    m.aabb.min = amal::min(m.aabb.min, vertex.pos);
+                    m.aabb.max = amal::max(m.aabb.max, vertex.pos);
                 }
                 else
                     face.vertices.emplace_back(vertex_group_id, it->second);
             }
 
             void add_vertex_to_face(const ParseDataRead &data, u32 vertex_group_id, u32 current,
-                                    acul::vector<VertexGroup> &groups, const glm::ivec3 &vtn, Model &m, Face &face)
+                                    acul::vector<VertexGroup> &groups, const amal::ivec3 &vtn, Model &m, Face &face)
             {
                 Vertex vertex{data.v[current].value};
                 if (vtn.y != 0 && (int)data.vt.size() > vtn.y) vertex.uv = data.vt[vtn.y - 1].value;
@@ -81,8 +80,8 @@ namespace aecl
                     vgv.emplace_back(m.vertices.size());
                     face.vertices.emplace_back(vertex_group_id, m.vertices.size());
                     m.vertices.emplace_back(vertex);
-                    m.aabb.min = glm::min(m.aabb.min, vertex.pos);
-                    m.aabb.max = glm::max(m.aabb.max, vertex.pos);
+                    m.aabb.min = amal::min(m.aabb.min, vertex.pos);
+                    m.aabb.max = amal::max(m.aabb.max, vertex.pos);
                 }
                 else
                     face.vertices.emplace_back(vertex_group_id, *it);
@@ -90,7 +89,7 @@ namespace aecl
 
             void index_mesh(size_t face_count, const ParseDataRead &data, GroupRange &group)
             {
-                emhash8::HashMap<glm::ivec3, u32> vtn_map;
+                acul::hl_hashmap<amal::ivec3, u32> vtn_map;
                 acul::vector<VertexGroup> vertex_groups;
                 const bool use_normals = !data.vn.empty();
                 if (use_normals)
@@ -144,11 +143,11 @@ namespace aecl
             }
 
             void convert_to_materials(const acul::string &base_path, const acul::vector<Material> &mtl_list,
-                                      emhash8::HashMap<acul::string, int> &mat_map,
+                                      acul::hl_hashmap<acul::string, int> &mat_map,
                                       acul::vector<acul::shared_ptr<umbf::File>> &materials,
                                       acul::vector<acul::shared_ptr<umbf::Target>> &textures)
             {
-                emhash8::HashMap<acul::string, size_t> tex_map;
+                acul::hl_hashmap<acul::string, size_t> tex_map;
                 mat_map.reserve(mtl_list.size());
                 materials.resize(mtl_list.size());
                 auto generator = acul::id_gen();
@@ -228,7 +227,7 @@ namespace aecl
             }
 
             void assign_materials_to_groups(ParseDataRead &data, const acul::vector<GroupRange> &groups,
-                                            const emhash8::HashMap<acul::string, int> &mat_map,
+                                            const acul::hl_hashmap<acul::string, int> &mat_map,
                                             acul::vector<acul::shared_ptr<umbf::File>> &materials,
                                             acul::vector<acul::vector<u32>> &ranges)
             {
@@ -270,7 +269,7 @@ namespace aecl
             }
 
             void assign_ranges_to_objects(ParseDataRead &data, const acul::vector<acul::vector<u32>> &ranges,
-                                          emhash8::HashMap<acul::string, int> &mat_map,
+                                          acul::hl_hashmap<acul::string, int> &mat_map,
                                           const acul::vector<GroupRange> &groups, acul::vector<umbf::Object> &objects)
             {
                 for (size_t gr = 0; gr < ranges.size(); ++gr)
@@ -372,7 +371,7 @@ namespace aecl
                 acul::vector<Material> mtl_materials;
                 acul::io::path mtl_path = acul::io::path(_path).parent_path() / _ctx->mtlLib;
                 parse_mtl(mtl_path, mtl_materials);
-                emhash8::HashMap<acul::string, int> mat_map;
+                acul::hl_hashmap<acul::string, int> mat_map;
                 acul::vector<acul::vector<u32>> face_mat_ranges;
                 convert_to_materials(_path, mtl_materials, mat_map, _materials, _textures);
                 assign_materials_to_groups(_ctx->data, _ctx->groups, mat_map, _materials, face_mat_ranges);

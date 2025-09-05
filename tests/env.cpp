@@ -1,4 +1,5 @@
 #include "env.hpp"
+#include <cassert>
 
 void create_test_environment(test_environment &env)
 {
@@ -10,7 +11,7 @@ void create_test_environment(test_environment &env)
     env.log_service->level = acul::log::level::trace;
     app_logger->set_pattern("%(message)\n");
     env.log_service->default_logger = app_logger;
-    
+
     const char *data_dir = getenv("TEST_DATA_DIR");
     const char *output_dir = getenv("TEST_OUTPUT_DIR");
     assert(data_dir && output_dir);

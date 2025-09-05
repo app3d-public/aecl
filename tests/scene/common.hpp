@@ -16,4 +16,4 @@ inline void create_default_texture(acul::string &tex, const acul::io::path &data
     tex = (data_dir / "devCheck.jpg").str();
 }
 
-void create_generated_texture(acul::string &tex, const acul::io::path &texDir);
+void create_generated_texture(acul::string &tex, const acul::io::path &tex_folder);

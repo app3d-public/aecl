@@ -27,7 +27,7 @@ namespace aecl
              * @param images Vector to store the loaded image data.
              * @return True if the image is successfully loaded, false otherwise.
              */
-            virtual acul::io::file::op_state load(const acul::string &path, acul::vector<umbf::Image2D> &images) = 0;
+            virtual acul::io::file::op_state load(const acul::string &path, acul::vector<::umbf::Image2D> &images) = 0;
         };
 
         class OIIOLoader : public ILoader
@@ -43,7 +43,7 @@ namespace aecl
              * @return True if the image is successfully loaded, false otherwise.
              */
             virtual acul::io::file::op_state load(const acul::string &path,
-                                                  acul::vector<umbf::Image2D> &images) override;
+                                                  acul::vector<::umbf::Image2D> &images) override;
 
         protected:
             Format _format;
@@ -51,27 +51,38 @@ namespace aecl
             static bool load_image(
                 const std::unique_ptr<OIIO::ImageInput> &inp, int subimage,
                 std::function<bool(const std::unique_ptr<OIIO::ImageInput> &, int, int, void *, size_t)> load_handler,
-                umbf::Image2D &info);
+                ::umbf::Image2D &info);
         };
 
         class BMPLoader final : public OIIOLoader
         {
         public:
-            BMPLoader() : OIIOLoader({FormatFlagBits::Bit8 | FormatFlagBits::Alpha, vk::Format::eR8G8B8A8Srgb}) {}
+            BMPLoader()
+                : OIIOLoader({FormatFlagBits::bit8 | FormatFlagBits::alpha,
+                              {::umbf::ImageFormat::Type::uint, ::umbf::ImageFormat::Type::none,
+                               ::umbf::ImageFormat::Type::none}})
+            {
+            }
         };
 
         class GIFLoader final : public OIIOLoader
         {
         public:
-            GIFLoader() : OIIOLoader({FormatFlagBits::Bit8 | FormatFlagBits::Multilayer, vk::Format::eR8G8B8A8Srgb}) {}
+            GIFLoader()
+                : OIIOLoader({FormatFlagBits::bit8 | FormatFlagBits::multilayer,
+                              {::umbf::ImageFormat::Type::uint, ::umbf::ImageFormat::Type::none,
+                               ::umbf::ImageFormat::Type::none}})
+            {
+            }
         };
 
         class HDRLoader final : public OIIOLoader
         {
         public:
             HDRLoader()
-                : OIIOLoader({FormatFlagBits::Bit16 | FormatFlagBits::Bit32, vk::Format::eUndefined,
-                              vk::Format::eR16G16B16A16Sfloat, vk::Format::eR32G32B32A32Sfloat})
+                : OIIOLoader({FormatFlagBits::bit16 | FormatFlagBits::bit32,
+                              {::umbf::ImageFormat::Type::none, ::umbf::ImageFormat::Type::sfloat,
+                               ::umbf::ImageFormat::Type::sfloat}})
             {
             }
         };
@@ -80,8 +91,9 @@ namespace aecl
         {
         public:
             HEIFLoader()
-                : OIIOLoader({FormatFlagBits::Bit8 | FormatFlagBits::Alpha | FormatFlagBits::Multilayer,
-                              vk::Format::eR8G8B8A8Srgb})
+                : OIIOLoader({FormatFlagBits::bit8 | FormatFlagBits::alpha | FormatFlagBits::multilayer,
+                              {::umbf::ImageFormat::Type::uint, ::umbf::ImageFormat::Type::none,
+                               ::umbf::ImageFormat::Type::none}})
             {
             }
         };
@@ -89,16 +101,22 @@ namespace aecl
         class JPEGLoader final : public OIIOLoader
         {
         public:
-            JPEGLoader() : OIIOLoader({FormatFlagBits::Bit8, vk::Format::eR8G8B8A8Srgb}) {}
+            JPEGLoader()
+                : OIIOLoader({FormatFlagBits::bit8,
+                              {::umbf::ImageFormat::Type::uint, ::umbf::ImageFormat::Type::none,
+                               ::umbf::ImageFormat::Type::none}})
+            {
+            }
         };
 
         class OpenEXRLoader final : public OIIOLoader
         {
         public:
             OpenEXRLoader()
-                : OIIOLoader({FormatFlagBits::Bit16 | FormatFlagBits::Bit32 | FormatFlagBits::Alpha |
-                                  FormatFlagBits::Multilayer,
-                              vk::Format::eUndefined, vk::Format::eR16G16B16A16Sfloat, vk::Format::eR32G32B32A32Sfloat})
+                : OIIOLoader({FormatFlagBits::bit16 | FormatFlagBits::bit32 | FormatFlagBits::alpha |
+                                  FormatFlagBits::multilayer,
+                              {::umbf::ImageFormat::Type::none, ::umbf::ImageFormat::Type::sfloat,
+                               ::umbf::ImageFormat::Type::sfloat}})
             {
             }
         };
@@ -107,8 +125,9 @@ namespace aecl
         {
         public:
             PNGLoader()
-                : OIIOLoader({FormatFlagBits::Bit8 | FormatFlagBits::Bit16 | FormatFlagBits::Alpha,
-                              vk::Format::eR8G8B8A8Srgb, vk::Format::eR16G16B16A16Uint})
+                : OIIOLoader({FormatFlagBits::bit8 | FormatFlagBits::bit16 | FormatFlagBits::alpha,
+                              {::umbf::ImageFormat::Type::uint, ::umbf::ImageFormat::Type::uint,
+                               ::umbf::ImageFormat::Type::none}})
             {
             }
         };
@@ -116,7 +135,12 @@ namespace aecl
         class PBMLoader final : public OIIOLoader
         {
         public:
-            PBMLoader() : OIIOLoader({FormatFlagBits::Bit8, vk::Format::eR8G8B8A8Srgb}) {}
+            PBMLoader()
+                : OIIOLoader({FormatFlagBits::bit8,
+                              {::umbf::ImageFormat::Type::uint, ::umbf::ImageFormat::Type::none,
+                               ::umbf::ImageFormat::Type::none}})
+            {
+            }
         };
 
         class TargaLoader final : public OIIOLoader
@@ -124,8 +148,9 @@ namespace aecl
         public:
             TargaLoader()
                 : OIIOLoader(
-                      {FormatFlagBits::Bit8 | FormatFlagBits::Bit16 | FormatFlagBits::Alpha | FormatFlagBits::ReadOnly,
-                       vk::Format::eR8G8B8A8Srgb, vk::Format::eR16G16B16A16Uint})
+                      {FormatFlagBits::bit8 | FormatFlagBits::bit16 | FormatFlagBits::alpha | FormatFlagBits::read_only,
+                       {::umbf::ImageFormat::Type::uint, ::umbf::ImageFormat::Type::uint,
+                        ::umbf::ImageFormat::Type::none}})
             {
             }
         };
@@ -134,10 +159,10 @@ namespace aecl
         {
         public:
             TIFFLoader()
-                : OIIOLoader({FormatFlagBits::Bit8 | FormatFlagBits::Bit16 | FormatFlagBits::Bit32 |
-                                  FormatFlagBits::Alpha | FormatFlagBits::Multilayer,
-                              vk::Format::eR8G8B8A8Srgb, vk::Format::eR16G16B16A16Uint,
-                              vk::Format::eR32G32B32A32Sfloat})
+                : OIIOLoader({FormatFlagBits::bit8 | FormatFlagBits::bit16 | FormatFlagBits::bit32 |
+                                  FormatFlagBits::alpha | FormatFlagBits::multilayer,
+                              {::umbf::ImageFormat::Type::uint, ::umbf::ImageFormat::Type::uint,
+                               ::umbf::ImageFormat::Type::sfloat}})
             {
             }
         };
@@ -145,7 +170,12 @@ namespace aecl
         class WebPLoader final : public OIIOLoader
         {
         public:
-            WebPLoader() : OIIOLoader({FormatFlagBits::Bit8 | FormatFlagBits::Alpha, vk::Format::eR8G8B8A8Srgb}) {}
+            WebPLoader()
+                : OIIOLoader({FormatFlagBits::bit8 | FormatFlagBits::alpha,
+                              {::umbf::ImageFormat::Type::uint, ::umbf::ImageFormat::Type::none,
+                               ::umbf::ImageFormat::Type::none}})
+            {
+            }
         };
 
         class UMBFLoader final : public ILoader
@@ -159,7 +189,7 @@ namespace aecl
              * @return True if the image is successfully loaded, false otherwise.
              */
             virtual acul::io::file::op_state load(const acul::string &path,
-                                                  acul::vector<umbf::Image2D> &images) override;
+                                                  acul::vector<::umbf::Image2D> &images) override;
 
         private:
             u32 _checksum = 0;

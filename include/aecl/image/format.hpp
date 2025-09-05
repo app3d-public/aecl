@@ -4,7 +4,7 @@
 #include <acul/enum.hpp>
 #include <acul/scalars.hpp>
 #include <acul/string/string_view.hpp>
-#include <vulkan/vulkan.hpp>
+#include "umbf/umbf.hpp"
 
 namespace aecl
 {
@@ -14,13 +14,13 @@ namespace aecl
         {
             enum enum_type
             {
-                None = 0x0,
-                Bit8 = 0x1,
-                Bit16 = 0x2,
-                Bit32 = 0x4,
-                ReadOnly = 0x8,
-                Multilayer = 0x10,
-                Alpha = 0x20,
+                none = 0x0,
+                bit8 = 0x1,
+                bit16 = 0x2,
+                bit32 = 0x4,
+                read_only = 0x8,
+                multilayer = 0x10,
+                alpha = 0x20,
             };
             using flag_bitmask = std::true_type;
         };
@@ -29,77 +29,71 @@ namespace aecl
 
         struct Format
         {
-            FormatFlags flags = FormatFlagBits::None;
-            vk::Format bit8_format = vk::Format::eUndefined;
-            vk::Format bit16_format = vk::Format::eUndefined;
-            vk::Format bit32_format = vk::Format::eUndefined;
+            FormatFlags flags = FormatFlagBits::none;
+            u8 format_types[3];
         };
 
-        inline OIIO::TypeDesc vk_format_to_OIIO(vk::Format format)
+        inline OIIO::TypeDesc umbf_format_to_oiio(umbf::ImageFormat format)
         {
-            switch (format)
+            switch (format.type)
             {
-                case vk::Format::eR8G8B8A8Srgb:
-                    return OIIO::TypeDesc::UINT8;
-                case vk::Format::eR16G16B16A16Uint:
-                    return OIIO::TypeDesc::UINT16;
-                case vk::Format::eR32G32B32A32Uint:
-                    return OIIO::TypeDesc::UINT32;
-                case vk::Format::eR16G16B16A16Sfloat:
-                    return OIIO::TypeDesc::HALF;
-                case vk::Format::eR32G32B32A32Sfloat:
-                    return OIIO::TypeDesc::FLOAT;
+                case umbf::ImageFormat::Type::uint:
+                    switch (format.bytes_per_channel)
+                    {
+                        case 1:
+                            return OIIO::TypeDesc::UINT8;
+                        case 2:
+                            return OIIO::TypeDesc::UINT16;
+                        case 4:
+                            return OIIO::TypeDesc::UINT32;
+                    }
+                    break;
+                case umbf::ImageFormat::Type::sfloat:
+                    switch (format.bytes_per_channel)
+                    {
+                        case 2:
+                            return OIIO::TypeDesc::HALF;
+                        case 4:
+                            return OIIO::TypeDesc::FLOAT;
+                    }
+                    break;
                 default:
-                    return OIIO::TypeDesc::UNKNOWN;
+                    break;
             }
-        }
-
-        inline vk::Format get_format_by_bit(size_t bit, Format format)
-        {
-            switch (bit)
-            {
-                case 1:
-                    return format.bit8_format;
-                case 2:
-                    return format.bit16_format;
-                case 4:
-                    return format.bit32_format;
-                default:
-                    return vk::Format::eUndefined;
-            }
+            return OIIO::TypeDesc::UNKNOWN;
         }
 
         enum class Type
         {
-            Unknown,
-            BMP,
-            GIF,
-            HDR,
-            HEIF,
-            JPEG,
-            OpenEXR,
-            PNG,
-            PBM,
-            Targa,
-            TIFF,
-            WebP,
-            UMBF
+            unknown,
+            bmp,
+            gif,
+            hdr,
+            heif,
+            jpeg,
+            openexr,
+            png,
+            pbm,
+            targa,
+            tiff,
+            webp,
+            umbf
         };
 
         constexpr Type get_type_by_extension(acul::string_view extension)
         {
             constexpr std::array<std::pair<acul::string_view, Type>, 25> extension_map = {
-                {{".bmp", Type::BMP},     {".gif", Type::GIF},   {".hdr", Type::HDR},   {".heif", Type::HEIF},
-                 {".heic", Type::HEIF},   {".avif", Type::HEIF}, {".jpg", Type::JPEG},  {".jpe", Type::JPEG},
-                 {".jpeg", Type::JPEG},   {".jif", Type::JPEG},  {".jfif", Type::JPEG}, {".jfi", Type::JPEG},
-                 {".exr", Type::OpenEXR}, {".png", Type::PNG},   {".pbm", Type::PBM},   {".pgm", Type::PBM},
-                 {".ppm", Type::PBM},     {".pnm", Type::PBM},   {".tga", Type::Targa}, {".tpic", Type::Targa},
-                 {".tif", Type::TIFF},    {".tiff", Type::TIFF}, {".webp", Type::WebP}, {".umia", Type::UMBF},
-                 {".umbf", Type::UMBF}}};
+                {{".bmp", Type::bmp},     {".gif", Type::gif},   {".hdr", Type::hdr},   {".heif", Type::heif},
+                 {".heic", Type::heif},   {".avif", Type::heif}, {".jpg", Type::jpeg},  {".jpe", Type::jpeg},
+                 {".jpeg", Type::jpeg},   {".jif", Type::jpeg},  {".jfif", Type::jpeg}, {".jfi", Type::jpeg},
+                 {".exr", Type::openexr}, {".png", Type::png},   {".pbm", Type::pbm},   {".pgm", Type::pbm},
+                 {".ppm", Type::pbm},     {".pnm", Type::pbm},   {".tga", Type::targa}, {".tpic", Type::targa},
+                 {".tif", Type::tiff},    {".tiff", Type::tiff}, {".webp", Type::webp}, {".umia", Type::umbf},
+                 {".umbf", Type::umbf}}};
 
             for (const auto &[ext, type] : extension_map)
                 if (ext == extension) return type;
-            return Type::Unknown;
+            return Type::unknown;
         }
     } // namespace image
 } // namespace aecl

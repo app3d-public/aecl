@@ -24,19 +24,19 @@ namespace aecl
         acul::vector<Vertex2D> project_2d_polygon_to_vertex(const Face &face, const acul::vector<Vertex> &vertices,
                                                             acul::vector<u32> &indices)
         {
-            glm::vec3 ref_point = vertices[face.vertices[0].vertex].pos;
-            glm::vec3 x_axis, y_axis;
-            glm::vec3 normal = average_vertex_normal(face, vertices);
-            if (is_nearly_zero(glm::dot(normal, glm::vec3(0, 0, 1))))
+            amal::vec3 ref_point = vertices[face.vertices[0].vertex].pos;
+            amal::vec3 x_axis, y_axis;
+            amal::vec3 normal = average_vertex_normal(face, vertices);
+            if (is_nearly_zero(amal::dot(normal, amal::vec3(0, 0, 1))))
             {
-                x_axis = glm::cross(glm::vec3(1, 0, 0), normal);
-                if (is_nearly_zero(glm::length(x_axis))) x_axis = glm::cross(glm::vec3(0, 1, 0), normal);
+                x_axis = amal::cross(amal::vec3(1, 0, 0), normal);
+                if (is_nearly_zero(amal::length(x_axis))) x_axis = amal::cross(amal::vec3(0, 1, 0), normal);
             }
             else
-                x_axis = glm::cross(glm::vec3(0, 0, 1), normal);
-            y_axis = glm::cross(normal, x_axis);
-            x_axis = glm::normalize(x_axis);
-            y_axis = glm::normalize(y_axis);
+                x_axis = amal::cross(amal::vec3(0, 0, 1), normal);
+            y_axis = amal::cross(normal, x_axis);
+            x_axis = amal::normalize(x_axis);
+            y_axis = amal::normalize(y_axis);
 
             acul::vector<Vertex2D> projected;
             indices.clear();
@@ -47,9 +47,9 @@ namespace aecl
                 if (inserted)
                 {
                     const auto &vertex = vertices[vref.vertex];
-                    glm::vec3 vec_to_vertex = vertex.pos - ref_point;
-                    f32 x = glm::dot(vec_to_vertex, x_axis);
-                    f32 y = glm::dot(vec_to_vertex, y_axis);
+                    amal::vec3 vec_to_vertex = vertex.pos - ref_point;
+                    f32 x = amal::dot(vec_to_vertex, x_axis);
+                    f32 y = amal::dot(vec_to_vertex, y_axis);
 
                     projected.push_back({x, y});
                     indices.push_back(vref.vertex);

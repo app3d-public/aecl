@@ -13,7 +13,7 @@ namespace aecl
     {
         namespace obj
         {
-            void transform_vertex(glm::vec3 &pos, MeshExportFlags flags)
+            void transform_vertex(amal::vec3 &pos, MeshExportFlags flags)
             {
                 if (flags & MeshExportFlagBits::TransformReverseX) pos.x = -pos.x;
                 if (flags & MeshExportFlagBits::TransformReverseY) pos.y = -pos.y;
@@ -30,7 +30,7 @@ namespace aecl
                 for (auto &group : groups)
                 {
                     auto &vertex_id = group.vertices.front();
-                    glm::vec3 &pos = model.vertices[vertex_id].pos;
+                    amal::vec3 &pos = model.vertices[vertex_id].pos;
                     transform_vertex(pos, mesh_flags);
                     ss << "v " << pos.x << " " << pos.y << " " << pos.z << "\n";
                 }
@@ -125,7 +125,7 @@ namespace aecl
                 for (const auto &block : blocks) os << block.str();
             }
 
-            inline void write_vec3_as_rgb(acul::stringstream &os, const acul::string &token, const glm::vec3 &vec)
+            inline void write_vec3_as_rgb(acul::stringstream &os, const acul::string &token, const amal::vec3 &vec)
             {
                 os << token << " " << vec.x << " " << vec.y << " " << vec.z << "\n";
             }

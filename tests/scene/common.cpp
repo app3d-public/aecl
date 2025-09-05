@@ -108,7 +108,7 @@ void create_objects(acul::vector<umbf::Object> &objects)
                      14, 15, 12, 12, 13, 14, 18, 19, 16, 16, 17, 18, 22, 23, 20, 20, 21, 22};
     create_cube_faces(model.faces);
     model.group_count = 8;
-    model.aabb = {glm::vec3{-100, -100, -100}, {100, 100, 100}};
+    model.aabb = {{-100, -100, -100}, {100, 100, 100}};
     cube.meta.push_back(mesh);
 }
 
@@ -132,15 +132,14 @@ void create_materials(acul::vector<umbf::File> &materials)
     materials.push_back(asset);
 }
 
-void create_generated_texture(acul::string &tex, const acul::io::path &texDir)
+void create_generated_texture(acul::string &tex, const acul::io::path &tex_folder)
 {
     umbf::Image2D image;
-    image.format = vk::Format::eR8G8B8A8Srgb;
-    image.bytes_per_channel = 1;
+    image.format.bytes_per_channel = 1;
+    image.format.type = umbf::ImageFormat::Type::uint;
     image.width = 4;
     image.height = 4;
-    image.channel_count = 4;
-    image.channel_names = {"red", "green", "blue", "alpha"};
+    image.channels = {"red", "green", "blue", "alpha"};
     char *pixels = acul::alloc_n<char>(image.size());
     u8 color[4] = {255, 120, 80, 255};
     for (int w = 0; w < 4; w++)
@@ -155,9 +154,9 @@ void create_generated_texture(acul::string &tex, const acul::io::path &texDir)
         }
     }
     image.pixels = pixels;
-    tex = texDir / "generated.png";
+    tex = tex_folder / "generated.png";
     aecl::image::png::Params pp(image);
     bool success = aecl::image::png::save(tex, pp, 1);
     acul::release(pixels);
-    if (!success) throw acul::runtime_error("Failed to save image");
+    if (!success) throw acul::runtime_error("Failed to save image: " + tex);
 }

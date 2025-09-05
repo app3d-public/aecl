@@ -9,7 +9,7 @@ void create_multi_materials(acul::vector<umbf::File> &materials, u64 object_id, 
     materials.resize(2);
     {
         auto mat = acul::make_shared<umbf::Material>();
-        mat->albedo.rgb = glm::vec3(0.5, 1.0, 0.0f);
+        mat->albedo.rgb = amal::vec3(0.5, 1.0, 0.0f);
         mat->albedo.textured = false;
         mat->albedo.texture_id = -1;
         auto meta = acul::make_shared<umbf::MaterialInfo>();
@@ -26,7 +26,7 @@ void create_multi_materials(acul::vector<umbf::File> &materials, u64 object_id, 
     }
     {
         auto mat = acul::make_shared<umbf::Material>();
-        mat->albedo.rgb = glm::vec3(1.0, 0.5, 0.0f);
+        mat->albedo.rgb = amal::vec3(1.0, 0.5, 0.0f);
         mat->albedo.textured = false;
         mat->albedo.texture_id = -1;
         auto meta = acul::make_shared<umbf::MaterialInfo>();

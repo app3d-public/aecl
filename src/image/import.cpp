@@ -13,7 +13,7 @@ namespace aecl
             umbf::Image2D &info)
         {
             info.pixels = acul::mem_allocator<std::byte>::allocate(info.size());
-            return load_handler(inp, subimage, info.channel_count, info.pixels, info.size());
+            return load_handler(inp, subimage, info.channels.size(), info.pixels, info.size());
         }
 
         acul::io::file::op_state OIIOLoader::load(const acul::string &path, acul::vector<umbf::Image2D> &images)
@@ -24,9 +24,9 @@ namespace aecl
                 LOG_ERROR("OIIO: %s", OIIO::geterror().c_str());
                 return acul::io::file::op_state::error;
             }
-            std::function<bool(const std::unique_ptr<OIIO::ImageInput> &inp, int, int, void *, vk::DeviceSize)>
-                load_handler{nullptr};
-            vk::Format image_format;
+            std::function<bool(const std::unique_ptr<OIIO::ImageInput> &inp, int, int, void *, size_t)> load_handler{
+                nullptr};
+            umbf::ImageFormat image_format;
             for (int subimage{0}; inp->seek_subimage(subimage, 0); subimage++)
             {
                 const OIIO::ImageSpec &spec = inp->spec();
@@ -35,34 +35,21 @@ namespace aecl
                 umbf::Image2D info;
                 info.width = spec.width;
                 info.height = spec.height;
-                info.channel_count = spec.nchannels;
-                info.channel_names = channel_names;
-                info.bytes_per_channel = spec.pixel_bytes() / spec.nchannels;
+                info.channels = channel_names;
+                image_format.bytes_per_channel = spec.pixel_bytes() / spec.nchannels;
+                assert(image_format.bytes_per_channel <= 4);
+                image_format.type = _format.format_types[image_format.bytes_per_channel / 2];
                 info.pixels = nullptr;
                 if (!load_handler)
                 {
-                    switch (info.bytes_per_channel)
-                    {
-                        case 1:
-                            image_format = _format.bit8_format;
-                            break;
-                        case 2:
-                            image_format = _format.bit16_format;
-                            break;
-                        case 4:
-                            image_format = _format.bit32_format;
-                            break;
-                        default:
-                            break;
-                    }
-                    if (image_format == vk::Format::eUndefined)
+                    if (image_format.type == umbf::ImageFormat::Type::none)
                     {
                         LOG_ERROR("Unsupported image format");
                         return acul::io::file::op_state::error;
                     }
-                    OIIO::TypeDesc dst_type = vk_format_to_OIIO(image_format);
+                    OIIO::TypeDesc dst_type = umbf_format_to_oiio(image_format);
                     load_handler = [dst_type](const std::unique_ptr<OIIO::ImageInput> &inp, int subimage, int channels,
-                                              void *dst, vk::DeviceSize size) {
+                                              void *dst, size_t size) {
                         if (!inp->read_image(subimage, 0, 0, channels, dst_type, dst)) return false;
                         return true;
                     };
@@ -94,29 +81,29 @@ namespace aecl
         {
             switch (get_type_by_extension(acul::io::get_extension(path)))
             {
-                case Type::BMP:
+                case Type::bmp:
                     return acul::alloc<BMPLoader>();
-                case Type::GIF:
+                case Type::gif:
                     return acul::alloc<GIFLoader>();
-                case Type::HDR:
+                case Type::hdr:
                     return acul::alloc<HDRLoader>();
-                case Type::HEIF:
+                case Type::heif:
                     return acul::alloc<HEIFLoader>();
-                case Type::JPEG:
+                case Type::jpeg:
                     return acul::alloc<JPEGLoader>();
-                case Type::OpenEXR:
+                case Type::openexr:
                     return acul::alloc<OpenEXRLoader>();
-                case Type::PNG:
+                case Type::png:
                     return acul::alloc<PNGLoader>();
-                case Type::PBM:
+                case Type::pbm:
                     return acul::alloc<PBMLoader>();
-                case Type::Targa:
+                case Type::targa:
                     return acul::alloc<TargaLoader>();
-                case Type::TIFF:
+                case Type::tiff:
                     return acul::alloc<TIFFLoader>();
-                case Type::WebP:
+                case Type::webp:
                     return acul::alloc<WebPLoader>();
-                case Type::UMBF:
+                case Type::umbf:
                     return acul::alloc<UMBFLoader>();
                 default:
                     return nullptr;

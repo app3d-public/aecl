@@ -7,21 +7,20 @@ namespace aecl
 {
     namespace image
     {
-        using ::umbf::utils::convert_image;
-
         bool bmp::save(const acul::string &path, Params &bp)
         {
             auto &image = bp.image;
             void *pixels = image.pixels;
             acul::unique_ptr<void> tmp;
-            if (!is_image_equals(image, bp.format, vk::Format::eR8G8B8A8Srgb))
+            ::umbf::ImageFormat dst_format = {bp.format.format_types[0], 1};
+            if (!is_image_equals(image, dst_format, 3))
             {
-                pixels = convert_image(image, vk::Format::eR8G8B8A8Srgb, image.channel_count > 3 ? 4 : 3);
+                pixels = ::umbf::utils::convert_image(image, dst_format, 3);
                 tmp = acul::unique_ptr<void>(pixels); // Release on call end
             }
             auto *pPath = path.c_str();
             std::unique_ptr<OIIO::ImageOutput> out = OIIO::ImageOutput::create(pPath);
-            OIIO::ImageSpec spec(image.width, image.height, image.channel_count, OIIO::TypeDesc::UINT8);
+            OIIO::ImageSpec spec(image.width, image.height, image.channels.size(), OIIO::TypeDesc::UINT8);
             spec.attribute("XResolution", bp.dpi);
             spec.attribute("YResolution", bp.dpi);
             if (bp.dither) spec.attribute("oiio:dither", 1);
@@ -42,11 +41,12 @@ namespace aecl
             std::unique_ptr<OIIO::ImageOutput> out = OIIO::ImageOutput::create(pPath);
             acul::vector<OIIO::ImageSpec> specs;
 
+            ::umbf::ImageFormat dst_format = {gp.format.format_types[0], 1};
             for (auto &image : gp.images)
             {
-                if (!is_image_equals(image, gp.format, vk::Format::eR8G8B8A8Srgb))
+                if (!is_image_equals(image, dst_format, 3))
                 {
-                    pixels.emplace_back(convert_image(image, vk::Format::eR8G8B8A8Srgb, 3));
+                    pixels.emplace_back(::umbf::utils::convert_image(image, dst_format, 3));
                     tmp.emplace_back(pixels.back());
                 }
                 else
@@ -91,15 +91,16 @@ namespace aecl
         {
             acul::unique_ptr<void> tmp;
             void *pixels = hp.image.pixels;
-            if (!is_image_equals(hp.image, hp.format, vk::Format::eR32G32B32A32Sfloat))
+            ::umbf::ImageFormat dst_format = {hp.format.format_types[2], 4};
+            if (!is_image_equals(hp.image, dst_format, 3))
             {
-                pixels = convert_image(hp.image, vk::Format::eR32G32B32A32Sfloat, 3);
+                pixels = ::umbf::utils::convert_image(hp.image, dst_format, 3);
                 tmp = acul::unique_ptr<void>(pixels); // Release on call end
             }
             auto *pPath = path.c_str();
             std::unique_ptr<OIIO::ImageOutput> out = OIIO::ImageOutput::create(pPath);
             OIIO::ImageSpec spec(hp.image.width, hp.image.height, 3, OIIO::TypeDesc::FLOAT);
-            if (!out->open(path.c_str(), spec) || !out->write_image(OIIO::TypeDesc::FLOAT, pixels))
+            if (!out->open(pPath, spec) || !out->write_image(OIIO::TypeDesc::FLOAT, pixels))
             {
                 LOG_ERROR("%s", out->geterror().c_str());
                 return false;
@@ -111,10 +112,11 @@ namespace aecl
         {
             acul::unique_ptr<void> tmp;
             void *pixels = hp.image.pixels;
-            int dst_channels = hp.image.channel_count > 3 ? 4 : 3;
-            if (!is_image_equals(hp.image, hp.format, vk::Format::eR8G8B8A8Srgb))
+            ::umbf::ImageFormat dst_format = {hp.format.format_types[0], 1};
+            size_t dst_channels = hp.image.channels.size() > 3 ? 4 : 3;
+            if (!is_image_equals(hp.image, dst_format, dst_channels))
             {
-                pixels = convert_image(hp.image, vk::Format::eR8G8B8A8Srgb, dst_channels);
+                pixels = ::umbf::utils::convert_image(hp.image, dst_format, dst_channels);
                 tmp = acul::unique_ptr<void>(pixels); // Release on call end
             }
             auto *pPath = path.c_str();
@@ -134,9 +136,10 @@ namespace aecl
         {
             acul::unique_ptr<void> tmp;
             void *pixels = jp.image.pixels;
-            if (!is_image_equals(jp.image, jp.format, vk::Format::eR8G8B8A8Srgb))
+            ::umbf::ImageFormat dst_format = {jp.format.format_types[0], 1};
+            if (!is_image_equals(jp.image, dst_format, 3))
             {
-                pixels = convert_image(jp.image, vk::Format::eR8G8B8A8Srgb, 3);
+                pixels = ::umbf::utils::convert_image(jp.image, dst_format, 3);
                 tmp = acul::unique_ptr<void>(pixels); // Release on call end
             }
             auto *pPath = path.c_str();
@@ -158,7 +161,7 @@ namespace aecl
             return out->close();
         }
 
-        bool openEXR::save(const acul::string &path, Params &op, u8 dst_bit)
+        bool openexr::save(const acul::string &path, Params &op, u8 dst_bit)
         {
             assert(dst_bit == 2 || dst_bit == 4);
             acul::vector<acul::unique_ptr<void>> tmp;
@@ -167,25 +170,25 @@ namespace aecl
             auto *pPath = path.c_str();
             std::unique_ptr<OIIO::ImageOutput> out = OIIO::ImageOutput::create(pPath);
             acul::vector<OIIO::ImageSpec> specs;
-            const vk::Format dst_format = get_format_by_bit(dst_bit, op.format);
-            const OIIO::TypeDesc dst_type = vk_format_to_OIIO(dst_format);
-            u16 max_width = 0, max_height = 0;
+            u32 max_width = 0, max_height = 0;
             for (const auto &image : op.images)
             {
                 max_width = std::max(max_width, image.width);
                 max_height = std::max(max_height, image.height);
             }
+            ::umbf::ImageFormat dst_format = {op.format.format_types[dst_bit / 2], dst_bit};
+            const OIIO::TypeDesc dst_type = umbf_format_to_oiio(dst_format);
 
-            for (umbf::Image2D image : op.images)
+            for (auto &image : op.images)
             {
-                if (!is_image_equals(image, op.format, dst_format))
+                if (!is_image_equals(image, dst_format, image.channels.size()))
                 {
-                    pixels.emplace_back(convert_image(image, dst_format, image.channel_count));
+                    pixels.emplace_back(::umbf::utils::convert_image(image, dst_format, image.channels.size()));
                     tmp.emplace_back(pixels.back());
                 }
                 else
                     pixels.emplace_back(image.pixels);
-                OIIO::ImageSpec spec(image.width, image.height, image.channel_count, dst_type);
+                OIIO::ImageSpec spec(image.width, image.height, image.channels.size(), dst_type);
                 OIIO::ROI full_roi(0, max_width, 0, max_height);
                 spec.full_x = full_roi.xbegin;
                 spec.full_y = full_roi.ybegin;
@@ -225,12 +228,12 @@ namespace aecl
             assert(dst_bit == 1 || dst_bit == 2);
             acul::unique_ptr<void> tmp;
             void *pixels = pp.image.pixels;
-            const vk::Format dst_format = get_format_by_bit(dst_bit, pp.format);
-            const OIIO::TypeDesc dst_type = vk_format_to_OIIO(dst_format);
-            int dst_channels = pp.image.channel_count > 3 ? 4 : 3;
-            if (!is_image_equals(pp.image, pp.format, dst_format))
+            const ::umbf::ImageFormat dst_format = {pp.format.format_types[dst_bit / 2], dst_bit};
+            const OIIO::TypeDesc dst_type = umbf_format_to_oiio(dst_format);
+            int dst_channels = pp.image.channels.size() > 3 ? 4 : 3;
+            if (!is_image_equals(pp.image, dst_format, dst_channels))
             {
-                pixels = convert_image(pp.image, dst_format, dst_channels);
+                pixels = ::umbf::utils::convert_image(pp.image, dst_format, dst_channels);
                 tmp = acul::unique_ptr<void>(pixels); // Release on call end
             }
             auto *pPath = path.c_str();
@@ -256,9 +259,10 @@ namespace aecl
         {
             acul::unique_ptr<void> tmp;
             void *pixels = pp.image.pixels;
-            if (!is_image_equals(pp.image, pp.format, vk::Format::eR8G8B8A8Srgb))
+            ::umbf::ImageFormat dst_format = {pp.format.format_types[0], 1};
+            if (!is_image_equals(pp.image, dst_format, 3))
             {
-                pixels = convert_image(pp.image, vk::Format::eR8G8B8A8Srgb, 3);
+                pixels = ::umbf::utils::convert_image(pp.image, dst_format, 3);
                 tmp = acul::unique_ptr<void>(pixels); // Release on call end
             }
             auto *pPath = path.c_str();
@@ -276,12 +280,13 @@ namespace aecl
 
         bool targa::save(const acul::string &path, Params &tp)
         {
-            int dst_channels = tp.image.channel_count > 3 ? 4 : 3;
             acul::unique_ptr<void> tmp;
             void *pixels = tp.image.pixels;
-            if (!is_image_equals(tp.image, tp.format, vk::Format::eR8G8B8A8Srgb))
+            ::umbf::ImageFormat dst_format = {tp.format.format_types[0], 1};
+            size_t dst_channels = tp.image.channels.size() > 3 ? 4 : 3;
+            if (!is_image_equals(tp.image, dst_format, dst_channels))
             {
-                pixels = convert_image(tp.image, vk::Format::eR8G8B8A8Srgb, dst_channels);
+                pixels = ::umbf::utils::convert_image(tp.image, dst_format, dst_channels);
                 tmp = acul::unique_ptr<void>(pixels); // Release on call end
             }
             auto *pPath = path.c_str();
@@ -310,19 +315,19 @@ namespace aecl
             std::unique_ptr<OIIO::ImageOutput> out = OIIO::ImageOutput::create(pPath);
             assert(out);
             acul::vector<OIIO::ImageSpec> specs;
-            const vk::Format dst_format = get_format_by_bit(dst_bit, tp.format);
-            const OIIO::TypeDesc dst_type = vk_format_to_OIIO(dst_format);
+            const ::umbf::ImageFormat dst_format = {tp.format.format_types[dst_bit / 2], dst_bit};
+            const OIIO::TypeDesc dst_type = umbf_format_to_oiio(dst_format);
 
-            for (umbf::Image2D image : tp.images)
+            for (auto &image : tp.images)
             {
-                if (!is_image_equals(image, tp.format, dst_format))
+                if (!is_image_equals(image, dst_format, image.channels.size()))
                 {
-                    pixels.emplace_back(convert_image(image, dst_format, image.channel_count));
+                    pixels.emplace_back(::umbf::utils::convert_image(image, dst_format, image.channels.size()));
                     tmp.emplace_back(pixels.back());
                 }
                 else
                     pixels.emplace_back(image.pixels);
-                OIIO::ImageSpec spec(image.width, image.height, image.channel_count, dst_type);
+                OIIO::ImageSpec spec(image.width, image.height, image.channels.size(), dst_type);
                 if (tp.dither) spec.attribute("oiio:dither", 1);
                 if (tp.unassociated_alpha) spec.attribute("oiio:UnassociatedAlpha", 1);
                 spec.attribute("tiff:zipquality", tp.zipquality);
@@ -363,14 +368,15 @@ namespace aecl
         {
             acul::unique_ptr<void> tmp;
             void *pixels = wp.image.pixels;
-            if (!is_image_equals(wp.image, wp.format, vk::Format::eR8G8B8A8Srgb))
+            ::umbf::ImageFormat dst_format = {wp.format.format_types[0], 1};
+            if (!is_image_equals(wp.image, dst_format, 3))
             {
-                pixels = convert_image(wp.image, vk::Format::eR8G8B8A8Srgb, wp.image.channel_count > 3 ? 4 : 3);
+                pixels = ::umbf::utils::convert_image(wp.image, dst_format, wp.image.channels.size() > 3 ? 4 : 3);
                 tmp = acul::unique_ptr<void>(pixels); // Release on call end
             }
             auto *pPath = path.c_str();
             std::unique_ptr<OIIO::ImageOutput> out = OIIO::ImageOutput::create(pPath);
-            OIIO::ImageSpec spec(wp.image.width, wp.image.height, wp.image.channel_count, OIIO::TypeDesc::UINT8);
+            OIIO::ImageSpec spec(wp.image.width, wp.image.height, wp.image.channels.size(), OIIO::TypeDesc::UINT8);
             if (wp.dither) spec.attribute("oiio:dither", 1);
             if (!out->open(pPath, spec) || !out->write_image(OIIO::TypeDesc::UINT8, pixels))
             {
@@ -382,13 +388,13 @@ namespace aecl
 
         bool umbf::save(const acul::string &path, Params &up)
         {
-            umbf::File asset;
+            ::umbf::File asset;
             asset.header.vendor_sign = UMBF_VENDOR_ID;
             asset.header.vendor_version = UMBF_VERSION;
             asset.header.spec_version = UMBF_VERSION;
             asset.header.type_sign = ::umbf::sign_block::format::image;
             asset.header.compressed = up.compression > 0;
-            asset.blocks.push_back(acul::make_shared<umbf::Image2D>(up.image));
+            asset.blocks.push_back(acul::make_shared<::umbf::Image2D>(up.image));
             asset.checksum = up.checksum;
             return asset.save(path, up.compression);
         }

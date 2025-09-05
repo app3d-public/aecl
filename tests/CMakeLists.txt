@@ -10,11 +10,25 @@ set(TEST_LIBRARIES
 
 set(TEST_DATA_DIR "${CMAKE_CURRENT_SOURCE_DIR}/data")
 set(TEST_OUTPUT_DIR "${CMAKE_BINARY_DIR}/tests/artifacts")
+file(MAKE_DIRECTORY "${TEST_OUTPUT_DIR}/tex")
 set(TEST_ENV "TEST_DATA_DIR=${TEST_DATA_DIR};TEST_OUTPUT_DIR=${TEST_OUTPUT_DIR}")
-set(TEST_SOURCES env.cpp scene/common.cpp)
+set(TEST_SOURCES env.cpp image/import/common.cpp scene/common.cpp)
 
 # Image
-add_test_files(aecl image_import image/import.cpp)
+# Import
+add_test_files(aecl image_import_bmp image/import/bmp.cpp)
+add_test_files(aecl image_import_gif image/import/gif.cpp)
+add_test_files(aecl image_import_hdr image/import/hdr.cpp)
+add_test_files(aecl image_import_heif image/import/heif.cpp)
+add_test_files(aecl image_import_jpeg image/import/jpeg.cpp)
+add_test_files(aecl image_import_exr image/import/exr.cpp)
+add_test_files(aecl image_import_png image/import/png.cpp)
+add_test_files(aecl image_import_ppm image/import/ppm.cpp)
+add_test_files(aecl image_import_tga image/import/tga.cpp)
+add_test_files(aecl image_import_tiff image/import/tiff.cpp)
+add_test_files(aecl image_import_webp image/import/webp.cpp)
+add_test_files(aecl image_import_umbf image/import/umbf.cpp)
+
 add_test_files(aecl image_export image/export.cpp)
 
 # Scene

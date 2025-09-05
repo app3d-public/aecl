@@ -17,7 +17,7 @@ void test_image_export()
     auto p = acul::io::path(env.data_dir) / "image.umia";
     auto loader = aecl::image::get_importer_by_path(p);
     assert(loader);
-    acul::vector<image::umbf::Image2D> images;
+    acul::vector<umbf::Image2D> images;
     auto state = loader->load(p, images);
     assert(state == acul::io::file::op_state::success);
     assert(!images.empty());
@@ -47,8 +47,8 @@ void test_image_export()
     assert(jpeg::save(op / "image_export.jpg", jpegp));
 
     // OpenEXR
-    openEXR::Params openEXRp(images);
-    assert(openEXR::save(op / "image_export.exr", openEXRp, 2));
+    openexr::Params openEXRp(images);
+    assert(openexr::save(op / "image_export.exr", openEXRp, 2));
 
     // PNG
     png::Params pngp(inp);

@@ -1,4 +1,5 @@
 #include <aecl/scene/import.hpp>
+#include <amal/integration/acul/string.hpp>
 
 namespace aecl
 {
@@ -43,7 +44,7 @@ namespace aecl
                  *  "gain" expands the range of the texture values.  Increasing the number
                  * increases the contrast.  The default is 1; the range is unlimited.
                  */
-                glm::vec2 mm{0.0f, 1.0f};
+                amal::vec2 mm{0.0f, 1.0f};
                 /**
                  * The option offsets the position of the texture map on the surface by
                  * shifting the position of the map origin.  The default is 0, 0, 0.
@@ -56,7 +57,7 @@ namespace aecl
                  * "w" is an optional argument.
                  * "w" is the value used for the depth of a 3D texture.
                  */
-                glm::vec3 offset{0.0f, 0.0f, 0.0f};
+                amal::vec3 offset{0.0f, 0.0f, 0.0f};
                 /**
                  * The option scales the size of the texture pattern on the textured
                  * surface by expanding or shrinking the pattern.  The default is 1, 1, 1.
@@ -70,7 +71,7 @@ namespace aecl
                  * "w" is a value used for the depth of a 3D texture.
                  * "w" is a value used for the amount of tessellation of the displacement map.
                  */
-                glm::vec3 scale{1.0f, 1.0f, 1.0f};
+                amal::vec3 scale{1.0f, 1.0f, 1.0f};
                 /**
                  * The option turns on turbulence for textures. Adding turbulence to a
                  * texture along a specified direction adds variance to the original image
@@ -96,7 +97,7 @@ namespace aecl
                  * Only when you raise the turbulence values above zero will you see the
                  * effects of turbulence.
                  */
-                glm::vec3 turbulence{0.0f, 0.0f, 0.0f};
+                amal::vec3 turbulence{0.0f, 0.0f, 0.0f};
                 /**
                  * The option specifies the resolution of texture created when an
                  * image is used.  The default texture size is the largest power of two
@@ -174,7 +175,7 @@ namespace aecl
                     XYZ
                 };
                 Type type{Type::RGB};
-                glm::vec3 value{1.0f, 1.0f, 1.0f};
+                amal::vec3 value{1.0f, 1.0f, 1.0f};
             };
 
             // OBJ Material in accoring MTL file format specification
@@ -358,7 +359,7 @@ namespace aecl
                             else if (strncmp(token, "type", 4) == 0)
                             {
                                 token += 5;
-                                dst.type = acul::str_range(token);
+                                dst.type = acul::strip_controls(token);
                             }
                             else
                                 return false;
@@ -382,14 +383,14 @@ namespace aecl
                         }
                         else
                         {
-                            LOG_WARN("Unknown option: %s", acul::str_range(token).c_str());
+                            LOG_WARN("Unknown option: %s", acul::strip_controls(token).c_str());
                             return false;
                         }
                     }
                     else
                     {
                         if (path_processed) break;
-                        dst.path = acul::str_range(token);
+                        dst.path = acul::strip_controls(token);
                         path_processed = true;
                     }
                 } while (true);
@@ -410,7 +411,7 @@ namespace aecl
                     else
                         return false;
                 }
-                glm::vec3 color;
+                amal::vec3 color;
                 if (acul::stov3(token, color))
                     color_option.value = color;
                 else
@@ -420,7 +421,7 @@ namespace aecl
             }
 
             void parse_mtl_line(const acul::string_view &line, acul::vector<Material> &materials, int &mat_index,
-                              int line_index)
+                                int line_index)
             {
                 try
                 {
@@ -429,7 +430,7 @@ namespace aecl
                     if (strncmp(token, "newmtl", 6) == 0)
                     {
                         token += 7;
-                        Material material(acul::str_range(token));
+                        Material material(acul::strip_controls(token));
                         materials.push_back(std::move(material));
                         ++mat_index;
                     }
