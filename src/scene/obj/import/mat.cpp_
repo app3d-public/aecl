@@ -430,7 +430,7 @@ namespace aecl
                     if (strncmp(token, "newmtl", 6) == 0)
                     {
                         token += 7;
-                        Material material(acul::strip_controls(token));
+                        Material material{acul::strip_controls(token)};
                         materials.push_back(std::move(material));
                         ++mat_index;
                     }

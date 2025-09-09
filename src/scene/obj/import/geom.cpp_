@@ -46,7 +46,7 @@ namespace aecl
                         if (!acul::stov3(token, v))
                             throw ParseException(line, line_index);
                         else
-                            data.v.emplace_back(line_index, v);
+                            data.v.push_back({line_index, v});
                     }
                     else if (token[1] == 't')
                     {
@@ -55,7 +55,7 @@ namespace aecl
                         if (!acul::stov2(token, vt))
                             throw ParseException(line, line_index);
                         else
-                            data.vt.emplace_back(line_index, vt);
+                            data.vt.push_back({line_index, vt});
                     }
                     else if (token[1] == 'n')
                     {
@@ -64,7 +64,7 @@ namespace aecl
                         if (!acul::stov3(token, vn))
                             throw ParseException(line, line_index);
                         else
-                            data.vn.emplace_back(line_index, vn);
+                            data.vn.push_back({line_index, vn});
                     }
                 }
                 else if (token[0] == 'g' || token[0] == 'o')
@@ -76,7 +76,7 @@ namespace aecl
                     {
                         size_t len = static_cast<size_t>(end - token);
                         acul::string name = acul::trim_end(token, len);
-                        data.g.emplace_back(line_index, name);
+                        data.g.push_back({line_index, name});
                     }
                 }
 
@@ -115,7 +115,7 @@ namespace aecl
                             break;
                     }
 
-                    data.f.emplace_back(line_index, vtn);
+                    data.f.push_back({line_index, vtn});
                 }
                 else if (strncmp(token, "mtllib", 6) == 0)
                 {
@@ -131,7 +131,7 @@ namespace aecl
                     const char *end = line.data() + line.size();
                     while (token < end && (*token == ' ' || *token == '\t')) ++token;
                     ptrdiff_t len = end - token;
-                    data.use_mtl.emplace_back(line_index, acul::strip_controls(token, len));
+                    data.use_mtl.push_back({line_index, acul::strip_controls(token, len)});
                 }
             }
         } // namespace obj
