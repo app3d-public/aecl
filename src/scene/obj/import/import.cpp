@@ -51,7 +51,7 @@ namespace aecl
                 auto [it, inserted] = vtn_map.emplace(vtn, vtn_map.size());
                 if (inserted)
                 {
-                    face.vertices.emplace_back(vertex_group_id, m.vertices.size());
+                    face.vertices.emplace_back(vertex_group_id, static_cast<u32>(m.vertices.size()));
                     m.vertices.emplace_back(data.v[current].value);
                     auto &vertex = m.vertices.back();
                     if (vtn.y != 0 && (int)data.vt.size() > vtn.y) vertex.uv = data.vt[vtn.y - 1].value;
@@ -78,7 +78,7 @@ namespace aecl
                 if (it == vgv.end())
                 {
                     vgv.emplace_back(m.vertices.size());
-                    face.vertices.emplace_back(vertex_group_id, m.vertices.size());
+                    face.vertices.emplace_back(vertex_group_id, static_cast<u32>(m.vertices.size()));
                     m.vertices.emplace_back(vertex);
                     m.aabb.min = amal::min(m.aabb.min, vertex.pos);
                     m.aabb.max = amal::max(m.aabb.max, vertex.pos);
@@ -130,15 +130,15 @@ namespace aecl
                 LOG_INFO("Loading MTL file: %s", filename.c_str());
                 std::ostringstream oss;
                 oss << fs.rdbuf();
-                acul::string content = oss.str().c_str();
+                std::string content = oss.str();
                 fs.close();
-                acul::string_pool<char> string_pool(content.size());
-                acul::io::file::fill_line_buffer(content.c_str(), content.size(), string_pool);
+                acul::string_view_pool<char> string_view_pool(content.size());
+                acul::io::file::fill_line_buffer(content.c_str(), content.size(), string_view_pool);
 
                 // Process each line from the buffer
                 int material_index = -1;
                 int line_index = 1;
-                for (const auto &line : string_pool) parse_mtl_line(line, materials, material_index, line_index++);
+                for (const auto &line : string_view_pool) parse_mtl_line(line, materials, material_index, line_index++);
                 LOG_INFO("Loaded %zu materials", materials.size());
             }
 
@@ -315,12 +315,13 @@ namespace aecl
                 ParseDataWrite parsed;
                 acul::io::file::op_state result =
                     acul::io::file::read_by_block(_path, [&parsed](char *data, size_t size) {
-                        acul::string_pool<char> string_pool(size);
-                        acul::io::file::fill_line_buffer(data, size, string_pool);
-                        oneapi::tbb::parallel_for(oneapi::tbb::blocked_range<size_t>(0, string_pool.size(), 512),
+                        acul::string_view_pool<char> pool;
+                        pool.reserve(size / 40);
+                        acul::io::file::fill_line_buffer(data, size, pool);
+                        oneapi::tbb::parallel_for(oneapi::tbb::blocked_range<size_t>(0, pool.size(), 512),
                                                   [&](const oneapi::tbb::blocked_range<size_t> &range) {
                                                       for (size_t i = range.begin(); i != range.end(); ++i)
-                                                          parseLine(parsed, string_pool[i], i);
+                                                          parse_line(parsed, pool[i], i);
                                                   });
                     });
                 if (result != acul::io::file::op_state::success) return result;

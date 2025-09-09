@@ -10,6 +10,4 @@ void test_obj_import()
     auto state = importer.load();
     importer.clear();
     assert(state == acul::io::file::op_state::success);
-    printf("o: %zu, m: %zu, t: %zu", importer.objects().size(), importer.materials().size(),
-           importer.textures().size());
 }

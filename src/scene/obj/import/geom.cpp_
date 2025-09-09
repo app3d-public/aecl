@@ -33,10 +33,10 @@ namespace aecl
             using ParseDataWrite = ParseData<oneapi::tbb::concurrent_vector>;
             using ParseDataRead = ParseData<acul::vector>;
 
-            void parseLine(ParseDataWrite &data, const char *line, int line_index)
+            void parse_line(ParseDataWrite &data, acul::string_view line, int line_index)
             {
                 if (line[0] == '\0' || line[0] == '#') return;
-                const char *token = line;
+                const char *token = line.data();
                 if (token[0] == 'v')
                 {
                     if (isspace(token[1]))
@@ -69,10 +69,17 @@ namespace aecl
                 }
                 else if (token[0] == 'g' || token[0] == 'o')
                 {
-                    token += 2;
-                    acul::string str = acul::trim_end(token, acul::null_terminated_length(token));
-                    if (str != "off" && !str.empty()) data.g.emplace_back(line_index, str);
+                    ++token;
+                    const char *end = line.data() + line.size();
+                    while (token < end && (*token == ' ' || *token == '\t')) ++token;
+                    if (token < end)
+                    {
+                        size_t len = static_cast<size_t>(end - token);
+                        acul::string name = acul::trim_end(token, len);
+                        data.g.emplace_back(line_index, name);
+                    }
                 }
+
                 else if (token[0] == 'f')
                 {
                     token += 2;
@@ -113,12 +120,18 @@ namespace aecl
                 else if (strncmp(token, "mtllib", 6) == 0)
                 {
                     token += 7;
-                    data.mtllib = acul::strip_controls(token);
+                    const char *end = line.data() + line.size();
+                    while (token < end && (*token == ' ' || *token == '\t')) ++token;
+                    ptrdiff_t len = end - token;
+                    data.mtllib = acul::strip_controls(token, len);
                 }
                 else if (strncmp(token, "usemtl", 6) == 0)
                 {
                     token += 7;
-                    data.use_mtl.emplace_back(line_index, acul::strip_controls(token));
+                    const char *end = line.data() + line.size();
+                    while (token < end && (*token == ' ' || *token == '\t')) ++token;
+                    ptrdiff_t len = end - token;
+                    data.use_mtl.emplace_back(line_index, acul::strip_controls(token, len));
                 }
             }
         } // namespace obj
