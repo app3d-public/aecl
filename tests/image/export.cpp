@@ -71,7 +71,7 @@ void test_image_export()
     assert(webp::save(op / "image_export.webp", webpp));
 
     // UMBF
-    aecl::image::umbf::Params umbfp(inp);
+    aecl::image::umbf::Params umbfp{inp};
     assert(aecl::image::umbf::save(op / "image_export.umia", umbfp));
 
     for (auto &image : images) acul::release(image.pixels);
