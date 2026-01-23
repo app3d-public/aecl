@@ -82,7 +82,7 @@ namespace aecl
 
         constexpr Type get_type_by_extension(acul::string_view extension)
         {
-            constexpr std::array<std::pair<acul::string_view, Type>, 25> extension_map = {
+            constexpr std::array<acul::pair<acul::string_view, Type>, 25> extension_map = {
                 {{".bmp", Type::bmp},     {".gif", Type::gif},   {".hdr", Type::hdr},   {".heif", Type::heif},
                  {".heic", Type::heif},   {".avif", Type::heif}, {".jpg", Type::jpeg},  {".jpe", Type::jpeg},
                  {".jpeg", Type::jpeg},   {".jif", Type::jpeg},  {".jfif", Type::jpeg}, {".jfi", Type::jpeg},
