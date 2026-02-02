@@ -1,6 +1,7 @@
 #pragma once
 
 #include <acul/hash/hl_hashmap.hpp>
+#include <acul/op_result.hpp>
 #include <acul/string/sstream.hpp>
 #include <oneapi/tbb/concurrent_unordered_set.h>
 #include "../export.hpp"
@@ -17,10 +18,10 @@ namespace aecl
                 enum enum_type
                 {
                     // Mesh Group Policy
-                    ObjectPolicyDefault = 0x0, // Exporting all object in 'default' group (without grouping)
-                    ObjectPolicyGroups = 0x1,  // Exporting objects with 'g' flag
-                    ObjectPolicyObjects = 0x2, // Exporting objects with 'o' flag
-                    MaterialsPBR = 0x4         // Using PBR materials workflow
+                    object_policy_default = 0x0, // Exporting all object in 'default' group (without grouping)
+                    object_policy_groups = 0x1,  // Exporting objects with 'g' flag
+                    object_policy_objects = 0x2, // Exporting objects with 'o' flag
+                    materials_pbr = 0x4          // Using PBR materials workflow
                 };
                 using flag_bitmask = std::true_type;
             };
@@ -50,7 +51,7 @@ namespace aecl
                  *
                  * @return `true` if the export was successful, `false` otherwise.
                  */
-                bool save() override;
+                acul::op_result save() override;
 
             private:
                 acul::hl_hashmap<amal::vec2, u32> _vt_map;
@@ -67,9 +68,9 @@ namespace aecl
 
                 void write_material(const acul::shared_ptr<umbf::MaterialInfo> &material_info,
                                     const acul::shared_ptr<umbf::Material> &material, std::ostream &os);
-                void write_mtllib_info(std::ofstream &mtl_stream, acul::stringstream &obj_stream);
+                bool write_mtllib_info(std::ofstream &mtl_stream, acul::stringstream &obj_stream);
                 void write_mtl(std::ofstream &stream);
-                void write_object(const umbf::Object &object, acul::stringstream &stream);
+                u32 write_object(const umbf::Object &object, acul::stringstream &stream);
             };
         } // namespace obj
     } // namespace scene

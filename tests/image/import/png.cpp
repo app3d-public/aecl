@@ -4,7 +4,7 @@
 using namespace aecl;
 using namespace aecl::image;
 
-void import_test_image(const acul::io::path &p);
+void import_test_image(const acul::path &p);
 
 void test_image_import_png()
 {
@@ -15,6 +15,6 @@ void test_image_import_png()
         {umbf::sign_block::image, &umbf::streams::image},
     };
     umbf::streams::resolver = &meta_resolver;
-    acul::io::path p = env.data_dir;
+    acul::path p = env.data_dir;
     import_test_image(p / "image.png");
 }

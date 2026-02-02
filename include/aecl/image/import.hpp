@@ -1,7 +1,5 @@
 #pragma once
 
-#include <acul/api.hpp>
-#include <acul/io/file.hpp>
 #include <umbf/umbf.hpp>
 #include "format.hpp"
 
@@ -27,7 +25,12 @@ namespace aecl
              * @param images Vector to store the loaded image data.
              * @return True if the image is successfully loaded, false otherwise.
              */
-            virtual acul::io::file::op_state load(const acul::string &path, acul::vector<::umbf::Image2D> &images) = 0;
+            virtual bool load(const acul::string &path, acul::vector<::umbf::Image2D> &images) = 0;
+
+            const acul::string &error() const { return _error; }
+
+        protected:
+            acul::string _error;
         };
 
         class OIIOLoader : public ILoader
@@ -42,8 +45,7 @@ namespace aecl
              * @param images Vector to store the loaded image data.
              * @return True if the image is successfully loaded, false otherwise.
              */
-            virtual acul::io::file::op_state load(const acul::string &path,
-                                                  acul::vector<::umbf::Image2D> &images) override;
+            virtual bool load(const acul::string &path, acul::vector<::umbf::Image2D> &images) override;
 
         protected:
             Format _format;
@@ -188,8 +190,7 @@ namespace aecl
              * @param images Vector to store the loaded image data.
              * @return True if the image is successfully loaded, false otherwise.
              */
-            virtual acul::io::file::op_state load(const acul::string &path,
-                                                  acul::vector<::umbf::Image2D> &images) override;
+            virtual bool load(const acul::string &path, acul::vector<::umbf::Image2D> &images) override;
 
         private:
             u32 _checksum = 0;

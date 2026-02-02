@@ -32,7 +32,6 @@ add_test_files(aecl image_import_umbf image/import/umbf.cpp)
 add_test_files(aecl image_export image/export.cpp)
 
 # Scene
-add_test_files(aecl parse_exception scene/parse_exception.cpp)
 add_test_files(aecl obj_import scene/obj_import.cpp)
 add_test_files(aecl obj_export_triangles scene/obj_export_triangles.cpp)
 add_test_files(aecl obj_export_texture scene/obj_export_texture.cpp)

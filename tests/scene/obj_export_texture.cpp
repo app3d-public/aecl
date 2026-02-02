@@ -7,11 +7,11 @@ void test_obj_export_texture()
     test_environment env;
     create_test_environment(env);
     using namespace aecl::scene;
-    obj::Exporter exporter(acul::io::path(env.output_dir) / "export_origin.obj");
+    obj::Exporter exporter(acul::path(env.output_dir) / "export_origin.obj");
     exporter.mesh_flags =
-        MeshExportFlagBits::ExportNormals | MeshExportFlagBits::ExportUV | MeshExportFlagBits::TransformReverseY;
-    exporter.obj_flags = obj::ObjExportFlagBits::ObjectPolicyGroups | obj::ObjExportFlagBits::MaterialsPBR;
-    exporter.material_flags = MaterialExportFlags::TextureCopyToLocal;
+        MeshExportFlagBits::export_normals | MeshExportFlagBits::export_uv | MeshExportFlagBits::transform_reverse_y;
+    exporter.obj_flags = obj::ObjExportFlagBits::object_policy_groups | obj::ObjExportFlagBits::materials_pbr;
+    exporter.material_flags = MaterialExportFlags::texture_copy;
 
     create_objects(exporter.objects);
     auto mat = acul::make_shared<umbf::MaterialRange>();
@@ -26,5 +26,5 @@ void test_obj_export_texture()
 
     auto state = exporter.save();
     exporter.clear();
-    assert(state);
+    assert(state.success());
 }

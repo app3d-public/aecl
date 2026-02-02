@@ -11,9 +11,9 @@ void create_objects(acul::vector<umbf::Object> &objects);
 
 void create_materials(acul::vector<umbf::File> &materials);
 
-inline void create_default_texture(acul::string &tex, const acul::io::path &data_dir)
+inline void create_default_texture(acul::string &tex, const acul::path &data_dir)
 {
     tex = (data_dir / "devCheck.jpg").str();
 }
 
-void create_generated_texture(acul::string &tex, const acul::io::path &tex_folder);
+void create_generated_texture(acul::string &tex, const acul::path &tex_folder);

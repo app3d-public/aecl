@@ -21,11 +21,11 @@ namespace aecl
 
                 ~Importer();
 
-                virtual acul::io::file::op_state read_source() override;
+                virtual acul::op_result read_source() override;
 
                 virtual void build_geometry() override;
 
-                virtual void load_materials() override;
+                virtual acul::op_result load_materials() override;
 
             private:
                 struct ImportCtx *_ctx;

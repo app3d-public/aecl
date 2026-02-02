@@ -1,6 +1,7 @@
 #pragma once
 
 #include <acul/enum.hpp>
+#include <acul/op_result.hpp>
 #include <umbf/umbf.hpp>
 
 namespace aecl
@@ -11,16 +12,16 @@ namespace aecl
         {
             enum enum_type
             {
-                None,
-                TransformReverseX = 0x1,
-                TransformReverseY = 0x2,
-                TransformReverseZ = 0x4,
-                TransformSwapXY = 0x8,
-                TransformSwapXZ = 0x10,
-                TransformSwapYZ = 0x20,
-                ExportUV = 0x40,
-                ExportNormals = 0x80,
-                ExportTriangulated = 0x100
+                none,
+                transform_reverse_x = 0x1,
+                transform_reverse_y = 0x2,
+                transform_reverse_z = 0x4,
+                transform_swap_xy = 0x8,
+                transform_swap_xz = 0x10,
+                transform_swap_yz = 0x20,
+                export_uv = 0x40,
+                export_normals = 0x80,
+                export_triangulated = 0x100
             };
             using flag_bitmask = std::true_type;
         };
@@ -31,10 +32,10 @@ namespace aecl
         {
             enum
             {
-                None,              // Do not export materials
-                TextureNone,       // Do not export textures
-                TextureOrigin,     // As present in the material manager (external references)
-                TextureCopyToLocal // Create "tex" folder and copy textures there (keeping them external, but local)
+                none,           // Do not export materials
+                texture_none,   // Do not export textures
+                texture_origin, // As present in the material manager (external references)
+                texture_copy    // Create "tex" folder and copy textures there (keeping them external, but local)
             };
         };
 
@@ -56,7 +57,7 @@ namespace aecl
 
             virtual ~IExporter() = default;
 
-            virtual bool save() = 0;
+            virtual acul::op_result save() = 0;
 
             inline void clear()
             {
@@ -64,6 +65,11 @@ namespace aecl
                 materials.clear();
                 textures.clear();
             }
+
+            const acul::string &error() const { return _error; }
+
+        protected:
+            acul::string _error;
         };
     } // namespace scene
 } // namespace aecl

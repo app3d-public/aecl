@@ -132,7 +132,7 @@ void create_materials(acul::vector<umbf::File> &materials)
     materials.push_back(asset);
 }
 
-void create_generated_texture(acul::string &tex, const acul::io::path &tex_folder)
+void create_generated_texture(acul::string &tex, const acul::path &tex_folder)
 {
     umbf::Image2D image;
     image.format.bytes_per_channel = 1;

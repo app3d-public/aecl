@@ -14,16 +14,15 @@ void test_image_export()
     };
     umbf::streams::resolver = &meta_resolver;
 
-    auto p = acul::io::path(env.data_dir) / "image.umia";
+    auto p = acul::path(env.data_dir) / "image.umia";
     auto loader = aecl::image::get_importer_by_path(p);
     assert(loader);
     acul::vector<umbf::Image2D> images;
-    auto state = loader->load(p, images);
-    assert(state == acul::io::file::op_state::success);
+    assert(loader->load(p, images));
     assert(!images.empty());
     auto &inp = images.front();
 
-    acul::io::path op = env.output_dir;
+    acul::path op = env.output_dir;
     using namespace aecl::image;
 
     // BMP

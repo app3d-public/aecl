@@ -1,695 +1,443 @@
 #include <aecl/scene/import.hpp>
 #include <amal/integration/acul/string.hpp>
 
-namespace aecl
+namespace aecl::scene::obj
 {
-    namespace scene
+    // MTL Texture parameters
+    struct TextureOption
     {
-        namespace obj
+        acul::string path; // Path to the texture
+        /**
+         * @brief The blendu option turns texture blending in the horizontal direction
+            (u direction) on or off.  The default is on.
+        **/
+        bool blendu{true};
+        /**
+         * @brief The blendv option turns texture blending in the vertical direction
+         *  (v direction) on or off.  The default is on.
+         */
+        bool blendv{true};
+        /**
+         *  The boost option increases the sharpness, or clarity. If you render animations with boost,
+         *you may experience some texture crawling.
+         *
+         * Value is any non-negative f32ing point value representing the
+         * degree of increased clarity; the greater the value, the greater the
+         * clarity.  You should start with a boost value of no more than 1 or 2 and
+         * increase the value as needed. Note that larger values have more
+         * potential to introduce texture crawling when animated.
+         **/
+        f32 boost{0};
+        /**
+         *  The mm option modifies the range over which scalar or color texture
+         * values may vary.  This has an effect only during rendering and does not
+         * change the file. It uses two values: base and gain.
+         *
+         *  "base" adds a base value to the texture values.  A positive value makes
+         * everything brighter; a negative value makes everything dimmer.  The
+         * default is 0; the range is unlimited.
+         *
+         *  "gain" expands the range of the texture values.  Increasing the number
+         * increases the contrast.  The default is 1; the range is unlimited.
+         */
+        amal::vec2 mm{0.0f, 1.0f};
+        /**
+         * The option offsets the position of the texture map on the surface by
+         * shifting the position of the map origin.  The default is 0, 0, 0.
+         *
+         * "u" is the value for the horizontal direction of the texture
+         *
+         * "v" is an optional argument.
+         * "v" is the value for the vertical direction of the texture.
+         *
+         * "w" is an optional argument.
+         * "w" is the value used for the depth of a 3D texture.
+         */
+        amal::vec3 offset{0.0f, 0.0f, 0.0f};
+        /**
+         * The option scales the size of the texture pattern on the textured
+         * surface by expanding or shrinking the pattern.  The default is 1, 1, 1.
+         *
+         * "u" is the value for the horizontal direction of the texture
+         *
+         * "v" is an optional argument.
+         * "v" is the value for the vertical direction of the texture.
+         *
+         * "w" is an optional argument.
+         * "w" is a value used for the depth of a 3D texture.
+         * "w" is a value used for the amount of tessellation of the displacement map.
+         */
+        amal::vec3 scale{1.0f, 1.0f, 1.0f};
+        /**
+         * The option turns on turbulence for textures. Adding turbulence to a
+         * texture along a specified direction adds variance to the original image
+         * and allows a simple image to be repeated over a larger area without
+         * noticeable tiling effects.
+         *
+         * Turbulence also lets you use a 2D image as if it were a solid texture,
+         * similar to 3D procedural textures like marble and granite.
+         *
+         * "u" is the value for the horizontal direction of the texture
+         * turbulence.
+         *
+         * "v" is an optional argument.
+         * "v" is the value for the vertical direction of the texture turbulence.
+         *
+         * "w" is an optional argument.
+         * "w" is a value used for the depth of the texture turbulence.
+         *
+         * By default, the turbulence for every texture map used in a material is
+         * uvw = (0,0,0).  This means that no turbulence will be applied and the 2D
+         * texture will behave normally.
+         *
+         * Only when you raise the turbulence values above zero will you see the
+         * effects of turbulence.
+         */
+        amal::vec3 turbulence{0.0f, 0.0f, 0.0f};
+        /**
+         * The option specifies the resolution of texture created when an
+         * image is used.  The default texture size is the largest power of two
+         * that does not exceed the original image size.
+         *
+         * If the source image is an exact power of 2, the texture cannot be built
+         * any larger.  If the source image size is not an exact power of 2, you
+         * can specify that the texture be built at the next power of 2 greater
+         * than the source image size.
+         *
+         * The original image should be square, otherwise, it will be scaled to
+         * fit the closest square size that is not larger than the original.
+         * Scaling reduces sharpness.
+         */
+        int resolution{0};
+        /**
+         * The -clamp option turns clamping on or off.  When clamping is on,
+         * textures are restricted to 0-1 in the uvw range.  The default is off.
+         *
+         *  When clamping is turned on, one copy of the texture is mapped onto the
+         * surface, rather than repeating copies of the original texture across the
+         * surface of a polygon, which is the default.  Outside of the origin
+         * texture, the underlying material is unchanged.
+         *
+         *  A postage stamp on an envelope or a label on a can of soup is an
+         * example of a texture with clamping turned on.  A tile floor or a
+         * sidewalk is an example of a texture with clamping turned off.
+         *
+         * Two-dimensional textures are clamped in the u and v dimensions; 3D
+         * procedural textures are clamped in the u, v, and w dimensions.
+         **/
+        bool clamp{false};
+        /**
+         *  The option specifies a bump multiplier. You can use it only with
+         *  the "bump" statement.  Values stored with the texture or procedural
+         *  texture file are multiplied by this value before they are applied to the
+         *  surface.
+         *
+         *  The value can be positive or negative. Extreme bump multipliers may cause odd visual results
+         * because only the surface normal is perturbed and the surface position does not change. For
+         * best results, use values between 0 and 1.
+         */
+        f32 bump_intensity{1.0f};
+        /**
+         * The imfchan option specifies the channel used to create a scalar or
+         * bump texture.  Scalar textures are applied to:
+         *
+         * transparency
+         * specular exponent
+         * decal
+         * displacement
+         *
+         * The channel choices are:
+         *
+         * r specifies the red channel.
+         * g specifies the green channel.
+         * b specifies the blue channel.
+         * m specifies the matte channel.
+         * l specifies the luminance channel.
+         * z specifies the z-depth channel.
+         *
+         * The default for bump and scalar textures is "l" (luminance), unless you
+         * are building a decal.  In that case, the default is "m" (matte).
+         **/
+        char imfchan{0};
+
+        acul::string type;
+    };
+
+    struct ColorOption
+    {
+        enum class Type
         {
-            // MTL Texture parameters
-            struct TextureOption
-            {
-                acul::string path; // Path to the texture
-                /**
-                 * @brief The blendu option turns texture blending in the horizontal direction
-                    (u direction) on or off.  The default is on.
-                **/
-                bool blendu{true};
-                /**
-                 * @brief The blendv option turns texture blending in the vertical direction
-                 *  (v direction) on or off.  The default is on.
-                 */
-                bool blendv{true};
-                /**
-                 *  The boost option increases the sharpness, or clarity. If you render animations with boost,
-                 *you may experience some texture crawling.
-                 *
-                 * Value is any non-negative f32ing point value representing the
-                 * degree of increased clarity; the greater the value, the greater the
-                 * clarity.  You should start with a boost value of no more than 1 or 2 and
-                 * increase the value as needed. Note that larger values have more
-                 * potential to introduce texture crawling when animated.
-                 **/
-                f32 boost{0};
-                /**
-                 *  The mm option modifies the range over which scalar or color texture
-                 * values may vary.  This has an effect only during rendering and does not
-                 * change the file. It uses two values: base and gain.
-                 *
-                 *  "base" adds a base value to the texture values.  A positive value makes
-                 * everything brighter; a negative value makes everything dimmer.  The
-                 * default is 0; the range is unlimited.
-                 *
-                 *  "gain" expands the range of the texture values.  Increasing the number
-                 * increases the contrast.  The default is 1; the range is unlimited.
-                 */
-                amal::vec2 mm{0.0f, 1.0f};
-                /**
-                 * The option offsets the position of the texture map on the surface by
-                 * shifting the position of the map origin.  The default is 0, 0, 0.
-                 *
-                 * "u" is the value for the horizontal direction of the texture
-                 *
-                 * "v" is an optional argument.
-                 * "v" is the value for the vertical direction of the texture.
-                 *
-                 * "w" is an optional argument.
-                 * "w" is the value used for the depth of a 3D texture.
-                 */
-                amal::vec3 offset{0.0f, 0.0f, 0.0f};
-                /**
-                 * The option scales the size of the texture pattern on the textured
-                 * surface by expanding or shrinking the pattern.  The default is 1, 1, 1.
-                 *
-                 * "u" is the value for the horizontal direction of the texture
-                 *
-                 * "v" is an optional argument.
-                 * "v" is the value for the vertical direction of the texture.
-                 *
-                 * "w" is an optional argument.
-                 * "w" is a value used for the depth of a 3D texture.
-                 * "w" is a value used for the amount of tessellation of the displacement map.
-                 */
-                amal::vec3 scale{1.0f, 1.0f, 1.0f};
-                /**
-                 * The option turns on turbulence for textures. Adding turbulence to a
-                 * texture along a specified direction adds variance to the original image
-                 * and allows a simple image to be repeated over a larger area without
-                 * noticeable tiling effects.
-                 *
-                 * Turbulence also lets you use a 2D image as if it were a solid texture,
-                 * similar to 3D procedural textures like marble and granite.
-                 *
-                 * "u" is the value for the horizontal direction of the texture
-                 * turbulence.
-                 *
-                 * "v" is an optional argument.
-                 * "v" is the value for the vertical direction of the texture turbulence.
-                 *
-                 * "w" is an optional argument.
-                 * "w" is a value used for the depth of the texture turbulence.
-                 *
-                 * By default, the turbulence for every texture map used in a material is
-                 * uvw = (0,0,0).  This means that no turbulence will be applied and the 2D
-                 * texture will behave normally.
-                 *
-                 * Only when you raise the turbulence values above zero will you see the
-                 * effects of turbulence.
-                 */
-                amal::vec3 turbulence{0.0f, 0.0f, 0.0f};
-                /**
-                 * The option specifies the resolution of texture created when an
-                 * image is used.  The default texture size is the largest power of two
-                 * that does not exceed the original image size.
-                 *
-                 * If the source image is an exact power of 2, the texture cannot be built
-                 * any larger.  If the source image size is not an exact power of 2, you
-                 * can specify that the texture be built at the next power of 2 greater
-                 * than the source image size.
-                 *
-                 * The original image should be square, otherwise, it will be scaled to
-                 * fit the closest square size that is not larger than the original.
-                 * Scaling reduces sharpness.
-                 */
-                int resolution{0};
-                /**
-                 * The -clamp option turns clamping on or off.  When clamping is on,
-                 * textures are restricted to 0-1 in the uvw range.  The default is off.
-                 *
-                 *  When clamping is turned on, one copy of the texture is mapped onto the
-                 * surface, rather than repeating copies of the original texture across the
-                 * surface of a polygon, which is the default.  Outside of the origin
-                 * texture, the underlying material is unchanged.
-                 *
-                 *  A postage stamp on an envelope or a label on a can of soup is an
-                 * example of a texture with clamping turned on.  A tile floor or a
-                 * sidewalk is an example of a texture with clamping turned off.
-                 *
-                 * Two-dimensional textures are clamped in the u and v dimensions; 3D
-                 * procedural textures are clamped in the u, v, and w dimensions.
-                 **/
-                bool clamp{false};
-                /**
-                 *  The option specifies a bump multiplier. You can use it only with
-                 *  the "bump" statement.  Values stored with the texture or procedural
-                 *  texture file are multiplied by this value before they are applied to the
-                 *  surface.
-                 *
-                 *  The value can be positive or negative. Extreme bump multipliers may cause odd visual results
-                 * because only the surface normal is perturbed and the surface position does not change. For
-                 * best results, use values between 0 and 1.
-                 */
-                f32 bump_intensity{1.0f};
-                /**
-                 * The imfchan option specifies the channel used to create a scalar or
-                 * bump texture.  Scalar textures are applied to:
-                 *
-                 * transparency
-                 * specular exponent
-                 * decal
-                 * displacement
-                 *
-                 * The channel choices are:
-                 *
-                 * r specifies the red channel.
-                 * g specifies the green channel.
-                 * b specifies the blue channel.
-                 * m specifies the matte channel.
-                 * l specifies the luminance channel.
-                 * z specifies the z-depth channel.
-                 *
-                 * The default for bump and scalar textures is "l" (luminance), unless you
-                 * are building a decal.  In that case, the default is "m" (matte).
-                 **/
-                char imfchan{0};
+            RGB,
+            XYZ
+        };
+        Type type{Type::RGB};
+        amal::vec3 value{1.0f, 1.0f, 1.0f};
+    };
 
-                acul::string type;
-            };
+    // OBJ Material in accoring MTL file format specification
+    struct Material
+    {
+        /**
+         * @brief Material name
+         */
+        acul::string name;
 
-            struct ColorOption
+        /**
+         * @brief Specifies ambient color, to account for light that is scattered about
+         * the entire scene using values between 0 and 1 for the RGB components
+         */
+        ColorOption Ka;
+        /**
+         * @brief Specifies diffuse color, which typically contributes most of the color
+         * to an object
+         */
+        ColorOption Kd;
+        // Specifies specular color, the color seen where the surface is shiny and mirror-like
+        ColorOption Ks;
+        /**
+         * @brief Specifies diffuse color, which typically contributes most of the color Defines the
+         * focus of specular highlights in the material. Ns values normally range from 0 to 1000, with a
+         * high value resulting in a tight, concentrated highlight.
+         */
+        f32 Ns{10.0f};
+        /**
+         * @brief defines the optical density (aka index of refraction) in the current material.
+         * The values can range from 0.001 to 10. A value of 1.0 means that light does not
+         * bend as it passes through an object.
+         */
+        f32 Ni;
+        /**
+         * @brief specifies a factor for dissolve, how much this material dissolves into the background.
+         * A factor of 1.0 is fully opaque. A factor of 0.0 is completely transparent.
+         */
+        f32 d{1.0};
+        /**
+         * @brief specifies the transparency of the material as a value between 0.0 and 1.0.
+         * Tr euqals: 1.0 - d
+         */
+        f32 Tr{0.0f};
+
+        /**
+         * The Tf statement specifies the transmission filter using RGB/XYZ values.
+         *
+         * "r g b" are the values for the red, green, and blue components of the
+         * atmosphere.  The g and b arguments are optional.  If only r is
+         * specified, then g, and b are assumed to be equal to r.  The r g b values
+         * are normally in the range of 0.0 to 1.0.  Values outside this range
+         * increase or decrease the relectivity accordingly.
+         *
+         */
+        ColorOption Tf;
+        /**
+         * Specifies an illumination model, using a numeric value.
+         * The value 0 represents the simplest illumination model,
+         * relying on the Kd for the material modified by a texture map specified in a map_Kd statement
+         * if present. The compilers of this resource believe that the choice of illumination model is
+         * irrelevant for 3D printing use and is ignored on import by some software applications. For
+         * example, the MTL Loader in the threejs Javascript library appears to ignore illum statements.
+         *
+         * Possible values:
+         * 0. Color on and Ambient off
+         * 1. Color on and Ambient on
+         * 2. Highlight on
+         * 3. Reflection on and Ray trace on
+         * 4. Transparency: Glass on, Reflection: Ray trace on
+         * 5. Reflection: Fresnel on and Ray trace on
+         * 6. Transparency: Refraction on, Reflection: Fresnel off and Ray trace on
+         * 7. Transparency: Refraction on, Reflection: Fresnel on and Ray trace on
+         * 8. Reflection on and Ray trace off
+         * 9. Transparency: Glass on, Reflection: Ray trace off
+         * 10. Casts shadows onto invisible surfaces
+         */
+        int illum;
+
+        /// PBR Workflow
+        f32 Pr;
+        f32 Pm;
+        f32 Ps;
+        f32 Ke;
+        f32 Pc;
+        f32 Pcr;
+        f32 aniso;
+        f32 anisor;
+
+        /// Textures
+
+        TextureOption map_Ka;
+        TextureOption map_Kd;
+        TextureOption map_Ks;
+        TextureOption map_Ns;
+        TextureOption map_d;
+        TextureOption map_Tr;
+        TextureOption map_bump;
+        TextureOption disp;
+        TextureOption decal;
+        TextureOption refl;
+
+        /// PBR Workflow
+        TextureOption map_Pr;
+        TextureOption map_Pm;
+        TextureOption map_Ps;
+        TextureOption map_Ke;
+        TextureOption norm;
+    };
+
+    void process_enable_flag(const char *&token, bool &dst)
+    {
+        while (isspace(*token)) ++token;
+        if (strncmp(token, "on", 2) == 0)
+        {
+            dst = true;
+            token += 2;
+        }
+        else if (strncmp(token, "off", 3) == 0)
+        {
+            dst = false;
+            token += 3;
+        }
+    }
+
+    void process_mtl_texture_option(const char *&token, TextureOption &dst)
+    {
+        bool path_processed = false;
+        do
+        {
+            while (isspace(*token)) ++token;
+
+            if (token[0] == '-')
             {
-                enum class Type
+                ++token;
+                if (strncmp(token, "blendu", 6) == 0) process_enable_flag(token += 7, dst.blendu);
+                else if (strncmp(token, "blendv", 6) == 0) process_enable_flag(token += 7, dst.blendv);
+                else if (strncmp(token, "boost", 5) == 0) acul::stof(token += 6, dst.boost);
+                else if (strncmp(token, "mm", 2) == 0) acul::stov2(token += 3, dst.mm);
+                else if (token[0] == 'o') acul::stov3_opt(token += 2, dst.offset);
+                else if (token[0] == 's') acul::stov3_opt(token += 2, dst.scale);
+                else if (token[0] == 't')
                 {
-                    RGB,
-                    XYZ
-                };
-                Type type{Type::RGB};
-                amal::vec3 value{1.0f, 1.0f, 1.0f};
-            };
-
-            // OBJ Material in accoring MTL file format specification
-            struct Material
-            {
-                /**
-                 * @brief Material name
-                 */
-                acul::string name;
-
-                /**
-                 * @brief Specifies ambient color, to account for light that is scattered about
-                 * the entire scene using values between 0 and 1 for the RGB components
-                 */
-                ColorOption Ka;
-                /**
-                 * @brief Specifies diffuse color, which typically contributes most of the color
-                 * to an object
-                 */
-                ColorOption Kd;
-                // Specifies specular color, the color seen where the surface is shiny and mirror-like
-                ColorOption Ks;
-                /**
-                 * @brief Specifies diffuse color, which typically contributes most of the color Defines the
-                 * focus of specular highlights in the material. Ns values normally range from 0 to 1000, with a
-                 * high value resulting in a tight, concentrated highlight.
-                 */
-                f32 Ns{10.0f};
-                /**
-                 * @brief defines the optical density (aka index of refraction) in the current material.
-                 * The values can range from 0.001 to 10. A value of 1.0 means that light does not
-                 * bend as it passes through an object.
-                 */
-                f32 Ni;
-                /**
-                 * @brief specifies a factor for dissolve, how much this material dissolves into the background.
-                 * A factor of 1.0 is fully opaque. A factor of 0.0 is completely transparent.
-                 */
-                f32 d{1.0};
-                /**
-                 * @brief specifies the transparency of the material as a value between 0.0 and 1.0.
-                 * Tr euqals: 1.0 - d
-                 */
-                f32 Tr{0.0f};
-
-                /**
-                 * The Tf statement specifies the transmission filter using RGB/XYZ values.
-                 *
-                 * "r g b" are the values for the red, green, and blue components of the
-                 * atmosphere.  The g and b arguments are optional.  If only r is
-                 * specified, then g, and b are assumed to be equal to r.  The r g b values
-                 * are normally in the range of 0.0 to 1.0.  Values outside this range
-                 * increase or decrease the relectivity accordingly.
-                 *
-                 */
-                ColorOption Tf;
-                /**
-                 * Specifies an illumination model, using a numeric value.
-                 * The value 0 represents the simplest illumination model,
-                 * relying on the Kd for the material modified by a texture map specified in a map_Kd statement
-                 * if present. The compilers of this resource believe that the choice of illumination model is
-                 * irrelevant for 3D printing use and is ignored on import by some software applications. For
-                 * example, the MTL Loader in the threejs Javascript library appears to ignore illum statements.
-                 *
-                 * Possible values:
-                 * 0. Color on and Ambient off
-                 * 1. Color on and Ambient on
-                 * 2. Highlight on
-                 * 3. Reflection on and Ray trace on
-                 * 4. Transparency: Glass on, Reflection: Ray trace on
-                 * 5. Reflection: Fresnel on and Ray trace on
-                 * 6. Transparency: Refraction on, Reflection: Fresnel off and Ray trace on
-                 * 7. Transparency: Refraction on, Reflection: Fresnel on and Ray trace on
-                 * 8. Reflection on and Ray trace off
-                 * 9. Transparency: Glass on, Reflection: Ray trace off
-                 * 10. Casts shadows onto invisible surfaces
-                 */
-                int illum;
-
-                /// PBR Workflow
-                f32 Pr;
-                f32 Pm;
-                f32 Ps;
-                f32 Ke;
-                f32 Pc;
-                f32 Pcr;
-                f32 aniso;
-                f32 anisor;
-
-                /// Textures
-
-                TextureOption map_Ka;
-                TextureOption map_Kd;
-                TextureOption map_Ks;
-                TextureOption map_Ns;
-                TextureOption map_d;
-                TextureOption map_Tr;
-                TextureOption map_bump;
-                TextureOption disp;
-                TextureOption decal;
-                TextureOption refl;
-
-                /// PBR Workflow
-                TextureOption map_Pr;
-                TextureOption map_Pm;
-                TextureOption map_Ps;
-                TextureOption map_Ke;
-                TextureOption norm;
-            };
-
-            bool process_enable_flag(const char *&token, bool &dst)
-            {
-                while (isspace(*token)) ++token;
-                if (strncmp(token, "on", 2) == 0)
-                {
-                    dst = true;
-                    token += 2;
+                    if (isspace(token[1])) acul::stov3_opt(token += 2, dst.turbulence);
+                    else if (strncmp(token, "texres", 6) == 0) acul::stoi(token += 7, dst.resolution);
+                    else if (strncmp(token, "type", 4) == 0) dst.type = acul::strip_controls(token += 5);
                 }
-                else if (strncmp(token, "off", 3) == 0)
+                else if (strncmp(token, "clamp", 5) == 0) process_enable_flag(token += 6, dst.clamp);
+                else if (strncmp(token, "bm", 2) == 0) acul::stof(token += 3, dst.bump_intensity);
+                else if (strncmp(token, "imfchan", 7) == 0)
                 {
-                    dst = false;
-                    token += 3;
-                }
-                else
-                    return false;
-                return true;
-            }
-
-            bool process_mtl_texture_option(const char *&token, TextureOption &dst)
-            {
-                bool path_processed = false;
-                do {
+                    token += 8;
                     while (isspace(*token)) ++token;
-
-                    if (token[0] == '-')
-                    {
-                        ++token;
-
-                        if (strncmp(token, "blendu", 6) == 0)
-                        {
-                            token += 7;
-                            if (!process_enable_flag(token, dst.blendu)) return false;
-                        }
-                        else if (strncmp(token, "blendv", 6) == 0)
-                        {
-                            token += 7;
-                            if (!process_enable_flag(token, dst.blendv)) return false;
-                        }
-                        else if (strncmp(token, "boost", 5) == 0)
-                        {
-                            token += 6;
-                            if (!acul::stof(token, dst.boost)) return false;
-                        }
-                        else if (strncmp(token, "mm", 2) == 0)
-                        {
-                            token += 3;
-                            if (!acul::stov2(token, dst.mm)) return false;
-                        }
-                        else if (token[0] == 'o')
-                        {
-                            token += 2;
-                            acul::stov3_opt(token, dst.offset);
-                        }
-                        else if (token[0] == 's')
-                        {
-                            token += 2;
-                            acul::stov3_opt(token, dst.scale);
-                        }
-                        else if (token[0] == 't')
-                        {
-                            if (isspace(token[1]))
-                            {
-                                token += 2;
-                                acul::stov3_opt(token, dst.turbulence);
-                            }
-                            else if (strncmp(token, "texres", 6) == 0)
-                            {
-                                token += 7;
-                                if (!acul::stoi(token, dst.resolution)) return false;
-                            }
-                            else if (strncmp(token, "type", 4) == 0)
-                            {
-                                token += 5;
-                                dst.type = acul::strip_controls(token);
-                            }
-                            else
-                                return false;
-                        }
-                        else if (strncmp(token, "clamp", 5) == 0)
-                        {
-                            token += 6;
-                            if (!process_enable_flag(token, dst.clamp)) return false;
-                        }
-                        else if (strncmp(token, "bm", 2) == 0)
-                        {
-                            token += 3;
-                            if (!acul::stof(token, dst.bump_intensity)) return false;
-                        }
-                        else if (strncmp(token, "imfchan", 7) == 0)
-                        {
-                            token += 8;
-                            while (isspace(*token)) ++token;
-                            dst.imfchan = token[0];
-                            ++token;
-                        }
-                        else
-                        {
-                            LOG_WARN("Unknown option: %s", acul::strip_controls(token).c_str());
-                            return false;
-                        }
-                    }
-                    else
-                    {
-                        if (path_processed) break;
-                        dst.path = acul::strip_controls(token);
-                        path_processed = true;
-                    }
-                } while (true);
-                return true;
+                    dst.imfchan = token[0];
+                    ++token;
+                }
             }
-
-            bool process_mtl_color_option(const char *&token, ColorOption &dst)
+            else
             {
-                ColorOption color_option;
-                while (isspace(*token)) ++token;
-                if (!isdigit(*token))
-                {
-                    if (strncmp(token, "xyz", 3) == 0)
-                    {
-                        color_option.type = ColorOption::Type::XYZ;
-                        token += 3;
-                    }
-                    else
-                        return false;
-                }
-                amal::vec3 color;
-                if (acul::stov3(token, color))
-                    color_option.value = color;
-                else
-                    return false;
-                dst = color_option;
-                return true;
+                if (path_processed) break;
+                dst.path = acul::strip_controls(token);
+                path_processed = true;
             }
+        } while (true);
+    }
 
-            void parse_mtl_line(const acul::string_view &line, acul::vector<Material> &materials, int &mat_index,
-                                int line_index)
+    bool process_mtl_color_option(const char *&token, ColorOption &dst)
+    {
+        ColorOption color_option;
+        while (isspace(*token)) ++token;
+        if (!isdigit(*token))
+        {
+            if (strncmp(token, "xyz", 3) == 0)
             {
-                try
-                {
-                    if (line.empty() || line[0] == '\0' || line[0] == '#') return;
-                    const char *token = line.data();
-                    if (strncmp(token, "newmtl", 6) == 0)
-                    {
-                        token += 7;
-                        Material material{acul::strip_controls(token)};
-                        materials.push_back(std::move(material));
-                        ++mat_index;
-                    }
-                    else if (token[0] == 'K')
-                    {
-                        if (token[1] == 'a')
-                        {
-                            token += 3;
-                            if (!process_mtl_color_option(token, materials[mat_index].Ka))
-                                throw ParseException(line, line_index);
-                        }
-                        else if (token[1] == 'd')
-                        {
-                            token += 3;
-                            if (!process_mtl_color_option(token, materials[mat_index].Kd))
-                                throw ParseException(line, line_index);
-                        }
-                    }
-                    else if (token[0] == 'N')
-                    {
-                        if (token[1] == 's')
-                        {
-                            token += 3;
-                            f32 ns;
-                            if (!acul::stof(token, ns)) throw ParseException(line, line_index);
-                            materials[mat_index].Ns = ns;
-                        }
-                        else if (token[1] == 'i')
-                        {
-                            token += 3;
-                            if (!acul::stof(token, materials[mat_index].Ni)) throw ParseException(line, line_index);
-                        }
-                    }
-                    else if (strncmp(token, "illum", 5) == 0)
-                    {
-                        token += 6;
-                        if (!acul::stoi(token, materials[mat_index].illum)) throw ParseException(line, line_index);
-                    }
-                    else if (token[0] == 'd')
-                    {
-                        token += 2;
-                        if (!acul::stof(token, materials[mat_index].d)) throw ParseException(line, line_index);
-                    }
-                    else if (token[0] == 'T')
-                    {
-                        if (token[1] == 'r')
-                        {
-                            token += 3;
-                            if (!acul::stof(token, materials[mat_index].Tr)) throw ParseException(line, line_index);
-                        }
-                        else if (token[1] == 'f')
-                        {
-                            token += 3;
-                            if (!process_mtl_color_option(token, materials[mat_index].Tf))
-                                throw ParseException(line, line_index);
-                        }
-                    }
-                    else if (strncmp(token, "map_", 4) == 0)
-                    {
-                        if (token[4] == 'K')
-                        {
-                            if (token[5] == 'a')
-                            {
-                                token += 6;
-                                TextureOption map_Ka;
-                                if (process_mtl_texture_option(token, map_Ka))
-                                    materials[mat_index].map_Ka = std::move(map_Ka);
-                                else
-                                    throw ParseException(line, line_index);
-                            }
-                            else if (token[5] == 'd')
-                            {
-                                token += 6;
-                                TextureOption map_Kd;
-                                if (process_mtl_texture_option(token, map_Kd))
-                                    materials[mat_index].map_Kd = std::move(map_Kd);
-                                else
-                                    throw ParseException(line, line_index);
-                            }
-                            else if (token[5] == 's')
-                            {
-                                token += 6;
-                                TextureOption map_Ks;
-                                if (process_mtl_texture_option(token, map_Ks))
-                                    materials[mat_index].map_Ks = std::move(map_Ks);
-                                else
-                                    throw ParseException(line, line_index);
-                            }
-                            else if (token[5] == 'e')
-                            {
-                                token += 6;
-                                TextureOption map_Ke;
-                                if (process_mtl_texture_option(token, map_Ke))
-                                    materials[mat_index].map_Ke = std::move(map_Ke);
-                                else
-                                    throw ParseException(line, line_index);
-                            }
-                        }
-                        else if (token[5] == 'N' && token[6] == 's')
-                        {
-                            token += 6;
-                            TextureOption map_Ns;
-                            if (process_mtl_texture_option(token, map_Ns))
-                                materials[mat_index].map_Ns = std::move(map_Ns);
-                            else
-                                throw ParseException(line, line_index);
-                        }
-                        else if (token[5] == 'd')
-                        {
-                            token += 6;
-                            TextureOption map_d;
-                            if (process_mtl_texture_option(token, map_d))
-                                materials[mat_index].map_d = std::move(map_d);
-                            else
-                                throw ParseException(line, line_index);
-                        }
-                        else if (token[5] == 'T' && token[6] == 'r')
-                        {
-                            token += 6;
-                            TextureOption map_Tr;
-                            if (process_mtl_texture_option(token, map_Tr))
-                                materials[mat_index].map_Tr = std::move(map_Tr);
-                            else
-                                throw ParseException(line, line_index);
-                        }
-                        else if (strncmp(token, "map_bump", 8) == 0)
-                        {
-                            token += 9;
-                            TextureOption map_bump;
-                            if (process_mtl_texture_option(token, map_bump))
-                                materials[mat_index].map_bump = std::move(map_bump);
-                            else
-                                throw ParseException(line, line_index);
-                        }
-                        /// PBR Workflow
-                        else if (token[4] == 'P')
-                        {
-                            if (token[5] == 'r')
-                            {
-                                token += 6;
-                                TextureOption map_Pr;
-                                if (process_mtl_texture_option(token, map_Pr))
-                                    materials[mat_index].map_Pr = std::move(map_Pr);
-                                else
-                                    throw ParseException(line, line_index);
-                            }
-                            else if (token[5] == 'm')
-                            {
-                                token += 6;
-                                TextureOption map_Pm;
-                                if (process_mtl_texture_option(token, map_Pm))
-                                    materials[mat_index].map_Pm = std::move(map_Pm);
-                                else
-                                    throw ParseException(line, line_index);
-                            }
-                            else if (token[5] == 's')
-                            {
-                                token += 6;
-                                TextureOption map_Ps;
-                                if (process_mtl_texture_option(token, map_Ps))
-                                    materials[mat_index].map_Ps = std::move(map_Ps);
-                                else
-                                    throw ParseException(line, line_index);
-                            }
-                        }
-                    }
-                    else if (strncmp(token, "bump", 4) == 0)
-                    {
-                        token += 5;
-                        TextureOption bump;
-                        if (process_mtl_texture_option(token, materials[mat_index].map_bump))
-                            materials[mat_index].map_bump = std::move(bump);
-                        else
-                            throw ParseException(line, line_index);
-                    }
-                    else if (strncmp(token, "disp", 4) == 0)
-                    {
-                        token += 5;
-                        TextureOption disp;
-                        if (process_mtl_texture_option(token, disp))
-                            materials[mat_index].disp = std::move(disp);
-                        else
-                            throw ParseException(line, line_index);
-                    }
-                    else if (strncmp(token, "decal", 5) == 0)
-                    {
-                        token += 6;
-                        TextureOption decal;
-                        if (process_mtl_texture_option(token, decal))
-                            materials[mat_index].decal = std::move(decal);
-                        else
-                            throw ParseException(line, line_index);
-                    }
-                    /// PBR Workflow
-                    else if (token[0] == 'P')
-                    {
-                        if (token[1] == 'r')
-                        {
-                            token += 3;
-                            if (!acul::stof(token, materials[mat_index].Pr)) throw ParseException(line, line_index);
-                        }
-                        else if (token[1] == 'm')
-                        {
-                            token += 3;
-                            if (!acul::stof(token, materials[mat_index].Pm)) throw ParseException(line, line_index);
-                        }
-                        else if (token[1] == 's')
-                        {
-                            token += 3;
-                            if (!acul::stof(token, materials[mat_index].Ps)) throw ParseException(line, line_index);
-                        }
-                        else if (token[1] == 'c')
-                        {
-                            if (isspace(token[2]))
-                            {
-                                token += 3;
-                                if (!acul::stof(token, materials[mat_index].Pc)) throw ParseException(line, line_index);
-                            }
-                            else if (token[2] == 'r')
-                            {
-                                token += 4;
-                                if (!acul::stof(token, materials[mat_index].Pcr))
-                                    throw ParseException(line, line_index);
-                            }
-                        }
-                    }
-                    else if (strncmp(token, "aniso", 5) == 0)
-                    {
-                        if (isspace(token[5]))
-                        {
-                            token += 6;
-                            if (!acul::stof(token, materials[mat_index].aniso)) throw ParseException(line, line_index);
-                        }
-                        else if (token[5] == 'r')
-                        {
-                            token += 7;
-                            if (!acul::stof(token, materials[mat_index].anisor)) throw ParseException(line, line_index);
-                        }
-                    }
-                    else if (strncmp(token, "norm", 4) == 0)
-                    {
-                        token += 5;
-                        TextureOption norm;
-                        if (process_mtl_texture_option(token, norm))
-                            materials[mat_index].norm = std::move(norm);
-                        else
-                            throw ParseException(line, line_index);
-                    }
-                }
-                catch (const ParseException &e)
-                {
-                    LOG_WARN("%s", e.what());
-                }
-                catch (const std::exception &e)
-                {
-                    LOG_WARN("Failed to process line with error: %s", e.what());
-                }
+                color_option.type = ColorOption::Type::XYZ;
+                token += 3;
             }
+            else return false;
+        }
+        amal::vec3 color;
+        if (acul::stov3(token, color)) color_option.value = color;
+        else return false;
+        dst = color_option;
+        return true;
+    }
 
-        } // namespace obj
-    } // namespace scene
-} // namespace aecl
+    void parse_mtl_line(const acul::string_view &line, acul::vector<Material> &materials, int &mat_index,
+                        int line_index)
+    {
+        if (line.empty() || line[0] == '\0' || line[0] == '#') return;
+        const char *token = line.data();
+        if (strncmp(token, "newmtl", 6) == 0)
+        {
+            token += 7;
+            Material material{acul::strip_controls(token)};
+            materials.push_back(std::move(material));
+            ++mat_index;
+        }
+        else if (token[0] == 'K')
+        {
+            if (token[1] == 'a') process_mtl_color_option(token += 3, materials[mat_index].Ka);
+            else if (token[1] == 'd') process_mtl_color_option(token += 3, materials[mat_index].Kd);
+        }
+        else if (token[0] == 'N')
+        {
+            if (token[1] == 's') acul::stof(token += 3, materials[mat_index].Ns);
+            else if (token[1] == 'i') acul::stof(token += 3, materials[mat_index].Ni);
+        }
+        else if (strncmp(token, "illum", 5) == 0) acul::stoi(token += 6, materials[mat_index].illum);
+        else if (token[0] == 'd') acul::stof(token += 2, materials[mat_index].d);
+        else if (token[0] == 'T')
+        {
+            if (token[1] == 'r')
+            {
+                token += 3;
+                if (!acul::stof(token, materials[mat_index].Tr)) return;
+            }
+            else if (token[1] == 'f')
+            {
+                token += 3;
+                if (!process_mtl_color_option(token, materials[mat_index].Tf)) return;
+            }
+        }
+        else if (strncmp(token, "map_", 4) == 0)
+        {
+            if (token[4] == 'K')
+            {
+                if (token[5] == 'a') process_mtl_texture_option(token += 6, materials[mat_index].map_Ka);
+                else if (token[5] == 'd') process_mtl_texture_option(token += 6, materials[mat_index].map_Kd);
+                else if (token[5] == 's') process_mtl_texture_option(token += 6, materials[mat_index].map_Ks);
+                else if (token[5] == 'e') process_mtl_texture_option(token += 6, materials[mat_index].map_Ke);
+            }
+            else if (token[5] == 'N' && token[6] == 's')
+                process_mtl_texture_option(token += 6, materials[mat_index].map_Ns);
+            else if (token[5] == 'd') process_mtl_texture_option(token += 6, materials[mat_index].map_d);
+            else if (token[5] == 'T' && token[6] == 'r')
+                process_mtl_texture_option(token += 6, materials[mat_index].map_Tr);
+            else if (strncmp(token, "map_bump", 8) == 0)
+                process_mtl_texture_option(token += 9, materials[mat_index].map_bump);
+            else if (token[4] == 'P') /// PBR Workflow
+            {
+                if (token[5] == 'r') process_mtl_texture_option(token += 6, materials[mat_index].map_Pr);
+                else if (token[5] == 'm') process_mtl_texture_option(token += 6, materials[mat_index].map_Pm);
+                else if (token[5] == 's') process_mtl_texture_option(token += 6, materials[mat_index].map_Ps);
+            }
+        }
+        else if (strncmp(token, "bump", 4) == 0) process_mtl_texture_option(token += 5, materials[mat_index].map_bump);
+        else if (strncmp(token, "disp", 4) == 0) process_mtl_texture_option(token += 5, materials[mat_index].disp);
+        else if (strncmp(token, "decal", 5) == 0) process_mtl_texture_option(token += 6, materials[mat_index].decal);
+        else if (token[0] == 'P') /// PBR Workflow
+        {
+            if (token[1] == 'r') acul::stof(token += 3, materials[mat_index].Pr);
+            else if (token[1] == 'm') acul::stof(token += 3, materials[mat_index].Pm);
+            else if (token[1] == 's') acul::stof(token += 3, materials[mat_index].Ps);
+            else if (token[1] == 'c')
+            {
+                if (isspace(token[2])) acul::stof(token += 3, materials[mat_index].Pc);
+                else if (token[2] == 'r') acul::stof(token += 4, materials[mat_index].Pcr);
+            }
+        }
+        else if (strncmp(token, "aniso", 5) == 0)
+        {
+            if (isspace(token[5])) acul::stof(token += 6, materials[mat_index].aniso);
+            else if (token[5] == 'r') acul::stof(token += 7, materials[mat_index].anisor);
+        }
+        else if (strncmp(token, "norm", 4) == 0) process_mtl_texture_option(token += 5, materials[mat_index].norm);
+    }
+
+} // namespace aecl::scene::obj

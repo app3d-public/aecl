@@ -10,6 +10,7 @@ namespace aecl
         struct OIIOParams
         {
             Format format;
+            acul::string error;
             OIIOParams(Format format) : format(format) {}
         };
 
