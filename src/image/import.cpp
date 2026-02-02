@@ -1,8 +1,8 @@
 #include <acul/hash/hashmap.hpp>
 #include <acul/io/fs/path.hpp>
 #include <aecl/image/import.hpp>
+#include <inttypes.h>
 #include <umbf/utils.hpp>
-
 
 namespace aecl::image
 {
@@ -63,10 +63,11 @@ namespace aecl::image
 
     bool UMBFLoader::load(const acul::string &path, acul::vector<umbf::Image2D> &images)
     {
-        auto asset = umbf::File::read_from_disk(path);
-        if (!asset)
+        acul::shared_ptr<umbf::File> asset;
+        auto res = umbf::File::read_from_disk(path, asset);
+        if (!res.success())
         {
-            _error = "Failed to read UMBF file";
+            _error = acul::format("Failed to load file. Error code: 0x%" PRIx64, static_cast<u64>(res) >> 32);
             return false;
         }
         _checksum = asset->checksum;
