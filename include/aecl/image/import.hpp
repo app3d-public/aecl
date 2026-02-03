@@ -50,10 +50,11 @@ namespace aecl
         protected:
             Format _format;
 
-            static bool load_image(
-                const std::unique_ptr<OIIO::ImageInput> &inp, int subimage,
-                std::function<bool(const std::unique_ptr<OIIO::ImageInput> &, int, int, void *, size_t)> load_handler,
-                ::umbf::Image2D &info);
+            static bool
+            load_image(const std::unique_ptr<OIIO::ImageInput> &inp, int subimage,
+                       acul::unique_function<bool(const std::unique_ptr<OIIO::ImageInput> &, int, int, void *, size_t)>
+                           load_handler,
+                       ::umbf::Image2D &info);
         };
 
         class BMPLoader final : public OIIOLoader

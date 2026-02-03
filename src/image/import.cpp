@@ -1,3 +1,4 @@
+#include <acul/functional/unique_function.hpp>
 #include <acul/hash/hashmap.hpp>
 #include <acul/io/fs/path.hpp>
 #include <aecl/image/import.hpp>
@@ -8,7 +9,7 @@ namespace aecl::image
 {
     bool OIIOLoader::load_image(
         const std::unique_ptr<OIIO::ImageInput> &inp, int subimage,
-        std::function<bool(const std::unique_ptr<OIIO::ImageInput> &, int, int, void *, size_t)> load_handler,
+        acul::unique_function<bool(const std::unique_ptr<OIIO::ImageInput> &, int, int, void *, size_t)> load_handler,
         umbf::Image2D &info)
     {
         info.pixels = acul::mem_allocator<std::byte>::allocate(info.size());
@@ -23,8 +24,8 @@ namespace aecl::image
             _error = OIIO::geterror().c_str();
             return false;
         }
-        std::function<bool(const std::unique_ptr<OIIO::ImageInput> &inp, int, int, void *, size_t)> load_handler{
-            nullptr};
+        acul::unique_function<bool(const std::unique_ptr<OIIO::ImageInput> &inp, int, int, void *, size_t)>
+            load_handler{nullptr};
         umbf::ImageFormat image_format;
         for (int subimage{0}; inp->seek_subimage(subimage, 0); subimage++)
         {
@@ -54,7 +55,7 @@ namespace aecl::image
                 };
             }
             info.format = image_format;
-            load_image(inp, subimage, load_handler, info);
+            load_image(inp, subimage, std::move(load_handler), info);
             images.push_back(info);
         }
         inp->close();

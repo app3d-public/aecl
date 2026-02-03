@@ -1,3 +1,4 @@
+#include <acul/functional/unique_function.hpp>
 #include <acul/hash/hl_hashmap.hpp>
 #include <acul/io/fs/file.hpp>
 #include <acul/io/fs/path.hpp>
