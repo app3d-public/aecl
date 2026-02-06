@@ -68,7 +68,7 @@ namespace aecl::image
         auto res = umbf::File::read_from_disk(path, asset);
         if (!res.success())
         {
-            _error = acul::format("Failed to load file. Error code: 0x%" PRIx64, static_cast<u64>(res) >> 32);
+            _error = acul::format("Failed to load file. Error code: 0x%016" PRIx64, static_cast<u64>(res));
             return false;
         }
         _checksum = asset->checksum;

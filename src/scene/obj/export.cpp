@@ -145,7 +145,7 @@ namespace aecl::scene::obj
         {
             acul::path parent = acul::path(path).parent_path();
             acul::path tex_path = parent / "tex" / tex;
-            if (acul::fs::copy(tex.c_str(), tex_path.str().c_str(), true))
+            if (acul::fs::copy_file(tex.c_str(), tex_path.str().c_str(), true))
                 os << token << " ./tex/" << tex_path.filename() << "\n";
         }
     }
