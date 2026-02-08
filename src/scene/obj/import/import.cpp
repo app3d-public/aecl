@@ -309,7 +309,7 @@ namespace aecl::scene::obj
                                               parse_line(parsed, pool[i], i);
                                       });
         });
-        if (result.success()) return result;
+        if (!result.success()) return result;
         copy_write_data(parsed, _ctx->data);
         _ctx->mtllib = parsed.mtllib;
         return result;
