@@ -5,7 +5,7 @@
 
 namespace aecl::image
 {
-    inline bool oiio_error(OIIOParams& params, OIIO::ImageOutput *out)
+    inline bool oiio_error(OIIOParams &params, OIIO::ImageOutput *out)
     {
         params.error = out->geterror().c_str();
         return false;
@@ -337,7 +337,8 @@ namespace aecl::image
         asset.header.vendor_version = UMBF_VERSION;
         asset.header.spec_version = UMBF_VERSION;
         asset.header.type_sign = ::umbf::sign_block::format::image;
-        asset.header.compressed = up.compression > 0;
+        asset.header.flags = 0;
+        if (up.compression > 0) asset.header.flags |= UMBF_COMPRESSION_PAYLOAD_BIT;
         asset.blocks.push_back(acul::make_shared<::umbf::Image2D>(up.image));
         asset.checksum = up.checksum;
         return asset.save(path, up.compression);

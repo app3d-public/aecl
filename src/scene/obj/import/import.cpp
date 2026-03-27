@@ -152,7 +152,7 @@ namespace aecl::scene::obj
                     target->header.vendor_version = UMBF_VERSION;
                     target->header.type_sign = umbf::sign_block::format::target;
                     target->header.spec_version = UMBF_VERSION;
-                    target->header.compressed = false;
+                    target->header.flags = 0;
                     target->url = base_path;
                     target->checksum = 0;
                     textures.push_back(target);
