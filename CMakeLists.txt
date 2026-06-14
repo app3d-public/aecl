@@ -13,6 +13,8 @@ if(NOT DEFINED ACBT_LOADED)
     include(cmake/utils.cmake)
 endif()
 
+create_symbol_export_file()
+
 add_files(${PROJECT_NAME} RECURSE "${CMAKE_CURRENT_SOURCE_DIR}/src")
 
 if (NOT TARGET acul)
@@ -23,12 +25,15 @@ if (NOT TARGET umbf)
 endif()
 
 add_library(${PROJECT_NAME} SHARED ${AECL_SRC})
-set_target_properties(${PROJECT_NAME} PROPERTIES CXX_VISIBILITY_PRESET hidden)
-target_compile_definitions(${PROJECT_NAME} PRIVATE -DAPPLIB_BUILD)
+set_target_properties(${PROJECT_NAME} PROPERTIES
+    DEFINE_SYMBOL AECL_BUILD
+    CXX_VISIBILITY_PRESET hidden
+)
 target_include_directories(${PROJECT_NAME} PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}/include/"
     "${CMAKE_CURRENT_SOURCE_DIR}/modules/3rd-party/"
     "${CMAKE_CURRENT_SOURCE_DIR}/modules/3rd-party/earcut/include/"
+    "${AECL_CONFIGURE_PATH}"
 )
 
 find_package(PkgConfig)
