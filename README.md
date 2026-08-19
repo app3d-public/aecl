@@ -40,9 +40,9 @@ These are system libraries that must be available at build time:
 
 ### Bundled submodules
 
-- [acbt](https://github.com/app3d-public/acbt)
-- [acul](https://github.com/app3d-public/acul)
-- [umbf](https://github.com/app3d-public/umbf)
+- [acbt](https://repos.wusikijeronii.me/app3d/acbt)
+- [acul](https://repos.wusikijeronii.me/app3d/acul)
+- [umbf](https://repos.wusikijeronii.me/app3d/umbf)
 - [earcut](https://github.com/mapbox/earcut)
 
 ## License

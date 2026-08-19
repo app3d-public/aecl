@@ -1,5 +1,5 @@
 #include <aecl/scene/import.hpp>
-#include <amal/integration/acul/string.hpp>
+#include <amal/string.hpp>
 
 namespace aecl::scene::obj
 {
