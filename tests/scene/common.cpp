@@ -96,40 +96,34 @@ void create_cube_faces(acul::vector<umbf::mesh::Face> &faces)
                 6};
 }
 
-void create_objects(acul::vector<umbf::Object> &objects)
+void create_objects(acul::vector<aecl::Asset> &objects)
 {
     objects.emplace_back();
-    auto &cube = objects.front();
-    cube.name = "cube";
+    auto &cube = objects.back();
+    cube.blocks.push_back(acul::make_shared<umbf::ObjectInfo>(0u, "cube"));
     auto mesh = acul::make_shared<umbf::mesh::Mesh>();
-    auto &model = mesh->model;
+    auto &model = mesh->geometry;
     create_cube_verticles(model.vertices);
     model.indices = {2,  3,  0,  0,  1,  2,  6,  7,  4,  4,  5,  6,  10, 11, 8,  8,  9,  10,
                      14, 15, 12, 12, 13, 14, 18, 19, 16, 16, 17, 18, 22, 23, 20, 20, 21, 22};
     create_cube_faces(model.faces);
     model.group_count = 8;
     model.aabb = {{-100, -100, -100}, {100, 100, 100}};
-    cube.meta.push_back(mesh);
+    cube.blocks.push_back(mesh);
 }
 
-void create_materials(acul::vector<umbf::File> &materials)
+void create_materials(acul::vector<aecl::Asset> &materials)
 {
-    materials.emplace_back();
     auto mat = acul::make_shared<umbf::Material>();
     mat->albedo.textured = true;
     mat->albedo.texture_id = 0;
-    auto meta = acul::make_shared<umbf::MaterialInfo>();
+    auto meta = acul::make_shared<umbf::MaterialBinding>();
     meta->name = "ecl:test:mat_e";
     meta->assignments.push_back(0);
-    materials.emplace_back();
-    auto &asset = materials.back();
-    asset.header.vendor_sign = UMBF_VENDOR_ID;
-    asset.header.vendor_version = UMBF_VERSION;
-    asset.header.spec_version = UMBF_VERSION;
-    asset.header.type_sign = umbf::sign_block::format::material;
-    asset.blocks.push_back(mat);
-    asset.blocks.push_back(meta);
-    materials.push_back(asset);
+    aecl::Asset asset;
+    asset.blocks.push_back(acul::static_pointer_cast<umbf::Block>(mat));
+    asset.blocks.push_back(acul::static_pointer_cast<umbf::Block>(meta));
+    materials.push_back(std::move(asset));
 }
 
 void create_generated_texture(acul::string &tex, const acul::path &tex_folder)

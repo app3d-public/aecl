@@ -1,6 +1,6 @@
 #include <acul/log.hpp>
 #include <aecl/image/export.hpp>
-#include <umbf/utils.hpp>
+#include <umbf/ext/image/utils.hpp>
 #include <umbf/version.h>
 
 namespace aecl::image
@@ -19,7 +19,7 @@ namespace aecl::image
         ::umbf::ImageFormat dst_format = {bp.format.format_types[0], 1};
         if (!is_image_equals(image, dst_format, 3))
         {
-            pixels = ::umbf::utils::convert_image(image, dst_format, 3);
+            pixels = ::umbf::convert_image(image, dst_format, 3);
             tmp = acul::unique_ptr<void>(pixels); // Release on call end
         }
         auto *c_path = path.c_str();
@@ -47,7 +47,7 @@ namespace aecl::image
         {
             if (!is_image_equals(image, dst_format, 3))
             {
-                pixels.emplace_back(::umbf::utils::convert_image(image, dst_format, 3));
+                pixels.emplace_back(::umbf::convert_image(image, dst_format, 3));
                 tmp.emplace_back(pixels.back());
             }
             else pixels.emplace_back(image.pixels);
@@ -90,7 +90,7 @@ namespace aecl::image
         ::umbf::ImageFormat dst_format = {hp.format.format_types[2], 4};
         if (!is_image_equals(hp.image, dst_format, 3))
         {
-            pixels = ::umbf::utils::convert_image(hp.image, dst_format, 3);
+            pixels = ::umbf::convert_image(hp.image, dst_format, 3);
             tmp = acul::unique_ptr<void>(pixels); // Release on call end
         }
         auto *c_path = path.c_str();
@@ -109,7 +109,7 @@ namespace aecl::image
         size_t dst_channels = hp.image.channels.size() > 3 ? 4 : 3;
         if (!is_image_equals(hp.image, dst_format, dst_channels))
         {
-            pixels = ::umbf::utils::convert_image(hp.image, dst_format, dst_channels);
+            pixels = ::umbf::convert_image(hp.image, dst_format, dst_channels);
             tmp = acul::unique_ptr<void>(pixels); // Release on call end
         }
         auto *c_path = path.c_str();
@@ -129,7 +129,7 @@ namespace aecl::image
         ::umbf::ImageFormat dst_format = {jp.format.format_types[0], 1};
         if (!is_image_equals(jp.image, dst_format, 3))
         {
-            pixels = ::umbf::utils::convert_image(jp.image, dst_format, 3);
+            pixels = ::umbf::convert_image(jp.image, dst_format, 3);
             tmp = acul::unique_ptr<void>(pixels); // Release on call end
         }
         auto *c_path = path.c_str();
@@ -170,7 +170,7 @@ namespace aecl::image
         {
             if (!is_image_equals(image, dst_format, image.channels.size()))
             {
-                pixels.emplace_back(::umbf::utils::convert_image(image, dst_format, image.channels.size()));
+                pixels.emplace_back(::umbf::convert_image(image, dst_format, image.channels.size()));
                 tmp.emplace_back(pixels.back());
             }
             else pixels.emplace_back(image.pixels);
@@ -205,7 +205,7 @@ namespace aecl::image
         int dst_channels = pp.image.channels.size() > 3 ? 4 : 3;
         if (!is_image_equals(pp.image, dst_format, dst_channels))
         {
-            pixels = ::umbf::utils::convert_image(pp.image, dst_format, dst_channels);
+            pixels = ::umbf::convert_image(pp.image, dst_format, dst_channels);
             tmp = acul::unique_ptr<void>(pixels); // Release on call end
         }
         auto *c_path = path.c_str();
@@ -230,7 +230,7 @@ namespace aecl::image
         ::umbf::ImageFormat dst_format = {pp.format.format_types[0], 1};
         if (!is_image_equals(pp.image, dst_format, 3))
         {
-            pixels = ::umbf::utils::convert_image(pp.image, dst_format, 3);
+            pixels = ::umbf::convert_image(pp.image, dst_format, 3);
             tmp = acul::unique_ptr<void>(pixels); // Release on call end
         }
         auto *c_path = path.c_str();
@@ -251,7 +251,7 @@ namespace aecl::image
         size_t dst_channels = tp.image.channels.size() > 3 ? 4 : 3;
         if (!is_image_equals(tp.image, dst_format, dst_channels))
         {
-            pixels = ::umbf::utils::convert_image(tp.image, dst_format, dst_channels);
+            pixels = ::umbf::convert_image(tp.image, dst_format, dst_channels);
             tmp = acul::unique_ptr<void>(pixels); // Release on call end
         }
         auto *c_path = path.c_str();
@@ -284,7 +284,7 @@ namespace aecl::image
         {
             if (!is_image_equals(image, dst_format, image.channels.size()))
             {
-                pixels.emplace_back(::umbf::utils::convert_image(image, dst_format, image.channels.size()));
+                pixels.emplace_back(::umbf::convert_image(image, dst_format, image.channels.size()));
                 tmp.emplace_back(pixels.back());
             }
             else pixels.emplace_back(image.pixels);
@@ -318,7 +318,7 @@ namespace aecl::image
         ::umbf::ImageFormat dst_format = {wp.format.format_types[0], 1};
         if (!is_image_equals(wp.image, dst_format, 3))
         {
-            pixels = ::umbf::utils::convert_image(wp.image, dst_format, wp.image.channels.size() > 3 ? 4 : 3);
+            pixels = ::umbf::convert_image(wp.image, dst_format, wp.image.channels.size() > 3 ? 4 : 3);
             tmp = acul::unique_ptr<void>(pixels); // Release on call end
         }
         auto *c_path = path.c_str();
@@ -332,15 +332,15 @@ namespace aecl::image
 
     bool umbf::save(const acul::string &path, Params &up)
     {
-        ::umbf::File asset;
-        asset.header.vendor_sign = UMBF_VENDOR_ID;
-        asset.header.vendor_version = UMBF_VERSION;
-        asset.header.spec_version = UMBF_VERSION;
-        asset.header.type_sign = ::umbf::sign_block::format::image;
-        asset.header.flags = 0;
-        if (up.compression > 0) asset.header.flags |= UMBF_COMPRESSION_PAYLOAD_BIT;
-        asset.blocks.push_back(acul::make_shared<::umbf::Image2D>(up.image));
-        asset.checksum = up.checksum;
-        return asset.save(path, up.compression);
+        ::umbf::WriteDescriptor asset;
+        ::umbf::Header header;
+        header.vendor_sign = UMBF_VENDOR_ID;
+        header.vendor_version = UMBF_VERSION;
+        header.spec_version = UMBF_VERSION;
+        header.type_sign = ::umbf::sign_block::format::image;
+        if (!::umbf::create_write_descriptor(header, asset, up.compression).success()) return false;
+        asset.default_segment_signature = up.compression > 0 ? UMBF_SEGMENT_COMPRESSED_IMAGE : UMBF_SEGMENT_RAW;
+        ::umbf::add_block(asset, &up.image);
+        return ::umbf::save_file(asset, path);
     }
 } // namespace aecl::image

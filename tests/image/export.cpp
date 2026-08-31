@@ -8,11 +8,6 @@ void test_image_export()
 {
     test_environment env;
     create_test_environment(env);
-    umbf::streams::HashResolver meta_resolver;
-    meta_resolver.streams = {
-        {umbf::sign_block::image, &umbf::streams::image},
-    };
-    umbf::streams::resolver = &meta_resolver;
 
     auto p = acul::path(env.data_dir) / "image.umia";
     auto loader = aecl::image::get_importer_by_path(p);
@@ -71,7 +66,19 @@ void test_image_export()
 
     // UMBF
     aecl::image::umbf::Params umbfp{inp};
-    assert(aecl::image::umbf::save(op / "image_export.umia", umbfp));
+    const auto umbf_path = op / "image_export.umia";
+    assert(aecl::image::umbf::save(umbf_path, umbfp));
+    auto umbf_loader = aecl::image::get_importer_by_path(umbf_path);
+    assert(umbf_loader);
+    acul::vector<::umbf::Image2D> restored_images;
+    assert(umbf_loader->load(umbf_path, restored_images));
+    assert(restored_images.size() == 1u);
+    const auto &restored = restored_images.front();
+    assert(restored.width == inp.width && restored.height == inp.height && restored.channels == inp.channels &&
+           restored.format == inp.format && restored.size() == inp.size());
+    assert(std::memcmp(restored.pixels, inp.pixels, inp.size()) == 0);
+    acul::release(restored.pixels);
+    acul::release(umbf_loader);
 
     for (auto &image : images) acul::release(image.pixels);
     acul::release(loader);

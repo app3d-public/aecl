@@ -5,6 +5,8 @@
 #include <acul/string/sstream.hpp>
 #include <aecl/symbol_export.h>
 #include <oneapi/tbb/concurrent_unordered_set.h>
+#include <umbf/ext/material/material.hpp>
+#include <umbf/ext/scene/utils.hpp>
 #include "../export.hpp"
 
 namespace aecl::scene::obj
@@ -27,7 +29,7 @@ namespace aecl::scene::obj
 
     struct MaterialRef
     {
-        acul::shared_ptr<umbf::MaterialInfo> info;
+        acul::shared_ptr<umbf::MaterialBinding> info;
         acul::shared_ptr<umbf::Material> mat;
     };
 
@@ -56,17 +58,17 @@ namespace aecl::scene::obj
         acul::hashmap<u64, MaterialRef> _material_map;
         bool _all_materials_exist = true;
 
-        void write_vertices(umbf::mesh::Model &model, const acul::vector<umbf::mesh::VertexGroup> &groups,
+        void write_vertices(umbf::mesh::Geometry &geometry, const acul::vector<umbf::mesh::VertexGroup> &groups,
                             acul::stringstream &ss);
         void write_faces(umbf::mesh::Mesh *meta, acul::stringstream &os, const acul::vector<u32> &faces);
         void write_triangles(umbf::mesh::Mesh *meta, acul::stringstream &os, const acul::vector<u32> &faces,
                              const acul::vector<umbf::mesh::VertexGroup> &groups);
-        void write_texture(acul::stringstream &os, const acul::string &token, const acul::string &tex);
+        bool write_texture(acul::stringstream &os, const acul::string &token, u64 texture_id);
 
-        void write_material(const acul::shared_ptr<umbf::MaterialInfo> &material_info,
+        bool write_material(const acul::shared_ptr<umbf::MaterialBinding> &material_info,
                             const acul::shared_ptr<umbf::Material> &material, std::ostream &os);
         bool write_mtllib_info(std::ofstream &mtl_stream, acul::stringstream &obj_stream);
-        void write_mtl(std::ofstream &stream);
-        u32 write_object(const umbf::Object &object, acul::stringstream &stream);
+        bool write_mtl(std::ofstream &stream);
+        u32 write_object(const Asset &object, acul::stringstream &stream);
     };
 } // namespace aecl::scene::obj

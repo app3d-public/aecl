@@ -10,11 +10,6 @@ void test_image_import_heif()
 {
     test_environment env;
     create_test_environment(env);
-    umbf::streams::HashResolver meta_resolver;
-    meta_resolver.streams = {
-        {umbf::sign_block::image, &umbf::streams::image},
-    };
-    umbf::streams::resolver = &meta_resolver;
     acul::path p = env.data_dir;
     import_test_image(p / "image.heif");
 }

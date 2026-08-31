@@ -3,7 +3,7 @@
 #include <acul/io/fs/path.hpp>
 #include <aecl/image/import.hpp>
 #include <inttypes.h>
-#include <umbf/utils.hpp>
+#include <umbf/ext/image/utils.hpp>
 
 namespace aecl::image
 {
@@ -64,21 +64,31 @@ namespace aecl::image
 
     bool UMBFLoader::load(const acul::string &path, acul::vector<umbf::Image2D> &images)
     {
-        acul::shared_ptr<umbf::File> asset;
-        auto res = umbf::File::read_from_disk(path, asset);
+        umbf::ReadDescriptor asset;
+        auto res = umbf::create_read_descriptor(path, asset);
         if (!res.success())
         {
             _error = acul::format("Failed to load file. Error code: 0x%016" PRIx64, static_cast<u64>(res));
             return false;
         }
-        _checksum = asset->checksum;
-        if (asset->blocks.empty() || asset->blocks.front()->signature() != umbf::sign_block::image)
+        _checksum = asset.file->checksum;
+        acul::shared_ptr<umbf::Image2D> image;
+        for (auto block = asset.begin(); block != asset.end(); ++block)
+        {
+            if (block->signature != umbf::sign_block::image) continue;
+            auto value = umbf::get_block(block);
+            if (value && value->signature() == umbf::sign_block::image)
+                image = acul::static_pointer_cast<umbf::Image2D>(value);
+            break;
+        }
+        if (!image)
         {
             _error = "Provided file is not an image";
+            umbf::close_map_descriptor(asset);
             return false;
         }
-        auto image = acul::static_pointer_cast<umbf::Image2D>(asset->blocks.front());
         images.push_back(*image);
+        umbf::close_map_descriptor(asset);
         return true;
     }
 

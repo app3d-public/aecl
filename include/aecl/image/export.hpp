@@ -1,7 +1,7 @@
 #pragma once
 
 #include <aecl/symbol_export.h>
-#include <umbf/umbf.hpp>
+#include <umbf/ext/image/image.hpp>
 #include "format.hpp"
 
 namespace aecl::image
@@ -167,7 +167,7 @@ namespace aecl::image
             /*   Compression level for zip/deflate compression,
              * on a scale from 0 (fastest, minimal compression) to 9 (slowest, maximal compression).
              * The default is 6. PNG compression is always lossless.
-             * @param filter Controls the "row filters" that prepare the image for optimal compression.
+             * @param filter Controls the scanline filters that prepare the image for optimal compression.
              * The default is 0 (PNG_NO_FILTERS), but other values
              * (which may be "or-ed" or summed to combine their effects) are 8 (PNG_FILTER_NONE),
              * 16 (PNG_FILTER_SUB), 32 (PNG_FILTER_UP), 64 (PNG_FILTER_AVG), or 128 (PNG_FILTER_PAETH).

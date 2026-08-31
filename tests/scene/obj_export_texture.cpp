@@ -16,15 +16,36 @@ void test_obj_export_texture()
     create_objects(exporter.objects);
     auto mat = acul::make_shared<umbf::MaterialRange>();
     mat->mat_id = 0;
-    exporter.objects.front().meta.push_back(mat);
+    exporter.objects.front().blocks.push_back(acul::static_pointer_cast<umbf::Block>(mat));
 
     create_materials(exporter.materials);
 
     acul::string texture;
     create_default_texture(texture, env.data_dir);
-    exporter.textures.push_back(texture);
+    auto resource = target_texture(texture);
+    exporter.textures.push_back(resource);
 
     auto state = exporter.save();
-    exporter.clear();
     assert(state.success());
+    const auto copied = acul::path(env.output_dir) / "tex" / "export_origin_texture_0.jpg";
+    acul::vector<char> original_bytes, copied_bytes;
+    assert(acul::fs::read_binary(texture, original_bytes));
+    assert(acul::fs::read_binary(copied, copied_bytes));
+    assert(original_bytes == copied_bytes);
+    exporter.textures[0] = target_texture("assets://unresolved/origin.png");
+    assert(!exporter.save().success());
+    assert(exporter.error().find("Unresolved texture target") != acul::string::npos);
+    exporter.textures[0] = resource;
+    exporter.textures[0].blocks.push_back(target_texture(texture).blocks.front());
+    assert(!exporter.save().success());
+    assert(exporter.error().find("Multiple texture targets") != acul::string::npos);
+    exporter.textures.clear();
+    assert(!exporter.save().success());
+    assert(exporter.error().find("Missing texture") != acul::string::npos);
+    exporter.textures.resize(1u);
+    assert(!exporter.save().success());
+    assert(exporter.error().find("Missing texture") != acul::string::npos);
+    exporter.material_flags = MaterialExportFlags::texture_none;
+    assert(exporter.save().success());
+    exporter.clear();
 }

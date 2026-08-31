@@ -2,7 +2,7 @@
 
 #include <amal/geometric.hpp>
 #include <amal/vector.hpp>
-#include <umbf/umbf.hpp>
+#include <umbf/ext/scene/scene.hpp>
 
 namespace aecl
 {

@@ -1,12 +1,14 @@
 #include <acul/io/fs/file.hpp>
 #include <acul/io/fs/path.hpp>
 #include <acul/string/string.hpp>
+#include <aecl/image/export.hpp>
 #include <aecl/scene/obj/export.hpp>
 #include <aecl/status.hpp>
 #include <fstream>
 #include <inttypes.h>
 #include <oneapi/tbb/parallel_for.h>
-#include <umbf/utils.hpp>
+#include <umbf/ext/material/utils.hpp>
+#include "umbf/ext/scene/scene.hpp"
 
 namespace aecl::scene::obj
 {
@@ -20,20 +22,20 @@ namespace aecl::scene::obj
         if (flags & MeshExportFlagBits::transform_swap_yz) std::swap(pos.y, pos.z);
     }
 
-    void Exporter::write_vertices(umbf::mesh::Model &model, const acul::vector<umbf::mesh::VertexGroup> &groups,
+    void Exporter::write_vertices(umbf::mesh::Geometry &geometry, const acul::vector<umbf::mesh::VertexGroup> &groups,
                                   acul::stringstream &ss)
     {
         // v
         for (auto &group : groups)
         {
             auto &vertex_id = group.vertices.front();
-            amal::vec3 &pos = model.vertices[vertex_id].pos;
+            amal::vec3 &pos = geometry.vertices[vertex_id].pos;
             transform_vertex(pos, mesh_flags);
             ss << "v " << pos.x << " " << pos.y << " " << pos.z << "\n";
         }
 
         // vt and vn
-        for (auto &vertex : model.vertices)
+        for (auto &vertex : geometry.vertices)
         {
             if (mesh_flags & MeshExportFlagBits::export_uv)
             {
@@ -52,13 +54,13 @@ namespace aecl::scene::obj
         if ((mesh_flags & MeshExportFlagBits::transform_reverse_x) ||
             (mesh_flags & MeshExportFlagBits::transform_reverse_y) ||
             (mesh_flags & MeshExportFlagBits::transform_reverse_z))
-            for (auto &face : model.faces) std::reverse(face.vertices.begin(), face.vertices.end());
+            for (auto &face : geometry.faces) std::reverse(face.vertices.begin(), face.vertices.end());
     }
 
     void Exporter::write_triangles(umbf::mesh::Mesh *meta, acul::stringstream &os, const acul::vector<u32> &faces,
                                    const acul::vector<umbf::mesh::VertexGroup> &groups)
     {
-        const auto &m = meta->model;
+        const auto &m = meta->geometry;
         acul::vector<u32> positions(m.vertices.size());
         for (size_t g = 0; g < groups.size(); g++)
             for (auto id : groups[g].vertices) positions[id] = g;
@@ -96,7 +98,7 @@ namespace aecl::scene::obj
     {
         size_t thread_count = oneapi::tbb::this_task_arena::max_concurrency();
         acul::vector<acul::stringstream> blocks(thread_count);
-        auto &origin_faces = meta->model.faces;
+        auto &origin_faces = meta->geometry.faces;
         oneapi::tbb::parallel_for(oneapi::tbb::blocked_range<size_t>(0, faces.size()),
                                   [&](const tbb::blocked_range<size_t> &range) {
                                       size_t thread_id = oneapi::tbb::this_task_arena::current_thread_index();
@@ -106,7 +108,7 @@ namespace aecl::scene::obj
                                           for (auto &ref : origin_faces[faces[i]].vertices)
                                           {
                                               blocks[thread_id] << ref.group + 1 << "/";
-                                              auto &vertex = meta->model.vertices[ref.vertex];
+                                              auto &vertex = meta->geometry.vertices[ref.vertex];
                                               if (mesh_flags & MeshExportFlagBits::export_uv)
                                                   blocks[thread_id] << _vt_map[vertex.uv] + 1;
                                               if (mesh_flags & MeshExportFlagBits::export_normals)
@@ -138,16 +140,117 @@ namespace aecl::scene::obj
         os << token << " " << value << "\n";
     }
 
-    void Exporter::write_texture(acul::stringstream &os, const acul::string &token, const acul::string &tex)
+    bool Exporter::write_texture(acul::stringstream &os, const acul::string &token, u64 texture_id)
     {
-        if (material_flags == MaterialExportFlags::texture_origin) os << token << " " << tex << "\n";
-        else if (material_flags == MaterialExportFlags::texture_copy)
+        if (material_flags == MaterialExportFlags::none || material_flags == MaterialExportFlags::texture_none)
+            return true;
+        if (texture_id >= textures.size() || textures[texture_id].blocks.empty())
         {
-            acul::path parent = acul::path(path).parent_path();
-            acul::path tex_path = parent / "tex" / tex;
-            if (acul::fs::copy_file(tex.c_str(), tex_path.str().c_str(), true))
-                os << token << " ./tex/" << tex_path.filename() << "\n";
+            _error = acul::format("Missing texture resource #%" PRIu64, texture_id);
+            return false;
         }
+        acul::shared_ptr<umbf::Image2D> image;
+        acul::shared_ptr<umbf::Target> target;
+        for (const auto &block : textures[texture_id].blocks)
+        {
+            if (!block) continue;
+            if (block->signature() == umbf::sign_block::image)
+            {
+                if (image)
+                {
+                    _error = "Multiple image blocks: prepare a single image for OBJ export";
+                    return false;
+                }
+                image = acul::static_pointer_cast<umbf::Image2D>(block);
+            }
+            else if (block->signature() == umbf::sign_block::target)
+            {
+                if (target)
+                {
+                    _error = "Multiple texture targets: prepare a single target for OBJ export";
+                    return false;
+                }
+                target = acul::static_pointer_cast<umbf::Target>(block);
+            }
+        }
+        const auto output_dir = acul::path(path).parent_path();
+        const auto texture_dir = output_dir / "tex";
+        const auto ensure_texture_dir = [&]() {
+            if (acul::fs::is_directory(texture_dir.str().c_str())) return true;
+            if (acul::fs::create_directory(texture_dir.str().c_str()).success()) return true;
+            _error = "Failed to create texture directory: " + texture_dir.str();
+            return false;
+        };
+        const acul::string basename = acul::format("%s_texture_%" PRIu64, acul::path(path).stem().c_str(), texture_id);
+        if (image)
+        {
+            if (!image->pixels || !image->width || !image->height || image->channels.empty())
+            {
+                _error = "Texture has no prepared pixel data";
+                return false;
+            }
+            if (!ensure_texture_dir()) return false;
+            acul::string filename;
+            bool saved = false;
+            if (image->format.type == umbf::ImageFormat::Type::uint &&
+                (image->format.bytes_per_channel == 1u || image->format.bytes_per_channel == 2u))
+            {
+                filename = basename + ".png";
+                aecl::image::png::Params params(*image);
+                saved = aecl::image::png::save(texture_dir / filename, params, image->format.bytes_per_channel);
+                if (!saved) _error = params.error;
+            }
+            else if (image->format.type == umbf::ImageFormat::Type::sfloat &&
+                     (image->format.bytes_per_channel == 2u || image->format.bytes_per_channel == 4u))
+            {
+                filename = basename + ".exr";
+                acul::vector<umbf::Image2D> layers{*image};
+                aecl::image::openexr::Params params(layers, "zip");
+                saved = aecl::image::openexr::save(texture_dir / filename, params, image->format.bytes_per_channel);
+                if (!saved) _error = params.error;
+            }
+            else _error = "Unsupported prepared texture format for OBJ export";
+            if (!saved)
+            {
+                if (_error.empty()) _error = "Failed to export prepared texture";
+                return false;
+            }
+            os << token << " ./tex/" << filename << "\n";
+            return true;
+        }
+        if (!target || target->url.empty())
+        {
+            _error = "Texture requires prepared pixels or a target";
+            return false;
+        }
+        const acul::path source(target->url);
+        if (source.scheme() != "file")
+        {
+            _error = "Unresolved texture target: " + target->url;
+            return false;
+        }
+        const auto type = aecl::image::get_type_by_extension(source.extension());
+        if (type == aecl::image::Type::umbf || type == aecl::image::Type::unknown)
+        {
+            _error = "Prepare image data before exporting texture target to OBJ: " + target->url;
+            return false;
+        }
+        if (material_flags == MaterialExportFlags::texture_origin)
+        {
+            os << token << " " << source.str() << "\n";
+            return true;
+        }
+        if (!ensure_texture_dir()) return false;
+        const auto filename = basename + source.extension();
+        const auto destination = texture_dir / filename;
+        if (source != destination &&
+            !acul::fs::copy_file(source.str().c_str(), destination.str().c_str(), true).success())
+        {
+            _error = "Failed to copy texture: " + source.str();
+            return false;
+        }
+        os << token << " ./tex/" << filename << "\n";
+        return true;
     }
 
     void write_default_material(std::ofstream &os, bool use_pbr)
@@ -167,17 +270,21 @@ namespace aecl::scene::obj
         os << "\n" << mat_block.str().c_str();
     }
 
-    void Exporter::write_material(const acul::shared_ptr<umbf::MaterialInfo> &material_info,
+    bool Exporter::write_material(const acul::shared_ptr<umbf::MaterialBinding> &material_info,
                                   const acul::shared_ptr<umbf::Material> &material, std::ostream &os)
     {
         acul::stringstream mat_block;
         mat_block << "newmtl " << material_info->name << "\n";
         write_vec3_as_rgb(mat_block, "Ka", {1, 1, 1});
+        if (!material)
+        {
+            _error = "Material target must be resolved before OBJ export";
+            return false;
+        }
         write_vec3_as_rgb(mat_block, "Kd", material->albedo.rgb);
         if (material->albedo.textured)
         {
-            auto &tex = textures[material->albedo.texture_id];
-            write_texture(mat_block, "map_Kd", tex);
+            if (!write_texture(mat_block, "map_Kd", material->albedo.texture_id)) return false;
         }
         write_vec3_as_rgb(mat_block, "Ks", {1, 1, 1});
         write_number(mat_block, "Ns", 80);
@@ -188,6 +295,7 @@ namespace aecl::scene::obj
         }
         write_number(mat_block, "illum", 7);
         os << "\n" << mat_block.str().c_str();
+        return true;
     }
 
     bool Exporter::write_mtllib_info(std::ofstream &mtl_stream, acul::stringstream &obj_stream)
@@ -210,9 +318,11 @@ namespace aecl::scene::obj
 
         for (auto &material : Exporter::materials)
         {
+            if (material.blocks.empty()) continue;
             acul::shared_ptr<umbf::Material> ptr;
-            for (auto &block : material.blocks)
+            for (const auto &block : material.blocks)
             {
+                if (!block) continue;
                 switch (block->signature())
                 {
                     case umbf::sign_block::material:
@@ -220,7 +330,7 @@ namespace aecl::scene::obj
                         break;
                     case umbf::sign_block::material_info:
                     {
-                        auto info = acul::static_pointer_cast<umbf::MaterialInfo>(block);
+                        auto info = acul::static_pointer_cast<umbf::MaterialBinding>(block);
                         _material_map[info->id] = {info, ptr};
                     }
                     break;
@@ -232,12 +342,27 @@ namespace aecl::scene::obj
         return true;
     }
 
-    u32 Exporter::write_object(const umbf::Object &object, acul::stringstream &stream)
+    u32 Exporter::write_object(const aecl::Asset &object, acul::stringstream &stream)
     {
+        acul::shared_ptr<umbf::ObjectInfo> descriptor;
+        for (const auto &block : object.blocks)
+        {
+            if (block && block->signature() == umbf::sign_block::object_info)
+            {
+                descriptor = acul::static_pointer_cast<umbf::ObjectInfo>(block);
+                break;
+            }
+        }
+        if (!descriptor)
+        {
+            _error = "Scene object descriptor block not found";
+            return AECL_OP_CODE_MESH_ERROR;
+        }
         acul::shared_ptr<umbf::mesh::Mesh> mesh;
         acul::vector<acul::shared_ptr<umbf::MaterialRange>> assignes;
-        for (auto &block : object.meta)
+        for (const auto &block : object.blocks)
         {
+            if (!block) continue;
             switch (block->signature())
             {
                 case umbf::sign_block::mesh:
@@ -250,21 +375,21 @@ namespace aecl::scene::obj
         }
         if (!mesh)
         {
-            _error = acul::format("Mesh block not found in object: 0x%" PRIx64, object.id);
+            _error = acul::format("Mesh block not found in object: 0x%" PRIx64, descriptor->id);
             return AECL_OP_CODE_MESH_ERROR;
         }
         acul::vector<umbf::mesh::VertexGroup> vertex_groups;
-        umbf::utils::mesh::fill_vertex_groups(mesh->model, vertex_groups);
-        if (obj_flags & ObjExportFlagBits::object_policy_groups) stream << "g " << object.name << "\n";
-        else if (obj_flags & ObjExportFlagBits::object_policy_objects) stream << "o " << object.name << "\n";
-        auto &model = mesh->model;
-        write_vertices(model, vertex_groups, stream);
+        umbf::mesh::fill_vertex_groups(mesh->geometry, vertex_groups);
+        if (obj_flags & ObjExportFlagBits::object_policy_groups) stream << "g " << descriptor->name << "\n";
+        else if (obj_flags & ObjExportFlagBits::object_policy_objects) stream << "o " << descriptor->name << "\n";
+        auto &geometry = mesh->geometry;
+        write_vertices(geometry, vertex_groups, stream);
         acul::vector<acul::shared_ptr<umbf::MaterialRange>> assignes_attr;
         auto default_mat_id_it =
             std::find_if(assignes.begin(), assignes.end(),
                          [](const acul::shared_ptr<umbf::MaterialRange> &range) { return range->faces.empty(); });
         u64 default_mat_id = default_mat_id_it == assignes.end() ? 0 : (*default_mat_id_it)->mat_id;
-        umbf::utils::filter_mat_assignments(assignes, model.faces.size(), default_mat_id, assignes_attr);
+        umbf::filter_material_assignments(assignes, geometry.faces.size(), default_mat_id, assignes_attr);
         u32 op_code = 0;
         for (auto &assign : assignes_attr)
         {
@@ -294,30 +419,38 @@ namespace aecl::scene::obj
         return op_code;
     }
 
-    void Exporter::write_mtl(std::ofstream &stream)
+    bool Exporter::write_mtl(std::ofstream &stream)
     {
-        if (!stream) return;
+        if (material_flags == MaterialExportFlags::none) return true;
+        if (!stream) return false;
         if (!_all_materials_exist) write_default_material(stream, obj_flags & ObjExportFlagBits::materials_pbr);
         for (auto it = _material_map.begin(); it != _material_map.end(); it++)
         {
             auto &ref = it->second;
-            write_material(ref.info, ref.mat, stream);
+            if (!write_material(ref.info, ref.mat, stream)) return false;
         }
         stream.close();
+        return !stream.fail();
     }
 
     acul::op_result Exporter::save()
     {
         _error.clear();
+        _material_map.clear();
+        _vt_map.clear();
+        _vn_map.clear();
+        _all_materials_exist = true;
         acul::stringstream ss;
         ss << "# App3D ECL OBJ Exporter\n";
         std::ofstream mtl_stream;
         u32 op_code = write_mtllib_info(mtl_stream, ss) ? 0 : AECL_OP_CODE_MATERIAL_ERROR;
-        for (auto &object : objects) op_code |= write_object(object, ss);
+        for (auto &object : objects)
+            if (!object.blocks.empty()) op_code |= write_object(object, ss);
 
         auto wr = acul::fs::write_by_block(path, ss.str().c_str(), 1024 * 1024);
         if (!wr.success()) return wr;
-        write_mtl(mtl_stream);
+        if (!write_mtl(mtl_stream))
+            return acul::op_result(ACUL_OP_WRITE_ERROR, AECL_OP_DOMAIN, AECL_OP_CODE_MATERIAL_ERROR);
         return acul::op_result(ACUL_OP_SUCCESS, AECL_OP_DOMAIN, op_code);
     }
 } // namespace aecl::scene::obj

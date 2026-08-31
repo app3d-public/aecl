@@ -1,7 +1,7 @@
 #pragma once
 
 #include <aecl/symbol_export.h>
-#include <umbf/umbf.hpp>
+#include <umbf/ext/image/image.hpp>
 #include "format.hpp"
 
 namespace aecl::image

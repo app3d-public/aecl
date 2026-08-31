@@ -1,9 +1,11 @@
 # App3D Extended Content Loader
 
-**AECL** is a C++ library for importing and exporting images and 3D scenes, developed as part of the App3D project.  
-Its purpose is to provide a unified interface for asset I/O, ensure seamless integration with other App3D modules, and meet the project's performance and data fidelity requirements.
+**AECL** is a C++ library for importing and exporting images and 3D scenes through a unified interface.   
+UMBF data structures are used as an intermediate representation for imported and exported assets. AECL does not implement the full UMBF feature set and uses an eager data model.
 
-Unlike direct use of third-party libraries, AECL operates on native App3D data structures, ensuring that assets — whether images, geometry, or entire scenes — are exported exactly as represented internally.
+## Limitations
+- Memory-mapped access is not supported.
+- Nested UMBF containers are not supported.
 
 ## Supported Formats
 

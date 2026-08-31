@@ -7,9 +7,12 @@
 #include <aecl/scene/utils.hpp>
 #include <aecl/status.hpp>
 #include <oneapi/tbb/parallel_sort.h>
+#include <umbf/ext/image/image.hpp>
+#include <umbf/ext/material/material.hpp>
 #include <umbf/version.h>
 #include "geom.cpp_"
 #include "mat.cpp_"
+#include "umbf/umbf.hpp"
 
 namespace aecl::scene::obj
 {
@@ -45,7 +48,8 @@ namespace aecl::scene::obj
     }
 
     void add_vertex_to_face(const ParseDataRead &data, u32 vertex_group_id, u32 current,
-                            acul::hl_hashmap<amal::ivec3, u32> &vtn_map, const amal::ivec3 &vtn, Model &m, Face &face)
+                            acul::hl_hashmap<amal::ivec3, u32> &vtn_map, const amal::ivec3 &vtn, Geometry &m,
+                            Face &face)
     {
         auto [it, inserted] = vtn_map.emplace(vtn, vtn_map.size());
         if (inserted)
@@ -62,7 +66,7 @@ namespace aecl::scene::obj
     }
 
     void add_vertex_to_face(const ParseDataRead &data, u32 vertex_group_id, u32 current,
-                            acul::vector<VertexGroup> &groups, const amal::ivec3 &vtn, Model &m, Face &face)
+                            acul::vector<VertexGroup> &groups, const amal::ivec3 &vtn, Geometry &m, Face &face)
     {
         Vertex vertex{data.v[current].value};
         if (vtn.y != 0 && (int)data.vt.size() > vtn.y) vertex.uv = data.vt[vtn.y - 1].value;
@@ -89,7 +93,7 @@ namespace aecl::scene::obj
         const bool use_normals = !data.vn.empty();
         if (use_normals) vtn_map.reserve(data.v.size());
         else vertex_groups.resize(data.v.size());
-        auto &m = group.mesh->model;
+        auto &m = group.mesh->geometry;
         m.faces.resize(face_count);
         acul::vector<int> pos_map(data.v.size(), -1);
         for (size_t f = 0; f < face_count; ++f)
@@ -127,9 +131,8 @@ namespace aecl::scene::obj
     }
 
     void convert_to_materials(const acul::string &base_path, const acul::vector<Material> &mtl_list,
-                              acul::hl_hashmap<acul::string, int> &mat_map,
-                              acul::vector<acul::shared_ptr<umbf::File>> &materials,
-                              acul::vector<acul::shared_ptr<umbf::Target>> &textures)
+                              acul::hl_hashmap<acul::string, int> &mat_map, acul::vector<Asset> &materials,
+                              acul::vector<Asset> &images)
     {
         acul::hl_hashmap<acul::string, size_t> tex_map;
         mat_map.reserve(mtl_list.size());
@@ -144,29 +147,28 @@ namespace aecl::scene::obj
             else
             {
                 acul::string parsed_path = acul::fs::replace_filename(base_path, mtl.map_Kd.path);
-                auto [it, inserted] = tex_map.insert({parsed_path, textures.size()});
+                auto [it, inserted] = tex_map.insert({parsed_path, images.size()});
                 if (inserted)
                 {
                     auto target = acul::make_shared<umbf::Target>();
                     target->header.vendor_sign = UMBF_VENDOR_ID;
                     target->header.vendor_version = UMBF_VERSION;
-                    target->header.type_sign = umbf::sign_block::format::target;
+                    target->header.type_sign = umbf::sign_block::format::image;
                     target->header.spec_version = UMBF_VERSION;
-                    target->header.flags = 0;
-                    target->url = base_path;
+                    target->url = parsed_path;
                     target->checksum = 0;
-                    textures.push_back(target);
+                    images.emplace_back();
+                    auto &image = images.back();
+                    create_asset_structure(image, umbf::sign_block::format::target);
+                    image.blocks.push_back(target);
                 }
                 mat->albedo.textured = true;
                 mat->albedo.texture_id = it->second;
             }
-            materials[i] = acul::make_shared<umbf::File>();
-            materials[i]->header.vendor_sign = UMBF_VENDOR_ID;
-            materials[i]->header.vendor_version = UMBF_VERSION;
-            materials[i]->header.spec_version = UMBF_VERSION;
-            materials[i]->header.type_sign = umbf::sign_block::format::material;
-            materials[i]->blocks.push_back(mat);
-            materials[i]->blocks.push_back(acul::make_shared<umbf::MaterialInfo>(generator(), mat_it->first));
+            auto &mat_rc = materials[i];
+            create_asset_structure(mat_rc, umbf::sign_block::format::material);
+            mat_rc.blocks.push_back(mat);
+            mat_rc.blocks.push_back(acul::make_shared<umbf::MaterialBinding>(generator(), mat_it->first));
         }
     }
 
@@ -214,8 +216,7 @@ namespace aecl::scene::obj
         const ParseDataRead &data, const acul::vector<GroupRange> &groups,
         const acul::hl_hashmap<acul::string, int> &mat_map,
         // out
-        acul::vector<acul::shared_ptr<umbf::File>> &materials, acul::vector<acul::vector<u32>> &ranges,
-        acul::string &error)
+        acul::vector<Asset> &materials, acul::vector<acul::vector<u32>> &ranges, acul::string &error)
     {
         if (data.use_mtl.size() == 0) return;
         int um_id = 0;
@@ -236,16 +237,27 @@ namespace aecl::scene::obj
                         error = acul::format("Can't find material in library: %s", data.use_mtl[um_id].value.c_str());
                     else
                     {
-                        auto meta = materials[it->second]->blocks;
-                        auto m_it = std::find_if(meta.begin(), meta.end(), [](auto &block) {
-                            return block->signature() == umbf::sign_block::material_info;
-                        });
-                        if (m_it == meta.end())
+                        auto &material = materials[it->second];
+                        if (material.blocks.empty())
                         {
-                            error = "Can't find material info block";
+                            error = "Material resource is empty";
                             continue;
                         }
-                        auto assignments = acul::static_pointer_cast<umbf::MaterialInfo>(*m_it)->assignments;
+                        acul::shared_ptr<umbf::MaterialBinding> binding;
+                        for (const auto &block : material.blocks)
+                        {
+                            if (block && block->signature() == umbf::sign_block::material_info)
+                            {
+                                binding = acul::static_pointer_cast<umbf::MaterialBinding>(block);
+                                break;
+                            }
+                        }
+                        if (!binding)
+                        {
+                            error = "Material binding block is missing";
+                            continue;
+                        }
+                        auto &assignments = binding->assignments;
                         if (std::find(assignments.begin(), assignments.end(), g) == assignments.end())
                             assignments.push_back(g);
                     }
@@ -256,7 +268,7 @@ namespace aecl::scene::obj
 
     void assign_ranges_to_objects(ParseDataRead &data, const acul::vector<acul::vector<u32>> &ranges,
                                   acul::hl_hashmap<acul::string, int> &mat_map, const acul::vector<GroupRange> &groups,
-                                  acul::vector<umbf::Object> &objects)
+                                  acul::vector<Asset> &objects)
     {
         for (size_t gr = 0; gr < ranges.size(); ++gr)
         {
@@ -279,7 +291,7 @@ namespace aecl::scene::obj
                         meta->mat_id = it->second;
                         for (; f < (int)data.f.size() && data.f[f].index < m_next; ++f)
                             meta->faces.push_back(f - group.start_index);
-                        objects[gr].meta.push_back(meta);
+                        objects[gr].blocks.push_back(meta);
                     }
                 }
             }
@@ -323,7 +335,7 @@ namespace aecl::scene::obj
         {
             const size_t face_count = group.range_end - group.start_index;
             group.mesh = acul::make_shared<Mesh>();
-            auto &m = group.mesh->model;
+            auto &m = group.mesh->geometry;
             index_mesh(face_count, _ctx->data, group);
             acul::vector<acul::vector<u32>> ires(face_count);
             oneapi::tbb::parallel_for(oneapi::tbb::blocked_range<size_t>(0, face_count),
@@ -341,8 +353,11 @@ namespace aecl::scene::obj
                 m.indices.insert(m.indices.end(), ires[i].begin(), ires[i].end());
                 current_id += ires[i].size();
             }
-            _objects.emplace_back(acul::id_gen()(), group.name);
-            _objects.back().meta.push_back(group.mesh);
+            _objects.emplace_back();
+            auto &object = _objects.back();
+            create_asset_structure(object, umbf::sign_block::format::scene_object);
+            object.blocks.push_back(acul::make_shared<umbf::ObjectInfo>(acul::id_gen()(), group.name));
+            object.blocks.push_back(group.mesh);
         }
     }
 
@@ -359,7 +374,7 @@ namespace aecl::scene::obj
         }
         acul::hl_hashmap<acul::string, int> mat_map;
         acul::vector<acul::vector<u32>> face_mat_ranges;
-        convert_to_materials(_path, mtl_materials, mat_map, _materials, _textures);
+        convert_to_materials(_path, mtl_materials, mat_map, _materials, _images);
         assign_materials_to_groups(_ctx->data, _ctx->groups, mat_map, _materials, face_mat_ranges, _error);
         assign_ranges_to_objects(_ctx->data, face_mat_ranges, mat_map, _ctx->groups, _objects);
         return acul::make_op_success();
