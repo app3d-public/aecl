@@ -84,11 +84,11 @@ namespace aecl::image
         if (!image)
         {
             _error = "Provided file is not an image";
-            umbf::close_map_descriptor(asset);
+            umbf::close_read_descriptor(asset);
             return false;
         }
         images.push_back(*image);
-        umbf::close_map_descriptor(asset);
+        umbf::close_read_descriptor(asset);
         return true;
     }
 
