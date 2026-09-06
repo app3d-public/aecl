@@ -100,7 +100,7 @@ void create_objects(acul::vector<aecl::Asset> &objects)
 {
     objects.emplace_back();
     auto &cube = objects.back();
-    cube.blocks.push_back(acul::make_shared<umbf::ObjectInfo>(0u, "cube"));
+    cube.blocks.push_back(acul::make_unique<umbf::ObjectInfo>(0u, "cube"));
     auto mesh = acul::make_shared<umbf::mesh::Mesh>();
     auto &model = mesh->geometry;
     create_cube_verticles(model.vertices);
@@ -109,7 +109,7 @@ void create_objects(acul::vector<aecl::Asset> &objects)
     create_cube_faces(model.faces);
     model.group_count = 8;
     model.aabb = {{-100, -100, -100}, {100, 100, 100}};
-    cube.blocks.push_back(mesh);
+    cube.blocks.push_back(acul::make_unique<umbf::mesh::Mesh>(*mesh));
 }
 
 void create_materials(acul::vector<aecl::Asset> &materials)
@@ -121,8 +121,8 @@ void create_materials(acul::vector<aecl::Asset> &materials)
     meta->name = "ecl:test:mat_e";
     meta->assignments.push_back(0);
     aecl::Asset asset;
-    asset.blocks.push_back(acul::static_pointer_cast<umbf::Block>(mat));
-    asset.blocks.push_back(acul::static_pointer_cast<umbf::Block>(meta));
+    asset.blocks.push_back(acul::make_unique<umbf::Material>(*mat));
+    asset.blocks.push_back(acul::make_unique<umbf::MaterialBinding>(*meta));
     materials.push_back(std::move(asset));
 }
 

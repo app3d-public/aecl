@@ -8,7 +8,7 @@ namespace aecl
     struct Asset
     {
         umbf::Header header;
-        acul::vector<acul::shared_ptr<umbf::Block>> blocks;
+        acul::vector<acul::unique_ptr<umbf::Block>> blocks;
     };
 
     inline void create_asset_structure(Asset &asset, u32 type_sign)

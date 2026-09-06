@@ -20,9 +20,9 @@ inline aecl::Asset target_texture(const acul::string &url)
 {
     aecl::Asset resource;
     resource.header.type_sign = umbf::sign_block::format::target;
-    auto target = acul::make_shared<umbf::Target>();
+    auto target = acul::make_unique<umbf::Target>();
     target->header.type_sign = umbf::sign_block::format::image;
     target->url = url;
-    resource.blocks.push_back(target);
+    resource.blocks.push_back(std::move(target));
     return resource;
 }

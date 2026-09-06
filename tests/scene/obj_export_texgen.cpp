@@ -18,7 +18,7 @@ void test_obj_export_texgen()
     create_objects(exporter.objects);
     auto mat = acul::make_shared<umbf::MaterialRange>();
     mat->mat_id = 0;
-    exporter.objects.front().blocks.push_back(acul::static_pointer_cast<umbf::Block>(mat));
+    exporter.objects.front().blocks.push_back(acul::make_unique<umbf::MaterialRange>(*mat));
 
     create_materials(exporter.materials);
 
@@ -38,8 +38,8 @@ void test_obj_export_texgen()
     image->pixels = pixels;
     aecl::Asset embedded;
     embedded.header.type_sign = umbf::sign_block::format::image;
-    embedded.blocks.push_back(image);
-    exporter.textures[0] = embedded;
+    embedded.blocks.push_back(acul::make_unique<umbf::Image2D>(*image));
+    exporter.textures[0] = std::move(embedded);
     assert(exporter.save().success());
     auto *loader = aecl::image::get_importer_by_path(path / "tex" / "export_origin_texture_0.png");
     assert(loader);
@@ -47,6 +47,6 @@ void test_obj_export_texgen()
     assert(loader->load(path / "tex" / "export_origin_texture_0.png", restored));
     assert(restored.size() == 1u && restored[0].size() == sizeof(pixels));
     assert(std::memcmp(restored[0].pixels, pixels, sizeof(pixels)) == 0);
-    for (auto &layer : restored) acul::release(static_cast<char *>(layer.pixels));
+    for (auto &layer : restored) layer.release_pixels();
     acul::release(loader);
 }

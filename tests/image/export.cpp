@@ -77,9 +77,9 @@ void test_image_export()
     assert(restored.width == inp.width && restored.height == inp.height && restored.channels == inp.channels &&
            restored.format == inp.format && restored.size() == inp.size());
     assert(std::memcmp(restored.pixels, inp.pixels, inp.size()) == 0);
-    acul::release(restored.pixels);
+    restored_images.front().release_pixels();
     acul::release(umbf_loader);
 
-    for (auto &image : images) acul::release(image.pixels);
+    for (auto &image : images) image.release_pixels();
     acul::release(loader);
 }

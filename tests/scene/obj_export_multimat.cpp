@@ -17,8 +17,8 @@ void create_multi_materials(acul::vector<aecl::Asset> &materials, u64 object_id,
         meta->id = generator();
         materials_ids[0] = meta->id;
         meta->assignments.push_back(object_id);
-        materials[0].blocks.push_back(acul::static_pointer_cast<umbf::Block>(mat));
-        materials[0].blocks.push_back(acul::static_pointer_cast<umbf::Block>(meta));
+        materials[0].blocks.push_back(acul::make_unique<umbf::Material>(*mat));
+        materials[0].blocks.push_back(acul::make_unique<umbf::MaterialBinding>(*meta));
     }
     {
         auto mat = acul::make_shared<umbf::Material>();
@@ -30,8 +30,8 @@ void create_multi_materials(acul::vector<aecl::Asset> &materials, u64 object_id,
         meta->id = generator();
         materials_ids[1] = meta->id;
         meta->assignments.push_back(object_id);
-        materials[1].blocks.push_back(acul::static_pointer_cast<umbf::Block>(mat));
-        materials[1].blocks.push_back(acul::static_pointer_cast<umbf::Block>(meta));
+        materials[1].blocks.push_back(acul::make_unique<umbf::Material>(*mat));
+        materials[1].blocks.push_back(acul::make_unique<umbf::MaterialBinding>(*meta));
     }
 }
 
@@ -52,7 +52,7 @@ void test_obj_export_multimat()
     for (const auto &block : exporter.objects.front().blocks)
         if (block && block->signature() == umbf::sign_block::object_info)
         {
-            object = acul::static_pointer_cast<umbf::ObjectInfo>(block);
+            object = acul::make_shared<umbf::ObjectInfo>(*static_cast<umbf::ObjectInfo *>(block.get()));
             break;
         }
     assert(object);
@@ -64,14 +64,14 @@ void test_obj_export_multimat()
     mat0->faces.resize(2);
     mat0->faces[0] = 2;
     mat0->faces[1] = 3;
-    exporter.objects.front().blocks.push_back(acul::static_pointer_cast<umbf::Block>(mat0));
+    exporter.objects.front().blocks.push_back(acul::make_unique<umbf::MaterialRange>(*mat0));
 
     auto mat1 = acul::make_shared<umbf::MaterialRange>();
     mat1->mat_id = materials_ids[1];
     mat1->faces.resize(2);
     mat1->faces[0] = 4;
     mat1->faces[1] = 5;
-    exporter.objects.front().blocks.push_back(acul::static_pointer_cast<umbf::Block>(mat1));
+    exporter.objects.front().blocks.push_back(acul::make_unique<umbf::MaterialRange>(*mat1));
 
     auto state = exporter.save();
     exporter.clear();

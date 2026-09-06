@@ -72,13 +72,13 @@ namespace aecl::image
             return false;
         }
         _checksum = asset.file->checksum;
-        acul::shared_ptr<umbf::Image2D> image;
+        acul::unique_ptr<umbf::Image2D> image;
         for (auto block = asset.begin(); block != asset.end(); ++block)
         {
             if (block->signature != umbf::sign_block::image) continue;
             auto value = umbf::get_block(block);
             if (value && value->signature() == umbf::sign_block::image)
-                image = acul::static_pointer_cast<umbf::Image2D>(value);
+                image = acul::unique_ptr<umbf::Image2D>(static_cast<umbf::Image2D *>(value.release()));
             break;
         }
         if (!image)
@@ -87,7 +87,7 @@ namespace aecl::image
             umbf::close_read_descriptor(asset);
             return false;
         }
-        images.push_back(*image);
+        images.push_back(std::move(*image));
         umbf::close_read_descriptor(asset);
         return true;
     }

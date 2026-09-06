@@ -18,7 +18,7 @@ void test_obj_import()
 
     const auto &object = importer.objects().at(0u);
     assert(!importer.objects().at(0u).blocks.empty());
-    assert(object.header.type_sign == umbf::sign_block::format::scene_object);
+    assert(object.header.type_sign == umbf::sign_block::format::none);
     assert(object.blocks.size() == 2u);
     bool has_object = false;
     bool has_mesh = false;
@@ -45,18 +45,15 @@ void test_obj_import()
 
     assert(importer.images().empty());
 
-    // Resource copies own their block list but share the actual blocks.
-    auto retained = object;
-    assert(retained.blocks.front().get() == object.blocks.front().get());
-    auto independent = retained;
-    independent.blocks.clear();
+    // Imported resources have one owner and can be transferred without cloning their blocks.
+    auto retained = std::move(importer.objects().at(0u));
     assert(!retained.blocks.empty());
 
     importer.clear();
     assert(importer.objects().size() == 0u);
     assert(importer.images().size() == 0u);
     assert(importer.materials().size() == 0u);
-    assert(retained.header.type_sign == umbf::sign_block::format::scene_object);
+    assert(retained.header.type_sign == umbf::sign_block::format::none);
     assert(retained.blocks.size() == 2u);
     for (const auto &block : retained.blocks) assert(block && block->signature());
 }

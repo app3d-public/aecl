@@ -16,14 +16,14 @@ void test_obj_export_texture()
     create_objects(exporter.objects);
     auto mat = acul::make_shared<umbf::MaterialRange>();
     mat->mat_id = 0;
-    exporter.objects.front().blocks.push_back(acul::static_pointer_cast<umbf::Block>(mat));
+    exporter.objects.front().blocks.push_back(acul::make_unique<umbf::MaterialRange>(*mat));
 
     create_materials(exporter.materials);
 
     acul::string texture;
     create_default_texture(texture, env.data_dir);
     auto resource = target_texture(texture);
-    exporter.textures.push_back(resource);
+    exporter.textures.push_back(std::move(resource));
 
     auto state = exporter.save();
     assert(state.success());
@@ -35,8 +35,9 @@ void test_obj_export_texture()
     exporter.textures[0] = target_texture("assets://unresolved/origin.png");
     assert(!exporter.save().success());
     assert(exporter.error().find("Unresolved texture target") != acul::string::npos);
-    exporter.textures[0] = resource;
-    exporter.textures[0].blocks.push_back(target_texture(texture).blocks.front());
+    exporter.textures[0] = target_texture(texture);
+    auto target_asset = target_texture(texture);
+    exporter.textures[0].blocks.push_back(std::move(target_asset.blocks.front()));
     assert(!exporter.save().success());
     assert(exporter.error().find("Multiple texture targets") != acul::string::npos);
     exporter.textures.clear();

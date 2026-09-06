@@ -29,8 +29,8 @@ namespace aecl::scene::obj
 
     struct MaterialRef
     {
-        acul::shared_ptr<umbf::MaterialBinding> info;
-        acul::shared_ptr<umbf::Material> mat;
+        umbf::MaterialBinding *info = nullptr;
+        umbf::Material *mat = nullptr;
     };
 
     // OBJ file exporter
@@ -65,8 +65,8 @@ namespace aecl::scene::obj
                              const acul::vector<umbf::mesh::VertexGroup> &groups);
         bool write_texture(acul::stringstream &os, const acul::string &token, u64 texture_id);
 
-        bool write_material(const acul::shared_ptr<umbf::MaterialBinding> &material_info,
-                            const acul::shared_ptr<umbf::Material> &material, std::ostream &os);
+        bool write_material(const umbf::MaterialBinding *material_info, const umbf::Material *material,
+                            std::ostream &os);
         bool write_mtllib_info(std::ofstream &mtl_stream, acul::stringstream &obj_stream);
         bool write_mtl(std::ofstream &stream);
         u32 write_object(const Asset &object, acul::stringstream &stream);

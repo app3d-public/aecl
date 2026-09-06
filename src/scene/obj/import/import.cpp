@@ -30,7 +30,7 @@ namespace aecl::scene::obj
         int start_index;
         int range_end;
         acul::string name;
-        acul::shared_ptr<Mesh> mesh;
+        acul::unique_ptr<Mesh> mesh;
     };
 
     amal::vec3 calculate_normal(const ParseDataRead &data, const acul::vector<amal::ivec3> &__restrict in_face)
@@ -142,7 +142,7 @@ namespace aecl::scene::obj
         {
             auto &mtl = mtl_list[i];
             auto [mat_it, is_mat_inserted] = mat_map.emplace(mtl.name, i);
-            auto mat = acul::make_shared<umbf::Material>();
+            auto mat = acul::make_unique<umbf::Material>();
             if (mtl.map_Kd.path.empty()) mat->albedo.rgb = mtl.Kd.value;
             else
             {
@@ -150,7 +150,7 @@ namespace aecl::scene::obj
                 auto [it, inserted] = tex_map.insert({parsed_path, images.size()});
                 if (inserted)
                 {
-                    auto target = acul::make_shared<umbf::Target>();
+                    auto target = acul::make_unique<umbf::Target>();
                     target->header.vendor_sign = UMBF_VENDOR_ID;
                     target->header.vendor_version = UMBF_VERSION;
                     target->header.type_sign = umbf::sign_block::format::image;
@@ -160,15 +160,15 @@ namespace aecl::scene::obj
                     images.emplace_back();
                     auto &image = images.back();
                     create_asset_structure(image, umbf::sign_block::format::target);
-                    image.blocks.push_back(target);
+                    image.blocks.push_back(std::move(target));
                 }
                 mat->albedo.textured = true;
                 mat->albedo.texture_id = it->second;
             }
             auto &mat_rc = materials[i];
             create_asset_structure(mat_rc, umbf::sign_block::format::material);
-            mat_rc.blocks.push_back(mat);
-            mat_rc.blocks.push_back(acul::make_shared<umbf::MaterialBinding>(generator(), mat_it->first));
+            mat_rc.blocks.push_back(std::move(mat));
+            mat_rc.blocks.push_back(acul::make_unique<umbf::MaterialBinding>(generator(), mat_it->first));
         }
     }
 
@@ -243,12 +243,12 @@ namespace aecl::scene::obj
                             error = "Material resource is empty";
                             continue;
                         }
-                        acul::shared_ptr<umbf::MaterialBinding> binding;
+                        umbf::MaterialBinding *binding = nullptr;
                         for (const auto &block : material.blocks)
                         {
                             if (block && block->signature() == umbf::sign_block::material_info)
                             {
-                                binding = acul::static_pointer_cast<umbf::MaterialBinding>(block);
+                                binding = static_cast<umbf::MaterialBinding *>(block.get());
                                 break;
                             }
                         }
@@ -287,11 +287,11 @@ namespace aecl::scene::obj
                         for (; f < (int)data.f.size() && data.f[f].index < m_next; ++f);
                     else
                     {
-                        auto meta = acul::make_shared<umbf::MaterialRange>();
+                        auto meta = acul::make_unique<umbf::MaterialRange>();
                         meta->mat_id = it->second;
                         for (; f < (int)data.f.size() && data.f[f].index < m_next; ++f)
                             meta->faces.push_back(f - group.start_index);
-                        objects[gr].blocks.push_back(meta);
+                        objects[gr].blocks.push_back(std::move(meta));
                     }
                 }
             }
@@ -334,7 +334,7 @@ namespace aecl::scene::obj
         for (auto &group : _ctx->groups)
         {
             const size_t face_count = group.range_end - group.start_index;
-            group.mesh = acul::make_shared<Mesh>();
+            group.mesh = acul::make_unique<Mesh>();
             auto &m = group.mesh->geometry;
             index_mesh(face_count, _ctx->data, group);
             acul::vector<acul::vector<u32>> ires(face_count);
@@ -355,9 +355,9 @@ namespace aecl::scene::obj
             }
             _objects.emplace_back();
             auto &object = _objects.back();
-            create_asset_structure(object, umbf::sign_block::format::scene_object);
-            object.blocks.push_back(acul::make_shared<umbf::ObjectInfo>(acul::id_gen()(), group.name));
-            object.blocks.push_back(group.mesh);
+            create_asset_structure(object, umbf::sign_block::format::none);
+            object.blocks.push_back(acul::make_unique<umbf::ObjectInfo>(acul::id_gen()(), group.name));
+            object.blocks.push_back(std::move(group.mesh));
         }
     }
 

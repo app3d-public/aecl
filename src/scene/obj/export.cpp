@@ -149,8 +149,8 @@ namespace aecl::scene::obj
             _error = acul::format("Missing texture resource #%" PRIu64, texture_id);
             return false;
         }
-        acul::shared_ptr<umbf::Image2D> image;
-        acul::shared_ptr<umbf::Target> target;
+        umbf::Image2D *image = nullptr;
+        umbf::Target *target = nullptr;
         for (const auto &block : textures[texture_id].blocks)
         {
             if (!block) continue;
@@ -161,7 +161,7 @@ namespace aecl::scene::obj
                     _error = "Multiple image blocks: prepare a single image for OBJ export";
                     return false;
                 }
-                image = acul::static_pointer_cast<umbf::Image2D>(block);
+                image = static_cast<umbf::Image2D *>(block.get());
             }
             else if (block->signature() == umbf::sign_block::target)
             {
@@ -170,7 +170,7 @@ namespace aecl::scene::obj
                     _error = "Multiple texture targets: prepare a single target for OBJ export";
                     return false;
                 }
-                target = acul::static_pointer_cast<umbf::Target>(block);
+                target = static_cast<umbf::Target *>(block.get());
             }
         }
         const auto output_dir = acul::path(path).parent_path();
@@ -270,8 +270,8 @@ namespace aecl::scene::obj
         os << "\n" << mat_block.str().c_str();
     }
 
-    bool Exporter::write_material(const acul::shared_ptr<umbf::MaterialBinding> &material_info,
-                                  const acul::shared_ptr<umbf::Material> &material, std::ostream &os)
+    bool Exporter::write_material(const umbf::MaterialBinding *material_info, const umbf::Material *material,
+                                  std::ostream &os)
     {
         acul::stringstream mat_block;
         mat_block << "newmtl " << material_info->name << "\n";
@@ -319,18 +319,18 @@ namespace aecl::scene::obj
         for (auto &material : Exporter::materials)
         {
             if (material.blocks.empty()) continue;
-            acul::shared_ptr<umbf::Material> ptr;
+            umbf::Material *ptr = nullptr;
             for (const auto &block : material.blocks)
             {
                 if (!block) continue;
                 switch (block->signature())
                 {
                     case umbf::sign_block::material:
-                        ptr = acul::static_pointer_cast<umbf::Material>(block);
+                        ptr = static_cast<umbf::Material *>(block.get());
                         break;
                     case umbf::sign_block::material_info:
                     {
-                        auto info = acul::static_pointer_cast<umbf::MaterialBinding>(block);
+                        auto *info = static_cast<umbf::MaterialBinding *>(block.get());
                         _material_map[info->id] = {info, ptr};
                     }
                     break;
@@ -344,12 +344,12 @@ namespace aecl::scene::obj
 
     u32 Exporter::write_object(const aecl::Asset &object, acul::stringstream &stream)
     {
-        acul::shared_ptr<umbf::ObjectInfo> descriptor;
+        umbf::ObjectInfo *descriptor = nullptr;
         for (const auto &block : object.blocks)
         {
             if (block && block->signature() == umbf::sign_block::object_info)
             {
-                descriptor = acul::static_pointer_cast<umbf::ObjectInfo>(block);
+                descriptor = static_cast<umbf::ObjectInfo *>(block.get());
                 break;
             }
         }
@@ -358,7 +358,7 @@ namespace aecl::scene::obj
             _error = "Scene object descriptor block not found";
             return AECL_OP_CODE_MESH_ERROR;
         }
-        acul::shared_ptr<umbf::mesh::Mesh> mesh;
+        umbf::mesh::Mesh *mesh = nullptr;
         acul::vector<acul::shared_ptr<umbf::MaterialRange>> assignes;
         for (const auto &block : object.blocks)
         {
@@ -366,10 +366,11 @@ namespace aecl::scene::obj
             switch (block->signature())
             {
                 case umbf::sign_block::mesh:
-                    mesh = acul::static_pointer_cast<umbf::mesh::Mesh>(block);
+                    mesh = static_cast<umbf::mesh::Mesh *>(block.get());
                     break;
                 case umbf::sign_block::material_range:
-                    assignes.push_back(acul::static_pointer_cast<umbf::MaterialRange>(block));
+                    assignes.push_back(acul::make_shared<umbf::MaterialRange>(
+                        *static_cast<umbf::MaterialRange *>(block.get())));
                     break;
             }
         }
@@ -413,8 +414,8 @@ namespace aecl::scene::obj
                 }
             }
             if (mesh_flags & MeshExportFlagBits::export_triangulated)
-                write_triangles(mesh.get(), stream, assign->faces, vertex_groups);
-            else write_faces(mesh.get(), stream, assign->faces);
+                write_triangles(mesh, stream, assign->faces, vertex_groups);
+            else write_faces(mesh, stream, assign->faces);
         }
         return op_code;
     }
