@@ -34,7 +34,7 @@ namespace aecl::scene::obj
     };
 
     // OBJ file exporter
-    class Exporter final : public IExporter
+    class AECL_CLASS_EXPORT Exporter final : public IExporter
     {
     public:
         ObjExportFlags obj_flags;
@@ -58,17 +58,17 @@ namespace aecl::scene::obj
         acul::hashmap<u64, MaterialRef> _material_map;
         bool _all_materials_exist = true;
 
-        void write_vertices(umbf::mesh::Geometry &geometry, const acul::vector<umbf::mesh::VertexGroup> &groups,
+        AECL_NO_EXPORT void write_vertices(umbf::mesh::Geometry &geometry, const acul::vector<umbf::mesh::VertexGroup> &groups,
                             acul::stringstream &ss);
-        void write_faces(umbf::mesh::Mesh *meta, acul::stringstream &os, const acul::vector<u32> &faces);
-        void write_triangles(umbf::mesh::Mesh *meta, acul::stringstream &os, const acul::vector<u32> &faces,
+        AECL_NO_EXPORT void write_faces(umbf::mesh::Mesh *meta, acul::stringstream &os, const acul::vector<u32> &faces);
+        AECL_NO_EXPORT void write_triangles(umbf::mesh::Mesh *meta, acul::stringstream &os, const acul::vector<u32> &faces,
                              const acul::vector<umbf::mesh::VertexGroup> &groups);
-        bool write_texture(acul::stringstream &os, const acul::string &token, u64 texture_id);
+        AECL_NO_EXPORT bool write_texture(acul::stringstream &os, const acul::string &token, u64 texture_id);
 
-        bool write_material(const umbf::MaterialBinding *material_info, const umbf::Material *material,
+        AECL_NO_EXPORT bool write_material(const umbf::MaterialBinding *material_info, const umbf::Material *material,
                             std::ostream &os);
-        bool write_mtllib_info(std::ofstream &mtl_stream, acul::stringstream &obj_stream);
-        bool write_mtl(std::ofstream &stream);
-        u32 write_object(const Asset &object, acul::stringstream &stream);
+        AECL_NO_EXPORT bool write_mtllib_info(std::ofstream &mtl_stream, acul::stringstream &obj_stream);
+        AECL_NO_EXPORT bool write_mtl(std::ofstream &stream);
+        AECL_NO_EXPORT u32 write_object(const Asset &object, acul::stringstream &stream);
     };
 } // namespace aecl::scene::obj

@@ -11,7 +11,7 @@ namespace aecl::scene::obj
      * @brief Load the scene
      * @return Read state result
      **/
-    class Importer : public ILoader
+    class AECL_CLASS_EXPORT Importer : public ILoader
     {
     public:
         Importer(const acul::string &filename) : ILoader(filename) {};
