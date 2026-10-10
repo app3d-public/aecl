@@ -39,7 +39,7 @@ namespace aecl
                 const char *token = line.data();
                 if (token[0] == 'v')
                 {
-                    if (isspace(token[1]))
+                    if (acul::is_space(token[1]))
                     {
                         token += 2;
                         amal::vec3 v;
@@ -100,7 +100,7 @@ namespace aecl
                             vtn->emplace_back(v_id, vt_id, vn_id);
 
                             // Skip spaces
-                            while (isspace(*token)) ++token;
+                            while (acul::is_space(*token)) ++token;
                         }
                         else break;
                     }

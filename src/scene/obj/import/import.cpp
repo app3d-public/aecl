@@ -3,6 +3,7 @@
 #include <acul/io/fs/file.hpp>
 #include <acul/io/fs/path.hpp>
 #include <acul/string/string_view_pool.hpp>
+#include <amal/common.hpp>
 #include <aecl/scene/obj/import.hpp>
 #include <aecl/scene/utils.hpp>
 #include <aecl/status.hpp>
@@ -35,14 +36,16 @@ namespace aecl::scene::obj
 
     amal::vec3 calculate_normal(const ParseDataRead &data, const acul::vector<amal::ivec3> &__restrict in_face)
     {
+        if (in_face.empty()) return {};
         amal::vec3 normal{0.0f};
-        for (size_t v = 0; v < in_face.size(); ++v)
+        const amal::vec3 *previous = &data.v[in_face.back().x - 1].value;
+        for (const auto &ref : in_face)
         {
-            amal::vec3 current = data.v[in_face[v].x - 1].value;
-            amal::vec3 next = data.v[in_face[(v + 1) % in_face.size()].x - 1].value;
-            normal.x += (current.y - next.y) * (current.z + next.z);
-            normal.y += (current.z - next.z) * (current.x + next.x);
-            normal.z += (current.x - next.x) * (current.y + next.y);
+            const auto &current = data.v[ref.x - 1].value;
+            normal.x = amal::fma(previous->y - current.y, previous->z + current.z, normal.x);
+            normal.y = amal::fma(previous->z - current.z, previous->x + current.x, normal.y);
+            normal.z = amal::fma(previous->x - current.x, previous->y + current.y, normal.z);
+            previous = &current;
         }
         return amal::normalize(normal);
     }

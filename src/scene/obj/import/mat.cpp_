@@ -284,7 +284,7 @@ namespace aecl::scene::obj
 
     void process_enable_flag(const char *&token, bool &dst)
     {
-        while (isspace(*token)) ++token;
+        while (acul::is_space(*token)) ++token;
         if (strncmp(token, "on", 2) == 0)
         {
             dst = true;
@@ -302,7 +302,7 @@ namespace aecl::scene::obj
         bool path_processed = false;
         do
         {
-            while (isspace(*token)) ++token;
+            while (acul::is_space(*token)) ++token;
 
             if (token[0] == '-')
             {
@@ -315,7 +315,7 @@ namespace aecl::scene::obj
                 else if (token[0] == 's') acul::stov3_opt(token += 2, dst.scale);
                 else if (token[0] == 't')
                 {
-                    if (isspace(token[1])) acul::stov3_opt(token += 2, dst.turbulence);
+                    if (acul::is_space(token[1])) acul::stov3_opt(token += 2, dst.turbulence);
                     else if (strncmp(token, "texres", 6) == 0) acul::stoi(token += 7, dst.resolution);
                     else if (strncmp(token, "type", 4) == 0) dst.type = acul::strip_controls(token += 5);
                 }
@@ -324,7 +324,7 @@ namespace aecl::scene::obj
                 else if (strncmp(token, "imfchan", 7) == 0)
                 {
                     token += 8;
-                    while (isspace(*token)) ++token;
+                    while (acul::is_space(*token)) ++token;
                     dst.imfchan = token[0];
                     ++token;
                 }
@@ -341,7 +341,7 @@ namespace aecl::scene::obj
     bool process_mtl_color_option(const char *&token, ColorOption &dst)
     {
         ColorOption color_option;
-        while (isspace(*token)) ++token;
+        while (acul::is_space(*token)) ++token;
         if (!isdigit(*token))
         {
             if (strncmp(token, "xyz", 3) == 0)
@@ -428,13 +428,13 @@ namespace aecl::scene::obj
             else if (token[1] == 's') acul::stof(token += 3, materials[mat_index].Ps);
             else if (token[1] == 'c')
             {
-                if (isspace(token[2])) acul::stof(token += 3, materials[mat_index].Pc);
+                if (acul::is_space(token[2])) acul::stof(token += 3, materials[mat_index].Pc);
                 else if (token[2] == 'r') acul::stof(token += 4, materials[mat_index].Pcr);
             }
         }
         else if (strncmp(token, "aniso", 5) == 0)
         {
-            if (isspace(token[5])) acul::stof(token += 6, materials[mat_index].aniso);
+            if (acul::is_space(token[5])) acul::stof(token += 6, materials[mat_index].aniso);
             else if (token[5] == 'r') acul::stof(token += 7, materials[mat_index].anisor);
         }
         else if (strncmp(token, "norm", 4) == 0) process_mtl_texture_option(token += 5, materials[mat_index].norm);

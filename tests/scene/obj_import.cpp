@@ -22,13 +22,18 @@ void test_obj_import()
     assert(object.blocks.size() == 2u);
     bool has_object = false;
     bool has_mesh = false;
+    const umbf::mesh::Mesh *mesh = nullptr;
     for (const auto &block : object.blocks)
     {
         assert(block);
         has_object |= block->signature() == umbf::sign_block::object_info;
         has_mesh |= block->signature() == umbf::sign_block::mesh;
+        if (block->signature() == umbf::sign_block::mesh) mesh = static_cast<const umbf::mesh::Mesh *>(block.get());
     }
     assert(has_object && has_mesh);
+    // All six quads must produce two triangles. Front and back have normals
+    // parallel to Z and guard the projection-basis regression.
+    assert(mesh && mesh->geometry.indices.size() == 36u);
 
     auto &material_rc = importer.materials().at(0u);
     assert(material_rc.header.type_sign == umbf::sign_block::format::material);
